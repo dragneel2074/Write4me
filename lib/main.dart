@@ -22,8 +22,8 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return  MaterialApp(
       theme: AppThemes.lightTheme, // Use light theme
-      darkTheme: AppThemes.darkTheme, // Use dark theme
-      themeMode: ThemeMode.system, // Use system theme mode
+      // darkTheme: AppThemes.darkTheme, // Use dark theme
+      // themeMode: ThemeMode.system, // Use system theme mode
       home:  const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );

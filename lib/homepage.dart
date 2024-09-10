@@ -71,7 +71,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enhanced Write4Me'),
+        title: const Text('Write4Me'),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.add),
@@ -113,7 +113,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildHeader() {
     return Image.asset(
-      'assets/images/playstore.png',
+      'assests/images/playstore.png',
       width: 150,
       height: 150,
       fit: BoxFit.contain,

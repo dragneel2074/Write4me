@@ -17,20 +17,25 @@ class PDFList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 20),
-        const Text(
+        
+        Wrap(
+          spacing: 8,
+          children: pdfMemories.map((memory) => Column(
+            children: [
+              const Text(
           'Selected PDFs',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          children: pdfMemories.map((memory) => FilterChip(
-            label: Text(memory.pdfName),
-            selected: memory.isSelected,
-            onSelected: (bool selected) {
-              memory.isSelected = selected;
-              onSelectionChanged();
-            },
+              FilterChip(
+                label: Text(memory.pdfName),
+                selected: memory.isSelected,
+                onSelected: (bool selected) {
+                  memory.isSelected = selected;
+                  onSelectionChanged();
+                },
+              ),
+            ],
           )).toList(),
         ),
       ],

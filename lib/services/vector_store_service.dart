@@ -3,7 +3,7 @@ import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 
 class VectorStoreService {
-  final String openAIApiKey = dotenv.env['API_KEY'] ?? '';
+  final String openAIApiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
 
   Future<MemoryVectorStore> createVectorStore(String content) async {
     MemoryVectorStore vectorStore = MemoryVectorStore(

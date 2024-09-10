@@ -4,7 +4,7 @@ import 'package:langchain_openai/langchain_openai.dart';
 import '../models/pdf_memory.dart';
 
 class AIService {
-  final String openAIApiKey = dotenv.env['API_KEY'] ?? '';
+  final String openAIApiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
    
   Future<String> getResponse(String question, List<PDFMemory> selectedMemories) async {
     String combinedContext = '';
