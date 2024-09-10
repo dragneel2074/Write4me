@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:write4me/API/api.dart';
-import 'package:write4me/components/button_box.dart';
-import 'package:write4me/components/dropdown.dart';
-import 'package:write4me/components/option_chips.dart';
-import 'package:write4me/components/static.dart';
+
+import 'components/button_box.dart';
+import 'components/pdf_list.dart';
+import 'components/topic_selection.dart';
+import 'models/pdf_memory.dart';
+import 'services/ai_service.dart';
+import 'services/pdf_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,88 +15,95 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-
-  final api = API();
-
+  final List<PDFMemory> _pdfMemories = [];
   final TextEditingController _controller = TextEditingController();
   String _response = '';
   bool _isLoading = false;
-  String selectedSource = 'Source 1'; 
+  final PDFService _pdfService = PDFService();
+  final AIService _aiService = AIService();
 
-  final List<String> _sources = [
-    'Source 1', 
-    'Source 2', 
-    'Source 3'
-  ];
-
-  void _submitTopic() async {
-    
-    setState(() {
-      _isLoading = true;
-    });
-
-    String response = '';
-
-    if (selectedSource == 'Source 1') {
-      response = await api.fetchResponse1(_controller.text);
-    } else if (selectedSource == 'Source 2') {
-      response = await api.fetchResponse2(_controller.text, "openchat/openchat-7b");
-    } else if (selectedSource == 'Source 3') {
-      response = await api.fetchResponse2(
-        _controller.text, 
-        "mistralai/mistral-7b-instruct:free"
-      );
+  Future<void> _pickPDFAndCreateRAG() async {
+    try {
+      PDFMemory? newMemory = await _pdfService.pickAndProcessPDF();
+      if (newMemory != null) {
+        setState(() {
+          _pdfMemories.add(newMemory);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF processed: ${newMemory.pdfName}')),
+        );
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error processing PDF: ${e.toString()}');
     }
-
-    setState(() {
-      _response = response;
-      _isLoading = false; 
-    });
-
   }
 
-  void _selectExample(String example) {
+  Future<void> _submitTopic() async {
     setState(() {
-      _controller.text = example;
+      _isLoading = true;
+      _response = '';
     });
+
+    try {
+      String question = _controller.text;
+      if (question.isEmpty) {
+        throw Exception('Please enter a question');
+      }
+
+      List<PDFMemory> selectedMemories = _pdfMemories.where((memory) => memory.isSelected).toList();
+      _response = await _aiService.getResponse(question, selectedMemories);
+    } catch (e) {
+      _showErrorSnackBar(e.toString());
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    ScreenSize.init(context);
     return Scaffold(
       appBar: AppBar(
-      title: const Text('Start Writing'),
-      centerTitle: true,
-    ),
+        title: const Text('Enhanced Write4Me'),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.add),
+          onPressed: _pickPDFAndCreateRAG,
+          tooltip: 'Add PDF',
+        ),
+      ),
       body: _buildBody(),
     );
   }
 
- 
-
-  Widget _buildBody( ) {
-    
+  Widget _buildBody() {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             _buildHeader(),
-             SizedBox(height: ScreenSize.height * 0.1,),
-            _buildTopicSection(),
-            
-            _buildExamplesSection(), 
-            _buildSubmitButton(),
-                     SizedBox(
-          height: ScreenSize.height * 0.01,
-        ),
-
-            if (_isLoading)
-              const CircularProgressIndicator()
-            else
-              Container(),
-            if (!_isLoading && _response.isNotEmpty)
+            const SizedBox(height: 20),
+            TopicSection(controller: _controller),
+            PDFList(
+              pdfMemories: _pdfMemories,
+              onSelectionChanged: () => setState(() {}),
+            ),
+            ElevatedButton(
+              onPressed: _submitTopic,
+              child: const Text('Go'),
+            ),
+            const SizedBox(height: 20),
+            if (_isLoading) 
+              const CircularProgressIndicator() 
+            else if (_response.isNotEmpty)
               ResponseBox(response: _response),
           ],
         ),
@@ -104,71 +113,10 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildHeader() {
     return Image.asset(
-      'assests/images/playstore.png', 
-      width: ScreenSize.width * 0.4, 
-      height: ScreenSize.height * 0.25, 
-      fit: BoxFit.cover,
+      'assets/images/playstore.png',
+      width: 150,
+      height: 150,
+      fit: BoxFit.contain,
     );
   }
-
-  Widget _buildTopicSection() {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Topic',
-              style: TextStyle(
-                fontSize: 24, 
-                fontWeight: FontWeight.bold
-              ),
-            ),
-            _buildSourceDropdown()  
-          ],
-        ),
-         SizedBox(height: ScreenSize.height * 0.03),
-        TextField(
-          controller: _controller,
-          decoration: const InputDecoration(
-            hintText: 'Enter text',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 10),
-          ),
-          keyboardType: TextInputType.multiline,
-          maxLines: 3, 
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSourceDropdown() {
-    return SourceDropdown(
-      selectedSource: selectedSource,
-      onChanged: (newValue) {
-        setState(() {
-          selectedSource = newValue!;
-        });
-      },
-      sources: _sources,
-    );
-  }
-
-  Widget _buildExamplesSection() {
-    return Column(
-      children: [
-        SizedBox(height: ScreenSize.height * 0.03),
-        OptionChips(onSelectExample: _selectExample),
-         SizedBox(height: ScreenSize.height * 0.03),
-      ],
-    );
-  }
-
-  Widget _buildSubmitButton() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _submitTopic,
-      child: const Text('Go'),
-    );
-  }
-
 }

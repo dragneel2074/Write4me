@@ -15,6 +15,7 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
+
 class _MyAppState extends State<MyApp> {
   
   @override
@@ -23,7 +24,8 @@ class _MyAppState extends State<MyApp> {
       theme: AppThemes.lightTheme, // Use light theme
       darkTheme: AppThemes.darkTheme, // Use dark theme
       themeMode: ThemeMode.system, // Use system theme mode
-      home:  const SplashScreen()
+      home:  const SplashScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 

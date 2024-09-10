@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:write4me/components/static.dart';
 
 class CopyBox extends StatelessWidget {
-  CopyBox({
+  const CopyBox({
     super.key,
     required String response,
   }) : _response = response;
