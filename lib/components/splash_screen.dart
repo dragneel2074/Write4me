@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     return Scaffold(
       body: Center(
-        child: Image.asset('assests/images/playstore.png',
+        child: Image.asset('assets/images/playstore.png',
         height: myWidgetHeight * 0.5,
         width: myWidgetWidth * 0.7,
         ),

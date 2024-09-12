@@ -19,7 +19,7 @@ class PDFService {
       String pdfName = result.files.first.name;
       String pdfContent = await _extractPDFContent(result);
       var vectorStore = await _vectorStoreService.createVectorStore(pdfContent);
-      return PDFMemory(pdfName, vectorStore, isSelected: true);
+      return PDFMemory(pdfName, vectorStore,pdfContent, isSelected: true);
     }
     return null;
   }

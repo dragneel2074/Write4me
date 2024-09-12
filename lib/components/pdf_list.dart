@@ -1,44 +1,37 @@
 import 'package:flutter/material.dart';
-import '../models/pdf_memory.dart';
+import 'package:write4me/models/pdf_memory.dart';
 
 class PDFList extends StatelessWidget {
   final List<PDFMemory> pdfMemories;
   final VoidCallback onSelectionChanged;
+  final Function(PDFMemory) onLongPress;
 
   const PDFList({
-    super.key,
+    Key? key,
     required this.pdfMemories,
     required this.onSelectionChanged,
-  });
+    required this.onLongPress,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 20),
-        
-        Wrap(
-          spacing: 8,
-          children: pdfMemories.map((memory) => Column(
-            children: [
-              const Text(
-          'Selected PDFs',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-              FilterChip(
-                label: Text(memory.pdfName),
-                selected: memory.isSelected,
-                onSelected: (bool selected) {
-                  memory.isSelected = selected;
-                  onSelectionChanged();
-                },
-              ),
-            ],
-          )).toList(),
-        ),
-      ],
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: pdfMemories.length,
+      itemBuilder: (context, index) {
+        final memory = pdfMemories[index];
+        return ListTile(
+          title: Text(memory.pdfName),
+          leading: Checkbox(
+            value: memory.isSelected,
+            onChanged: (bool? value) {
+              memory.isSelected = value ?? false;
+              onSelectionChanged();
+            },
+          ),
+          onLongPress: () => onLongPress(memory),
+        );
+      },
     );
   }
 }
