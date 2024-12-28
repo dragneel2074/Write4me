@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:write4me/services/web_service.dart';
 import 'package:write4me/services/image_service.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:http/http.dart' as http;
 import 'components/button_box.dart';
 import 'components/pdf_list.dart';
 import 'components/topic_selection.dart';
@@ -82,19 +83,13 @@ class _HomePageState extends State<HomePage> {
           _isLoading = false;
         });
         
-        if (newMemory != null) {
-          setState(() {
-            _pdfMemories.add(newMemory);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Web content processed: ${newMemory.pdfName}')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to process web content')),
-          );
-        }
-      }
+        setState(() {
+          _pdfMemories.add(newMemory!);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Web content processed: ${newMemory?.pdfName}')),
+        );
+            }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -163,19 +158,13 @@ class _HomePageState extends State<HomePage> {
           _isLoading = false;
         });
         
-        if (newMemory != null) {
-          setState(() {
-            _pdfMemories.add(newMemory);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Image content processed: ${newMemory.pdfName}')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to process image content')),
-          );
-        }
-      }
+        setState(() {
+          _pdfMemories.add(newMemory!);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image content processed: ${newMemory?.pdfName}')),
+        );
+            }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -256,21 +245,108 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Write4Me'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.add),
-          onPressed: _showAddOptions,
-          tooltip: 'Add Content',
-        ),
-      ),
-      body: _buildBody(),
+void _onSubmitApiKey(BuildContext context, String apiKey) async {
+  bool isValid = await validateApiKey(apiKey);
+  if (isValid) {
+    // Save the key to shared preferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('openai_api_key', apiKey);
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('API Key saved successfully!')),
+    );
+  } else {
+    // Show error message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Invalid API Key. Please try again.')),
     );
   }
+}
+
+
+
+void _promptForApiKey() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final TextEditingController _apiKeyController = TextEditingController();
+
+        return AlertDialog(
+          title: const Text('Enter OpenAI API Key'),
+          content: TextField(
+            controller: _apiKeyController,
+            decoration: const InputDecoration(
+              labelText: 'API Key',
+              hintText: 'Enter your OpenAI API key here',
+            ),
+            obscureText: true, // For security
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final apiKey = _apiKeyController.text;
+                if (apiKey.isNotEmpty) {
+                  _onSubmitApiKey(context, apiKey); // Validate and save the API key
+                  Navigator.of(context).pop(); // Close the dialog
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('API Key cannot be empty')),
+                  );
+                }
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+Future<bool> validateApiKey(String apiKey) async {
+  final url = Uri.parse('https://api.openai.com/v1/engines');
+  try {
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $apiKey',
+      },
+    );
+    return response.statusCode == 200;
+  } catch (e) {
+    return false; // Handle network errors or unexpected issues
+  }
+}
+
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Write4Me'),
+      centerTitle: true,
+      leading: IconButton(
+        icon: const Icon(Icons.file_copy),
+        onPressed: _showAddOptions,
+        tooltip: 'Add Content',
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.key),
+          onPressed: _promptForApiKey,
+          tooltip: 'Key Action',
+        ),
+      ],
+    ),
+    body: _buildBody(),
+  );
+}
+
 
   Widget _buildBody() {
     return Center(

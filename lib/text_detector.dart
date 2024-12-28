@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -52,7 +51,7 @@ class _TextDetectorPageState extends State<TextDetectorPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Text Detector'),
+        title: const Text('Text Detector'),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -60,20 +59,20 @@ class _TextDetectorPageState extends State<TextDetectorPage> {
             if (_image != null)
               ImageUtils.imageFromXFile(_image!)
             else
-              Placeholder(fallbackHeight: 200),
-            SizedBox(height: 20),
+              const Placeholder(fallbackHeight: 200),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => _getImage(ImageSource.gallery),
-              child: Text('Pick Image from Gallery'),
+              child: const Text('Pick Image from Gallery'),
             ),
             ElevatedButton(
               onPressed: () => _getImage(ImageSource.camera),
-              child: Text('Take Picture'),
+              child: const Text('Take Picture'),
             ),
-            SizedBox(height: 20),
-            Text('Recognized Text:'),
+            const SizedBox(height: 20),
+            const Text('Recognized Text:'),
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Text(_recognizedText),
             ),
           ],

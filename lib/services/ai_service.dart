@@ -1,13 +1,22 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import '../models/pdf_memory.dart';
 
 class AIService {
-  final String openAIApiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
-   
+  Future<String> _getOpenAIApiKey() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? apiKey = prefs.getString('openai_api_key');
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception('OpenAI API key is not set in SharedPreferences.');
+    }
+    return apiKey;
+  }
+
   Future<String> getResponse(String question, List<PDFMemory> selectedMemories) async {
+    String openAIApiKey = await _getOpenAIApiKey();
     String combinedContext = '';
+
     if (selectedMemories.isNotEmpty) {
       List<Document> allRelevantDocs = await _getRelevantDocuments(selectedMemories, question);
       combinedContext = allRelevantDocs.map((d) => d.pageContent).join('\n\n');

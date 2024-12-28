@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:write4me/components/app_theme.dart';
-import 'package:write4me/components/splash_screen.dart';
 import 'package:write4me/homepage.dart';
-import 'package:write4me/text_detector.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env.production");

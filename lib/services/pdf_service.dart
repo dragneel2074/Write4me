@@ -29,8 +29,7 @@ class PDFService {
       return _extractTextFromPDFBytes(result.files.first.bytes!);
     } else {
       String? filePath = result.files.single.path;
-      if (filePath == null) throw Exception('File path is null');
-      return _extractTextFromPDF(filePath);
+      return _extractTextFromPDF(filePath!);
     }
   }
 
