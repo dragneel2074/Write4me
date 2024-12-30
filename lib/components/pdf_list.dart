@@ -26,13 +26,13 @@ class PDFList extends StatelessWidget {
         final isLongText = wordCount > 700;
 
         return ListTile(
-          title: Text(memory.pdfName),
+          title: Text(memory.pdfName, style: const TextStyle(fontSize: 10),),
           subtitle: isLongText
               ? Text(
                   'Warning: Only first 700 words will be used',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
-                    fontSize: 12,
+                    fontSize: 8,
                   ),
                 )
               : null,

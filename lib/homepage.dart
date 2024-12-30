@@ -8,6 +8,10 @@ import 'models/chat_message.dart';
 import 'package:provider/provider.dart';
 import 'theme/theme_provider.dart';
 import 'services/image_generation_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'services/web_service.dart';
+import 'services/image_service.dart';
+import 'services/notification_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,6 +30,9 @@ class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
   final ImageGenerationService _imageGenService = ImageGenerationService();
   bool _isImageMode = false;
+  bool _isInternetMode = false;
+  final WebService _webService = WebService();
+  final ImageService _imageService = ImageService();
 
   @override
   void dispose() {
@@ -95,10 +102,16 @@ class _HomePageState extends State<HomePage> {
           _isImageMode = false;
         });
       } else {
-        // Handle text generation
+        // Get last 6 messages for context
+        final recentHistory = _messages.length > 6
+            ? _messages.sublist(_messages.length - 6)
+            : _messages;
+
         final response = await _aiService.getResponse(
           userMessage,
           _pdfMemories.where((memory) => memory.isSelected).toList(),
+          useInternet: _isInternetMode,
+          history: recentHistory,
         );
 
         setState(() {
@@ -136,11 +149,27 @@ class _HomePageState extends State<HomePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildOptionTile(
+              icon: Icons.web,
+              title: 'Web URL',
+              onTap: () {
+                Navigator.pop(context);
+                _processWebContent();
+              },
+            ),
+            _buildOptionTile(
               icon: Icons.file_copy,
               title: 'Files',
               onTap: () {
                 Navigator.pop(context);
                 _pickPDFAndCreateRAG();
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.image,
+              title: 'Image',
+              onTap: () {
+                Navigator.pop(context);
+                _processImageContent();
               },
             ),
           ],
@@ -166,15 +195,22 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _addContent(PDFMemory memory) {
+    setState(() {
+      _pdfMemories.add(memory);
+      // Disable internet mode when content is added
+      _isInternetMode = false;
+    });
+  }
+
   Future<void> _pickPDFAndCreateRAG() async {
     try {
       PDFMemory? newMemory = await _pdfService.pickAndProcessPDF();
       if (newMemory != null) {
-        setState(() {
-          _pdfMemories.add(newMemory);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF processed: ${newMemory.pdfName}')),
+        _addContent(newMemory);
+        NotificationService.showTopNotification(
+          context,
+          message: 'PDF processed: ${newMemory.pdfName}',
         );
       }
     } catch (e) {
@@ -183,8 +219,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    NotificationService.showTopNotification(
+      context,
+      message: message,
+      isError: true,
     );
   }
 
@@ -239,6 +277,93 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _pdfMemories.remove(document);
     });
+  }
+
+  Future<void> _processWebContent() async {
+    final url = await _showURLInputDialog();
+    if (url != null) {
+      try {
+        PDFMemory? webMemory = await _webService.processWebContent(url);
+        if (webMemory != null) {
+          _addContent(webMemory);
+          NotificationService.showTopNotification(
+            context,
+            message: 'Web content processed: ${webMemory.pdfName}',
+          );
+        }
+      } catch (e) {
+        _showErrorSnackBar('Error processing web content: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<String?> _showURLInputDialog() async {
+    final TextEditingController urlController = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enter URL'),
+        content: TextField(
+          controller: urlController,
+          decoration: const InputDecoration(
+            hintText: 'https://example.com',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, urlController.text),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processImageContent() async {
+    final source = await _showImageSourceDialog();
+    if (source != null) {
+      try {
+        PDFMemory? imageMemory =
+            await _imageService.processImageContent(source);
+        if (imageMemory != null) {
+          _addContent(imageMemory);
+          NotificationService.showTopNotification(
+            context,
+            message: 'Image content processed: ${imageMemory.pdfName}',
+          );
+        }
+      } catch (e) {
+        _showErrorSnackBar('Error processing image: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Image Source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -306,13 +431,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(10),
             child: Column(
               children: [
                 if (_pdfMemories.isNotEmpty)
                   Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(1),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
@@ -327,57 +452,134 @@ class _HomePageState extends State<HomePage> {
                       onRemove: _removeDocument,
                     ),
                   ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: _showAddOptions,
-                      tooltip: 'Add content',
+                TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    hintText: _isImageMode
+                        ? 'Describe the image you want to generate...'
+                        : _isInternetMode
+                            ? 'Ask anything to search the internet...'
+                            : 'Type your message...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        decoration: InputDecoration(
-                          hintText: _isImageMode
-                              ? 'Describe the image you want to generate...'
-                              : 'Type your message...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: Theme.of(context).colorScheme.surface,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
-                        ),
-                        maxLines: null,
-                        textInputAction: TextInputAction.newline,
-                        onSubmitted: (_) => _submitMessage(),
-                      ),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.image_outlined),
-                      onPressed: () {
-                        setState(() {
-                          _isImageMode = !_isImageMode;
-                        });
-                      },
-                      color: _isImageMode
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                      tooltip: 'Toggle image generation',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: _submitMessage,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
+                    hintStyle: const TextStyle(fontSize: 13),
+                  ),
+                  style: const TextStyle(fontSize: 13),
+                  maxLines: null,
+                  minLines: 1,
+                  textInputAction: TextInputAction.newline,
+                  onSubmitted: (_) => _submitMessage(),
+                  onChanged: (text) {
+                    // Trigger rebuild when text changes to update button layout
+                    setState(() {});
+                  },
                 ),
+                if (_controller.text.split('\n').length > 1)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.add, size: 20),
+                          onPressed: _showAddOptions,
+                          tooltip: 'Add content',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.public, size: 20),
+                          onPressed: _pdfMemories.isEmpty
+                              ? () {
+                                  setState(() {
+                                    _isInternetMode = !_isInternetMode;
+                                    _isImageMode = false;
+                                  });
+                                }
+                              : null,
+                          color: _isInternetMode
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                          tooltip: _pdfMemories.isEmpty
+                              ? 'Toggle internet search'
+                              : 'Internet search disabled when documents are present',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.image_outlined, size: 20),
+                          onPressed: () {
+                            setState(() {
+                              _isImageMode = !_isImageMode;
+                              _isInternetMode = false;
+                            });
+                          },
+                          color: _isImageMode
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                          tooltip: 'Toggle image generation',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.send, size: 20),
+                          onPressed: _submitMessage,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.add, size: 20),
+                        onPressed: _showAddOptions,
+                        tooltip: 'Add content',
+                      ),
+                      const SizedBox(width: 0),
+                      Expanded(
+                        child: Container(), // Empty container to take up space
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.public, size: 20),
+                        onPressed: _pdfMemories.isEmpty
+                            ? () {
+                                setState(() {
+                                  _isInternetMode = !_isInternetMode;
+                                  _isImageMode = false;
+                                });
+                              }
+                            : null,
+                        color: _isInternetMode
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        tooltip: _pdfMemories.isEmpty
+                            ? 'Toggle internet search'
+                            : 'Internet search disabled when documents are present',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.image_outlined, size: 20),
+                        onPressed: () {
+                          setState(() {
+                            _isImageMode = !_isImageMode;
+                            _isInternetMode = false;
+                          });
+                        },
+                        color: _isImageMode
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        tooltip: 'Toggle image generation',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.send, size: 20),
+                        onPressed: _submitMessage,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

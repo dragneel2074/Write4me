@@ -9,17 +9,18 @@ class ImageGenerationService {
     int width = 1024,
     int height = 1024,
     String? model,
-    int? seed,
-    bool noLogo = true,
-    bool enhance = true,
-    bool safe = false,
   }) async {
     try {
+      int? seed;
+      String noLogo = 'true';
+      String enhance = 'true';
+      String safe = 'false';
       // URL encode the prompt
       final encodedPrompt = Uri.encodeComponent(prompt);
 
       // Build the URL with parameters
-      final url = Uri.parse('$baseUrl$encodedPrompt?width=$width&height=$height&nologo=${noLogo ? 'true' : 'false'}&enhance=${enhance ? 'true' : 'false'}&safe=${safe ? 'true' : 'false'}${model != null ? '&model=$model' : ''}${seed != null ? '&seed=$seed' : ''}');
+      final url = Uri.parse(
+          '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&model=$model&seed=$seed=42');
 
       final response = await http.get(url);
 
