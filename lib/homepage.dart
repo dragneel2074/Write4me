@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import 'components/pdf_list.dart';
-import 'components/message_bubble.dart';
+import 'package:provider/provider.dart';
+import 'components/chat_input.dart';
+import 'components/chat_messages.dart';
+import 'components/document_list_container.dart';
+import 'models/chat_message.dart';
 import 'models/pdf_memory.dart';
 import 'services/ai_service.dart';
-import 'services/pdf_service.dart';
-import 'models/chat_message.dart';
-import 'package:provider/provider.dart';
-import 'theme/theme_provider.dart';
 import 'services/image_generation_service.dart';
-import 'package:image_picker/image_picker.dart';
-import 'services/web_service.dart';
 import 'services/image_service.dart';
 import 'services/notification_service.dart';
+import 'services/pdf_service.dart';
+import 'services/web_service.dart';
+import 'theme/theme_provider.dart';
+import 'utils/dialog_manager.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,19 +21,28 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   final List<PDFMemory> _pdfMemories = [];
   final TextEditingController _controller = TextEditingController();
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
-  final PDFService _pdfService = PDFService();
-  final AIService _aiService = AIService();
-  final ScrollController _scrollController = ScrollController();
-  final ImageGenerationService _imageGenService = ImageGenerationService();
+  late final ScrollController _scrollController;
   bool _isImageMode = false;
   bool _isInternetMode = false;
+
+  // Services
+  final PDFService _pdfService = PDFService();
+  final AIService _aiService = AIService();
+  final ImageGenerationService _imageGenService = ImageGenerationService();
   final WebService _webService = WebService();
   final ImageService _imageService = ImageService();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
 
   @override
   void dispose() {
@@ -53,6 +63,103 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _showAddOptions() async {
+    await DialogManager.showAddOptionsDialog(
+      context,
+      onWebSelected: _processWebContent,
+      onFileSelected: _pickPDFAndCreateRAG,
+      onImageSelected: _processImageContent,
+    );
+  }
+
+  Future<void> _pickPDFAndCreateRAG() async {
+    try {
+      PDFMemory? newMemory = await _pdfService.pickAndProcessPDF();
+      if (newMemory != null) {
+        _addContent(newMemory);
+        NotificationService.showTopNotification(
+          context,
+          message: 'PDF processed: ${newMemory.pdfName}',
+        );
+      }
+    } catch (e) {
+      NotificationService.showTopNotification(
+        context,
+        message: 'Error processing PDF: ${e.toString()}',
+        isError: true,
+      );
+    }
+  }
+
+  void _addContent(PDFMemory memory) {
+    setState(() {
+      _pdfMemories.add(memory);
+      _isInternetMode = false;
+    });
+  }
+
+  Future<void> _processWebContent() async {
+    final url = await DialogManager.showURLInputDialog(context);
+    if (url != null) {
+      try {
+        PDFMemory? webMemory = await _webService.processWebContent(url);
+        if (webMemory != null) {
+          _addContent(webMemory);
+          NotificationService.showTopNotification(
+            context,
+            message: 'Web content processed: ${webMemory.pdfName}',
+          );
+        }
+      } catch (e) {
+        NotificationService.showTopNotification(
+          context,
+          message: 'Error processing web content: ${e.toString()}',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  Future<void> _processImageContent() async {
+    final source = await DialogManager.showImageSourceDialog(context);
+    if (source != null) {
+      try {
+        PDFMemory? imageMemory =
+            await _imageService.processImageContent(source);
+        if (imageMemory != null) {
+          _addContent(imageMemory);
+          NotificationService.showTopNotification(
+            context,
+            message: 'Image content processed: ${imageMemory.pdfName}',
+          );
+        }
+      } catch (e) {
+        NotificationService.showTopNotification(
+          context,
+          message: 'Error processing image: ${e.toString()}',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  void _showExtractedText(PDFMemory memory) {
+    DialogManager.showExtractedText(
+      context,
+      memory.pdfName,
+      memory.extractedText,
+    );
+  }
+
+  Future<void> _clearChat() async {
+    final shouldClear = await DialogManager.showClearChatConfirmation(context);
+    if (shouldClear ?? false) {
+      setState(() {
+        _messages.clear();
+      });
+    }
+  }
+
   Future<void> _submitMessage() async {
     if (_controller.text.trim().isEmpty) return;
 
@@ -69,7 +176,6 @@ class _HomePageState extends State<HomePage> {
 
     try {
       if (_isImageMode) {
-        // Handle image generation
         setState(() {
           _messages.add(ChatMessage(
             content: "Generating image... Please wait.",
@@ -97,7 +203,6 @@ class _HomePageState extends State<HomePage> {
             ));
           });
         }
-        // Reset image mode after generation
         setState(() {
           _isImageMode = false;
         });
@@ -137,235 +242,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _showAddOptions() async {
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Content'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildOptionTile(
-              icon: Icons.web,
-              title: 'Web URL',
-              onTap: () {
-                Navigator.pop(context);
-                _processWebContent();
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.file_copy,
-              title: 'Files',
-              onTap: () {
-                Navigator.pop(context);
-                _pickPDFAndCreateRAG();
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.image,
-              title: 'Image',
-              onTap: () {
-                Navigator.pop(context);
-                _processImageContent();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      title: Text(title),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      hoverColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-    );
-  }
-
-  void _addContent(PDFMemory memory) {
-    setState(() {
-      _pdfMemories.add(memory);
-      // Disable internet mode when content is added
-      _isInternetMode = false;
-    });
-  }
-
-  Future<void> _pickPDFAndCreateRAG() async {
-    try {
-      PDFMemory? newMemory = await _pdfService.pickAndProcessPDF();
-      if (newMemory != null) {
-        _addContent(newMemory);
-        NotificationService.showTopNotification(
-          context,
-          message: 'PDF processed: ${newMemory.pdfName}',
-        );
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error processing PDF: ${e.toString()}');
-    }
-  }
-
-  void _showErrorSnackBar(String message) {
-    NotificationService.showTopNotification(
-      context,
-      message: message,
-      isError: true,
-    );
-  }
-
-  void _showExtractedText(PDFMemory memory) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Extracted Text from ${memory.pdfName}'),
-          content: SingleChildScrollView(
-            child: Text(memory.extractedText),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _clearChat() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Chat'),
-        content: const Text('Are you sure you want to clear the chat history?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _messages.clear();
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _removeDocument(PDFMemory document) {
-    setState(() {
-      _pdfMemories.remove(document);
-    });
-  }
-
-  Future<void> _processWebContent() async {
-    final url = await _showURLInputDialog();
-    if (url != null) {
-      try {
-        PDFMemory? webMemory = await _webService.processWebContent(url);
-        if (webMemory != null) {
-          _addContent(webMemory);
-          NotificationService.showTopNotification(
-            context,
-            message: 'Web content processed: ${webMemory.pdfName}',
-          );
-        }
-      } catch (e) {
-        _showErrorSnackBar('Error processing web content: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<String?> _showURLInputDialog() async {
-    final TextEditingController urlController = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enter URL'),
-        content: TextField(
-          controller: urlController,
-          decoration: const InputDecoration(
-            hintText: 'https://example.com',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, urlController.text),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _processImageContent() async {
-    final source = await _showImageSourceDialog();
-    if (source != null) {
-      try {
-        PDFMemory? imageMemory =
-            await _imageService.processImageContent(source);
-        if (imageMemory != null) {
-          _addContent(imageMemory);
-          NotificationService.showTopNotification(
-            context,
-            message: 'Image content processed: ${imageMemory.pdfName}',
-          );
-        }
-      } catch (e) {
-        _showErrorSnackBar('Error processing image: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<ImageSource?> _showImageSourceDialog() async {
-    return showDialog<ImageSource>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Image Source'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -400,24 +276,10 @@ class _HomePageState extends State<HomePage> {
       body: Column(
         children: [
           Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.surface,
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: _messages.length + (_isLoading ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == _messages.length) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  return MessageBubble(message: _messages[index]);
-                },
-              ),
+            child: ChatMessages(
+              messages: _messages,
+              isLoading: _isLoading,
+              scrollController: _scrollController,
             ),
           ),
           Container(
@@ -434,152 +296,36 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(10),
             child: Column(
               children: [
-                if (_pdfMemories.isNotEmpty)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(1),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    child: PDFList(
-                      pdfMemories: _pdfMemories,
-                      onSelectionChanged: () => setState(() {}),
-                      onLongPress: _showExtractedText,
-                      onRemove: _removeDocument,
-                    ),
-                  ),
-                TextField(
-                  controller: _controller,
-                  decoration: InputDecoration(
-                    hintText: _isImageMode
-                        ? 'Describe the image you want to generate...'
-                        : _isInternetMode
-                            ? 'Ask anything to search the internet...'
-                            : 'Type your message...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    hintStyle: const TextStyle(fontSize: 13),
-                  ),
-                  style: const TextStyle(fontSize: 13),
-                  maxLines: null,
-                  minLines: 1,
-                  textInputAction: TextInputAction.newline,
-                  onSubmitted: (_) => _submitMessage(),
-                  onChanged: (text) {
-                    // Trigger rebuild when text changes to update button layout
-                    setState(() {});
+                DocumentListContainer(
+                  documents: _pdfMemories,
+                  onSelectionChanged: () => setState(() {}),
+                  onLongPress: _showExtractedText,
+                  onRemove: (memory) {
+                    setState(() {
+                      _pdfMemories.remove(memory);
+                    });
                   },
                 ),
-                if (_controller.text.split('\n').length > 1)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.add, size: 20),
-                          onPressed: _showAddOptions,
-                          tooltip: 'Add content',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.public, size: 20),
-                          onPressed: _pdfMemories.isEmpty
-                              ? () {
-                                  setState(() {
-                                    _isInternetMode = !_isInternetMode;
-                                    _isImageMode = false;
-                                  });
-                                }
-                              : null,
-                          color: _isInternetMode
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                          tooltip: _pdfMemories.isEmpty
-                              ? 'Toggle internet search'
-                              : 'Internet search disabled when documents are present',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.image_outlined, size: 20),
-                          onPressed: () {
-                            setState(() {
-                              _isImageMode = !_isImageMode;
-                              _isInternetMode = false;
-                            });
-                          },
-                          color: _isImageMode
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                          tooltip: 'Toggle image generation',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.send, size: 20),
-                          onPressed: _submitMessage,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.add, size: 20),
-                        onPressed: _showAddOptions,
-                        tooltip: 'Add content',
-                      ),
-                      const SizedBox(width: 0),
-                      Expanded(
-                        child: Container(), // Empty container to take up space
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.public, size: 20),
-                        onPressed: _pdfMemories.isEmpty
-                            ? () {
-                                setState(() {
-                                  _isInternetMode = !_isInternetMode;
-                                  _isImageMode = false;
-                                });
-                              }
-                            : null,
-                        color: _isInternetMode
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        tooltip: _pdfMemories.isEmpty
-                            ? 'Toggle internet search'
-                            : 'Internet search disabled when documents are present',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.image_outlined, size: 20),
-                        onPressed: () {
-                          setState(() {
-                            _isImageMode = !_isImageMode;
-                            _isInternetMode = false;
-                          });
-                        },
-                        color: _isImageMode
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        tooltip: 'Toggle image generation',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.send, size: 20),
-                        onPressed: _submitMessage,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ],
-                  ),
+                ChatInput(
+                  controller: _controller,
+                  isImageMode: _isImageMode,
+                  isInternetMode: _isInternetMode,
+                  onSubmit: _submitMessage,
+                  onAddContent: _showAddOptions,
+                  onToggleInternet: () {
+                    setState(() {
+                      _isInternetMode = !_isInternetMode;
+                      _isImageMode = false;
+                    });
+                  },
+                  onToggleImage: () {
+                    setState(() {
+                      _isImageMode = !_isImageMode;
+                      _isInternetMode = false;
+                    });
+                  },
+                  isInternetDisabled: _pdfMemories.isNotEmpty,
+                ),
               ],
             ),
           ),
