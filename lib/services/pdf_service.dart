@@ -3,11 +3,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'dart:io';
 import '../models/pdf_memory.dart';
-import 'vector_store_service.dart';
 
 class PDFService {
-  final VectorStoreService _vectorStoreService = VectorStoreService();
-
   Future<PDFMemory?> pickAndProcessPDF() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -18,8 +15,7 @@ class PDFService {
     if (result != null) {
       String pdfName = result.files.first.name;
       String pdfContent = await _extractPDFContent(result);
-      var vectorStore = await _vectorStoreService.createVectorStore(pdfContent);
-      return PDFMemory(pdfName, vectorStore,pdfContent, isSelected: true);
+      return PDFMemory(pdfName, pdfContent, isSelected: true);
     }
     return null;
   }
@@ -34,7 +30,8 @@ class PDFService {
   }
 
   Future<String> _extractTextFromPDF(String filePath) async {
-    final PdfDocument document = PdfDocument(inputBytes: File(filePath).readAsBytesSync());
+    final PdfDocument document =
+        PdfDocument(inputBytes: File(filePath).readAsBytesSync());
     PdfTextExtractor extractor = PdfTextExtractor(document);
     String text = extractor.extractText();
     document.dispose();

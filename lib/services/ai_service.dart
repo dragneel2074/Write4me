@@ -1,52 +1,33 @@
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:langchain/langchain.dart';
-import 'package:langchain_openai/langchain_openai.dart';
 import '../models/pdf_memory.dart';
+import 'text_generation_service.dart';
+import '../utils/text_utils.dart';
 
 class AIService {
-  Future<String> _getOpenAIApiKey() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? apiKey = prefs.getString('openai_api_key');
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('OpenAI API key is not set in SharedPreferences.');
+  final TextGenerationService _textService = TextGenerationService();
+
+  Future<String> getResponse(
+      String question, List<PDFMemory> selectedMemories) async {
+    try {
+      List<String> context = [];
+
+      if (selectedMemories.isNotEmpty) {
+        for (var memory in selectedMemories) {
+          if (memory.isSelected) {
+            // Trim each document's text to the word limit
+            final trimmedText = TextUtils.trimToWordLimit(memory.extractedText);
+            context.add(trimmedText);
+          }
+        }
+      }
+
+      String response = await _textService.generateText(
+        question,
+        context: context.isNotEmpty ? context : null,
+      );
+
+      return response;
+    } catch (e) {
+      throw Exception('Failed to get response: $e');
     }
-    return apiKey;
-  }
-
-  Future<String> getResponse(String question, List<PDFMemory> selectedMemories) async {
-    String openAIApiKey = await _getOpenAIApiKey();
-    String combinedContext = '';
-
-    if (selectedMemories.isNotEmpty) {
-      List<Document> allRelevantDocs = await _getRelevantDocuments(selectedMemories, question);
-      combinedContext = allRelevantDocs.map((d) => d.pageContent).join('\n\n');
-    }
-
-    final promptTemplate = ChatPromptTemplate.fromTemplates([
-      (ChatMessageType.system, combinedContext.isNotEmpty 
-        ? 'Answer the question based on the following context from multiple documents:\n{context}'
-        : 'Answer the question to the best of your ability:'),
-      (ChatMessageType.human, '{question}'),
-    ]);
-
-    final model = ChatOpenAI(apiKey: openAIApiKey);
-    final chain = promptTemplate.pipe(model);
-
-    final result = await chain.invoke({
-      'context': combinedContext,
-      'question': question,
-    });
-
-    return result.outputAsString;
-  }
-
-  Future<List<Document>> _getRelevantDocuments(List<PDFMemory> memories, String question) async {
-    List<Document> allRelevantDocs = [];
-    for (var memory in memories) {
-      final retriever = memory.vectorStore.asRetriever();
-      final docs = await retriever.getRelevantDocuments(question);
-      allRelevantDocs.addAll(docs);
-    }
-    return allRelevantDocs;
   }
 }

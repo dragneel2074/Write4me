@@ -4,6 +4,8 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'utils/image_utils.dart';
 
 class TextDetectorPage extends StatefulWidget {
+  const TextDetectorPage({super.key});
+
   @override
   _TextDetectorPageState createState() => _TextDetectorPageState();
 }
