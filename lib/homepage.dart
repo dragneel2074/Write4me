@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'components/chat_input.dart';
@@ -10,6 +11,7 @@ import 'services/image_generation_service.dart';
 import 'services/image_service.dart';
 import 'services/notification_service.dart';
 import 'services/pdf_service.dart';
+import 'services/text_generation_service.dart';
 import 'services/web_service.dart';
 import 'theme/theme_provider.dart';
 import 'utils/dialog_manager.dart';
@@ -35,6 +37,7 @@ class _HomePageState extends State<HomePage>
   final PDFService _pdfService = PDFService();
   final AIService _aiService = AIService();
   final ImageGenerationService _imageGenService = ImageGenerationService();
+  final TextGenerationService _textGenService = TextGenerationService();
   final WebService _webService = WebService();
   final ImageService _imageService = ImageService();
 
@@ -42,7 +45,59 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _checkServiceStatus();
   }
+
+  
+Future<void> _checkServiceStatus() async {
+  bool isTextServiceOnline = false; // Default to false
+  bool isImageServiceOnline = false; // Default to false
+
+  try {
+    // Check text generation service status
+    final textResponse = await _textGenService.generateText("say hi");
+    // If the response is valid and not an error, set isTextServiceOnline to true
+    isTextServiceOnline = textResponse.isNotEmpty;
+  } catch (e) {
+    // If any exception occurs, set isTextServiceOnline to false
+    isTextServiceOnline = false;
+    if (kDebugMode) {
+      print("Error checking text service status: $e");
+    }
+  }
+
+  try {
+    // Check image generation service status
+    final imageBytes = await _imageGenService.generateImage(prompt: "boy in yellow hat");
+    // If the imageBytes is not null, set isImageServiceOnline to true
+    isImageServiceOnline = imageBytes != null;
+  } catch (e) {
+    // If any exception occurs, set isImageServiceOnline to false
+    isImageServiceOnline = false;
+    if (kDebugMode) {
+      print("Error checking image service status: $e");
+    }
+  }
+
+  // Prepare the combined status message
+  String statusMessage = "Hey! \n\n";
+  statusMessage += isTextServiceOnline
+      ? " Chat Service is Online. Ask Me Anything.  \n\n "
+      : " Chat Service is currently Offline :( Try Again Later.\n\n";
+
+  statusMessage += isImageServiceOnline
+      ? " Image Service is Online. Generate Amazing Images"
+      : " Image Service is Offline. Try Again Later";
+
+  setState(() {
+    _messages.add(ChatMessage(
+      content: statusMessage,
+      isUser: false,
+      isError: !isTextServiceOnline || !isImageServiceOnline,
+    ));
+  });
+  _scrollToBottom();
+}
 
   @override
   void dispose() {
@@ -156,6 +211,7 @@ class _HomePageState extends State<HomePage>
     if (shouldClear ?? false) {
       setState(() {
         _messages.clear();
+        _checkServiceStatus();
       });
     }
   }
@@ -229,7 +285,7 @@ class _HomePageState extends State<HomePage>
     } catch (e) {
       setState(() {
         _messages.add(ChatMessage(
-          content: "Error: $e",
+          content: "Something went wrong! Try again later.",
           isUser: false,
           isError: true,
         ));

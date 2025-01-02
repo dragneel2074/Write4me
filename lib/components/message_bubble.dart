@@ -22,29 +22,62 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
+  // Future<void> _downloadImage(BuildContext context, Uint8List imageData) async {
+  //   try {
+  //     final directory = await getApplicationDocumentsDirectory();
+
+  //     final timestamp = DateTime.now().millisecondsSinceEpoch;
+  //     final filePath = '${directory.path}/image_$timestamp.png';
+
+  //     final file = File(filePath);
+  //     await file.writeAsBytes(imageData);
+
+  //     NotificationService.showTopNotification(
+  //       context,
+  //       message: 'Image saved to: $filePath',
+  //     );
+  //   } catch (e) {
+  //     NotificationService.showTopNotification(
+  //       context,
+  //       message: 'Failed to save image: $e',
+  //       isError: true,
+  //     );
+  //   }
+  // }
   Future<void> _downloadImage(BuildContext context, Uint8List imageData) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      if (directory == null) throw Exception('Directory not found');
+  try {
+    // Get the external storage directory
+    final directory = await getExternalStorageDirectory();
+    final picturesDir = Directory('${directory!.path}/Pictures');
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${directory.path}/image_$timestamp.png';
-
-      final file = File(filePath);
-      await file.writeAsBytes(imageData);
-
-      NotificationService.showTopNotification(
-        context,
-        message: 'Image saved to: $filePath',
-      );
-    } catch (e) {
-      NotificationService.showTopNotification(
-        context,
-        message: 'Failed to save image: $e',
-        isError: true,
-      );
+    // Ensure the Pictures directory exists
+    if (!picturesDir.existsSync()) {
+      picturesDir.createSync(recursive: true);
     }
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filePath = '${picturesDir.path}/image_$timestamp.png';
+
+    // Save the file
+    final file = File(filePath);
+    await file.writeAsBytes(imageData);
+
+    // Make the image available to the gallery
+    await File(filePath).create(recursive: true);
+    print(filePath);
+    // Notify the user
+    NotificationService.showTopNotification(
+      context,
+      message: 'Image saved to: $filePath',
+    );
+  } catch (e) {
+    NotificationService.showTopNotification(
+      context,
+      message: 'Failed to save image: $e',
+      isError: true,
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
