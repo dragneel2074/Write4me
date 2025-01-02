@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -29,14 +30,20 @@ class _TextDetectorPageState extends State<TextDetectorPage> {
     if (_image == null) return;
     final inputImage = InputImage.fromFilePath(_image!.path);
     try {
-      print('Processing image: ${_image!.path}');
+      if (kDebugMode) {
+        print('Processing image: ${_image!.path}');
+      }
       final recognizedText = await textRecognizer.processImage(inputImage);
       setState(() {
         _recognizedText = recognizedText.text;
       });
-      print('Text recognition completed. Text length: ${_recognizedText.length}');
+      if (kDebugMode) {
+        print('Text recognition completed. Text length: ${_recognizedText.length}');
+      }
     } catch (e) {
-      print('Error processing image: $e');
+      if (kDebugMode) {
+        print('Error processing image: $e');
+      }
       setState(() {
         _recognizedText = 'Error processing image: $e';
       });

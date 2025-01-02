@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../models/pdf_memory.dart';
@@ -24,7 +25,9 @@ class ImageService {
         throw Exception('No image selected');
       }
     } catch (e) {
-      print('Error processing image: $e');
+      if (kDebugMode) {
+        print('Error processing image: $e');
+      }
       return null;
     } finally {
       textRecognizer.close();

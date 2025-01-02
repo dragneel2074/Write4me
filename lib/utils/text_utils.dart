@@ -1,5 +1,5 @@
 class TextUtils {
-  static String trimToWordLimit(String text, {int limit = 700}) {
+  static String trimToWordLimit(String text, {int limit = 500}) {
     final words = text.split(RegExp(r'\s+'));
     if (words.length <= limit) return text;
 

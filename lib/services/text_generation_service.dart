@@ -8,7 +8,8 @@ import '../models/chat_message.dart';
 class TextGenerationService {
   static const String baseUrl = 'https://text.pollinations.ai/';
   static const String unwanted1 = 'Chat Service is Online. Ask Me Anything.';
-  static const String unwanted2 = 'Image Service is Online. Generate Amazing Images';
+  static const String unwanted2 =
+      'Image Service is Online. Generate Amazing Images';
 
   String _formatPrompt(
     String prompt,
@@ -24,21 +25,21 @@ class TextGenerationService {
     }
 
     // Add conversation history
-    if (history.isNotEmpty) {
-      formattedPrompt.writeln('Previous conversation:');
-      if (!useInternet){
-      for (var message in history.take(6)) {
-        final cleanedContent = cleanText(message.content);
-        if (kDebugMode) {
-          print(cleanedContent);
+    if (context == null || context.isEmpty) {
+      if (history.isNotEmpty) {
+        formattedPrompt.writeln('Previous conversation:');
+        if (!useInternet) {
+          for (var message in history.take(6)) {
+            final cleanedContent = cleanText(message.content);
+            if (kDebugMode) {
+              print(cleanedContent);
+            }
+            formattedPrompt.writeln('${message.role}: $cleanedContent');
+          }
+          formattedPrompt.writeln();
         }
-        formattedPrompt.writeln('${message.role}: $cleanedContent');
       }
-      formattedPrompt.writeln();
     }
-    }
-   
-
 
     // Add current query
     if (context == null || context.isEmpty) {
@@ -65,13 +66,14 @@ ${context.join('\n')}
     List<ChatMessage> history = const [],
   }) async {
     try {
-      final model = useInternet ? 'searchgpt' : 'mistral-large';
+      final model = useInternet ? 'searchgpt' : 'llama3';
       final system = useInternet
-          ? 'You are a helpful AI assistant with access to current internet information'
-          : 'You are a helpful AI assistant who answers concisely';
+          ? 'You are Aura, a helpful AI assistant with access to current internet information'
+          : 'You are Aura, a helpful AI assistant who answers concisely';
 
       // Format and trim prompt with history
-      final formattedPrompt = _formatPrompt(prompt, context, useInternet, history);
+      final formattedPrompt =
+          _formatPrompt(prompt, context, useInternet, history);
       final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt);
 
       // URL encode the prompt and create URL
@@ -81,19 +83,24 @@ ${context.join('\n')}
       }
 
       final response = await http.get(url).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => throw TimeoutException('Request timed out'),
-      );
+            const Duration(seconds: 10),
+            onTimeout: () => throw TimeoutException('Request timed out'),
+          );
+          if (kDebugMode) {
+            print(response.body);
 
       // Handle HTTP errors
-      if (response.statusCode == 200) {
+      
+          }if (response.statusCode == 200) {
         return response.body;
       } else {
-        throw HttpException('Failed to generate text: ${response.statusCode}', uri: url);
+        throw HttpException('Failed to generate text: ${response.statusCode}',
+            uri: url);
       }
     } on SocketException catch (e) {
       // Handle network errors (e.g., no internet, host lookup failure)
-      throw Exception('Network error: Please check your internet connection. Details: $e');
+      throw Exception(
+          'Network error: Please check your internet connection. Details: $e');
     } on TimeoutException catch (e) {
       // Handle timeout errors
       throw Exception('Request timed out: Please try again later. Details: $e');
