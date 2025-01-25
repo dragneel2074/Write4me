@@ -15,6 +15,7 @@ import 'services/text_generation_service.dart';
 import 'services/web_service.dart';
 import 'theme/theme_provider.dart';
 import 'utils/dialog_manager.dart';
+import 'widgets/intro_drawer.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -302,6 +303,18 @@ Future<void> _checkServiceStatus() async {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () {
+            showDialog(
+              context: context,
+              barrierDismissible: true,
+              builder: (BuildContext context) => const IntroDrawer(),
+              useSafeArea: true,
+            );
+          },
+          tooltip: 'App Info',
+        ),
         title: const Text('Write4Me'),
         centerTitle: true,
         elevation: 1,

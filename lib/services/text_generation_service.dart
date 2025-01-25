@@ -66,7 +66,7 @@ ${context.join('\n')}
     List<ChatMessage> history = const [],
   }) async {
     try {
-      final model = useInternet ? 'searchgpt' : 'llama3';
+      final model = useInternet ? 'searchgpt' : 'mistral';
       final system = useInternet
           ? 'You are Aura, a helpful AI assistant with access to current internet information'
           : 'You are Aura, a helpful AI assistant who answers concisely';
