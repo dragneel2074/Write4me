@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/chat_message.dart';
+import 'package:flutter/services.dart';
+import '../services/image_service.dart';
 
 class ChatMessages extends StatelessWidget {
   final List<ChatMessage> messages;
@@ -13,6 +15,29 @@ class ChatMessages extends StatelessWidget {
     required this.isLoading,
     required this.scrollController,
   });
+
+  Future<void> _saveImage(BuildContext context, Uint8List imageData) async {
+    try {
+      await ImageService().saveImage(imageData);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image saved to gallery'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to save image'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,9 +115,29 @@ class ChatMessages extends StatelessWidget {
                   ),
                 ),
                 child: message.imageData != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.memory(message.imageData!),
+                    ? Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.memory(message.imageData!),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.download,
+                                color: Colors.white,
+                              ),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.black54,
+                                padding: const EdgeInsets.all(8),
+                              ),
+                              onPressed: () => _saveImage(context, message.imageData!),
+                              tooltip: 'Save image',
+                            ),
+                          ),
+                        ],
                       )
                     : MarkdownBody(
                         data: message.content,
