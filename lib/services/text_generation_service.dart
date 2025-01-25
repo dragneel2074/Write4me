@@ -70,7 +70,8 @@ ${context.join('\n')}
       final system = useInternet
           ? 'You are Aura, a helpful AI assistant with access to current internet information'
           : 'You are Aura, a helpful AI assistant who answers concisely';
-
+      print(model);
+      print(system);
       // Format and trim prompt with history
       final formattedPrompt =
           _formatPrompt(prompt, context, useInternet, history);
@@ -83,7 +84,7 @@ ${context.join('\n')}
       }
 
       final response = await http.get(url).timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 30),
             onTimeout: () => throw TimeoutException('Request timed out'),
           );
           if (kDebugMode) {
@@ -98,16 +99,24 @@ ${context.join('\n')}
             uri: url);
       }
     } on SocketException catch (e) {
+            print(e);
+
       // Handle network errors (e.g., no internet, host lookup failure)
       throw Exception(
           'Network error: Please check your internet connection. Details: $e');
     } on TimeoutException catch (e) {
       // Handle timeout errors
+            print(e);
+
       throw Exception('Request timed out: Please try again later. Details: $e');
     } on HttpException catch (e) {
+            print(e);
+
       // Handle HTTP errors (e.g., 404, 500)
       throw Exception('Server error: ${e.message}');
     } catch (e) {
+        print(e);
+
       // Handle all other unexpected errors
       throw Exception('Unexpected error: $e');
     }

@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'package:write4me/components/app_theme.dart';
-import 'package:write4me/homepage.dart';
-import 'package:write4me/theme/theme_provider.dart';
+import 'homepage.dart';
+import 'theme/theme_provider.dart';
 
-Future<void> main() async {
-  await dotenv.load(fileName: ".env.production");
+void main() {
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -21,14 +18,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, _) {
+      builder: (context, themeProvider, child) {
         return MaterialApp(
           title: 'Write4Me',
-          theme: AppThemes.lightTheme,
-          darkTheme: AppThemes.darkTheme,
-          themeMode: themeProvider.themeMode,
-          home: const HomePage(),
           debugShowCheckedModeBanner: false,
+          themeMode: themeProvider.themeMode,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          home: const HomePage(),
         );
       },
     );

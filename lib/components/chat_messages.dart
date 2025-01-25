@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/chat_message.dart';
-import 'message_bubble.dart';
 
 class ChatMessages extends StatelessWidget {
   final List<ChatMessage> messages;
@@ -16,24 +16,146 @@ class ChatMessages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.surface,
-      child: ListView.builder(
-        controller: scrollController,
-        padding: const EdgeInsets.all(16),
-        itemCount: messages.length + (isLoading ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == messages.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(8.0),
-                child: CircularProgressIndicator(),
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: messages.length + (isLoading ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == messages.length) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
-            );
-          }
-          return MessageBubble(message: messages[index]);
-        },
-      ),
+            ),
+          );
+        }
+        final message = messages[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: message.isUser 
+                ? CrossAxisAlignment.end 
+                : CrossAxisAlignment.start,
+            children: [
+              if (!message.isUser)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.auto_awesome,
+                          size: 12,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Write4Me',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.75,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: message.isUser 
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).brightness == Brightness.light
+                          ? const Color(0xFFF5F5F5)
+                          : Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16).copyWith(
+                    bottomRight: message.isUser ? const Radius.circular(4) : null,
+                    bottomLeft: !message.isUser ? const Radius.circular(4) : null,
+                  ),
+                ),
+                child: message.imageData != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.memory(message.imageData!),
+                      )
+                    : MarkdownBody(
+                        data: message.content,
+                        styleSheet: MarkdownStyleSheet(
+                          p: TextStyle(
+                            color: message.isUser 
+                                ? Colors.white
+                                : Theme.of(context).textTheme.bodyLarge?.color,
+                            height: 1.4,
+                            fontSize: 15,
+                          ),
+                          code: TextStyle(
+                            color: message.isUser 
+                                ? Colors.white.withOpacity(0.9)
+                                : Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9),
+                            backgroundColor: message.isUser 
+                                ? Colors.white.withOpacity(0.1)
+                                : Theme.of(context).brightness == Brightness.light
+                                    ? Colors.black.withOpacity(0.05)
+                                    : Colors.white.withOpacity(0.1),
+                            fontSize: 14,
+                          ),
+                          codeblockDecoration: BoxDecoration(
+                            color: message.isUser 
+                                ? Colors.white.withOpacity(0.1)
+                                : Theme.of(context).brightness == Brightness.light
+                                    ? Colors.black.withOpacity(0.05)
+                                    : Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          blockquote: TextStyle(
+                            color: message.isUser 
+                                ? Colors.white.withOpacity(0.9)
+                                : Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9),
+                            fontSize: 15,
+                            height: 1.4,
+                          ),
+                          h1: TextStyle(
+                            color: message.isUser 
+                                ? Colors.white
+                                : Theme.of(context).textTheme.bodyLarge?.color,
+                            height: 1.4,
+                          ),
+                          h2: TextStyle(
+                            color: message.isUser 
+                                ? Colors.white
+                                : Theme.of(context).textTheme.bodyLarge?.color,
+                            height: 1.4,
+                          ),
+                          h3: TextStyle(
+                            color: message.isUser 
+                                ? Colors.white
+                                : Theme.of(context).textTheme.bodyLarge?.color,
+                            height: 1.4,
+                          ),
+                        ),
+                        selectable: true,
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

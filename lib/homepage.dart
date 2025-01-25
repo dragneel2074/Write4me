@@ -51,16 +51,21 @@ class _HomePageState extends State<HomePage>
 
   
 Future<void> _checkServiceStatus() async {
-  bool isTextServiceOnline = false; // Default to false
-  bool isImageServiceOnline = false; // Default to false
+  // Add initial checking message
+  setState(() {
+    _messages.add(ChatMessage(
+      content: "Checking if services are online...",
+      isUser: false,
+    ));
+  });
+  
+  bool isTextServiceOnline = false;
+  bool isImageServiceOnline = false;
 
   try {
-    // Check text generation service status
     final textResponse = await _textGenService.generateText("say hi");
-    // If the response is valid and not an error, set isTextServiceOnline to true
     isTextServiceOnline = textResponse.isNotEmpty;
   } catch (e) {
-    // If any exception occurs, set isTextServiceOnline to false
     isTextServiceOnline = false;
     if (kDebugMode) {
       print("Error checking text service status: $e");
@@ -68,19 +73,15 @@ Future<void> _checkServiceStatus() async {
   }
 
   try {
-    // Check image generation service status
     final imageBytes = await _imageGenService.generateImage(prompt: "boy in yellow hat");
-    // If the imageBytes is not null, set isImageServiceOnline to true
     isImageServiceOnline = imageBytes != null;
   } catch (e) {
-    // If any exception occurs, set isImageServiceOnline to false
     isImageServiceOnline = false;
     if (kDebugMode) {
       print("Error checking image service status: $e");
     }
   }
 
-  // Prepare the combined status message
   String statusMessage = "Hey! \n\n";
   statusMessage += isTextServiceOnline
       ? " Chat Service is Online. Ask Me Anything.  \n\n "
@@ -91,6 +92,9 @@ Future<void> _checkServiceStatus() async {
       : " Image Service is Offline. Try Again Later";
 
   setState(() {
+    // Remove the checking message
+    _messages.removeAt(0);
+    // Add the status message
     _messages.add(ChatMessage(
       content: statusMessage,
       isUser: false,
@@ -302,48 +306,92 @@ Future<void> _checkServiceStatus() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {
-            showDialog(
-              context: context,
-              barrierDismissible: true,
-              builder: (BuildContext context) => const IntroDrawer(),
-              useSafeArea: true,
-            );
-          },
-          tooltip: 'App Info',
-        ),
-        title: const Text('Write4Me'),
-        centerTitle: true,
-        elevation: 1,
-        actions: [
-          if (_messages.isNotEmpty)
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Row(
+          children: [
             IconButton(
-              icon: const Icon(Icons.cleaning_services),
-              onPressed: _clearChat,
-              tooltip: 'Clear chat',
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                // TODO: Implement save chats functionality
+              },
+              tooltip: 'Saved Chats',
             ),
-          IconButton(
-            icon: Icon(
-              Theme.of(context).brightness == Brightness.light
-                  ? Icons.dark_mode
-                  : Icons.light_mode,
+            const Expanded(
+              child: Text(
+                'Write4Me',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            onPressed: () {
-              final themeProvider = Provider.of<ThemeProvider>(
-                context,
-                listen: false,
-              );
-              themeProvider.toggleTheme();
-            },
-            tooltip: 'Toggle theme',
-          ),
-        ],
+            if (_messages.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.cleaning_services),
+                onPressed: _clearChat,
+                tooltip: 'Clear chat',
+              ),
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  builder: (BuildContext context) => const IntroDrawer(),
+                  useSafeArea: true,
+                );
+              },
+              tooltip: 'App Info',
+            ),
+            IconButton(
+              icon: Icon(
+                Theme.of(context).brightness == Brightness.light
+                    ? Icons.dark_mode
+                    : Icons.light_mode,
+              ),
+              onPressed: () {
+                final themeProvider = Provider.of<ThemeProvider>(
+                  context,
+                  listen: false,
+                );
+                themeProvider.toggleTheme();
+              },
+              tooltip: 'Toggle theme',
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [
+          if (_messages.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                children: [
+                  const Text(
+                    'Ask anything,\nget instant answers.',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    height: 2,
+                    width: 120,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: ChatMessages(
               messages: _messages,
@@ -353,7 +401,7 @@ Future<void> _checkServiceStatus() async {
           ),
           Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: Theme.of(context).scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),

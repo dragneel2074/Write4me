@@ -22,76 +22,128 @@ class ChatInput extends StatelessWidget {
     required this.isInternetDisabled,
   });
 
-  Widget _buildActionButtons(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.public),
-          onPressed: isInternetDisabled ? null : onToggleInternet,
-          color: isInternetMode ? Theme.of(context).colorScheme.primary : null,
-          tooltip: isInternetDisabled
-              ? 'Internet search disabled when documents are present'
-              : 'Toggle internet search',
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).dividerColor.withOpacity(0.05),
+          ),
         ),
-        IconButton(
-          icon: const Icon(Icons.image_outlined),
-          onPressed: onToggleImage,
-          color: isImageMode ? Theme.of(context).colorScheme.primary : null,
-          tooltip: 'Toggle image generation',
-        ),
-      ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Text Input Field with Submit Button
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.light 
+                        ? const Color(0xFFF5F5F5)
+                        : Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      hintText: isImageMode 
+                          ? 'Describe the image you want to create...'
+                          : isInternetMode
+                              ? 'Search the internet...'
+                              : 'Message Write4Me',
+                      hintStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    style: const TextStyle(fontSize: 15),
+                    onSubmitted: (_) => onSubmit(),
+                  ),
+                ),
+              ),
+              _buildActionButton(
+                icon: Icons.send,
+                onPressed: onSubmit,
+                showActive: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Bottom Action Buttons
+          Wrap(
+            spacing: 4,
+            runSpacing: 8,
+            children: [
+              _buildActionButton(
+                icon: Icons.add,
+                onPressed: onAddContent,
+                label: 'Add Files',
+              ),
+              _buildActionButton(
+                icon: isImageMode ? Icons.image : Icons.image_outlined,
+                onPressed: onToggleImage,
+                isActive: isImageMode,
+                label: 'Generate Image',
+              ),
+              _buildActionButton(
+                icon: isInternetMode ? Icons.language : Icons.language_outlined,
+                onPressed: isInternetDisabled ? null : onToggleInternet,
+                isActive: isInternetMode,
+                label: 'Search Web',
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.add),
-          onPressed: onAddContent,
-          tooltip: 'Add content',
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool isActive = false,
+    bool showActive = false,
+    String? label,
+  }) {
+    return Builder(
+      builder: (context) => TextButton.icon(
+        icon: Icon(
+          icon,
+          size: 20,
+          color: (isActive || showActive)
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).iconTheme.color?.withOpacity(0.7),
         ),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: isImageMode
-                  ? 'Describe the image you want to generate...'
-                  : isInternetMode
-                      ? 'Ask anything to search the internet...'
-                      : 'Type your message...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: Theme.of(context).colorScheme.surface,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 14,
-              ),
-              isDense: false,
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: onSubmit,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  height: 1.5,
+        label: label != null 
+            ? Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: (isActive || showActive)
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).iconTheme.color?.withOpacity(0.7),
                 ),
-            maxLines: null,
-            minLines: 1,
-            textAlignVertical: TextAlignVertical.center,
-            textInputAction: TextInputAction.newline,
-            onSubmitted: (_) => onSubmit(),
+              )
+            : const SizedBox.shrink(),
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.symmetric(
+            horizontal: label != null ? 8 : 12,
+            vertical: 8,
           ),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        _buildActionButtons(context),
-      ],
+      ),
     );
   }
 }

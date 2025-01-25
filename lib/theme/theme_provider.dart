@@ -33,3 +33,75 @@ class ThemeProvider with ChangeNotifier {
     notifyListeners();
   }
 }
+
+class AppTheme {
+  // Light Theme Colors
+  static const Color _lightPrimary = Color.fromARGB(255, 0, 7, 15);
+  static const Color _lightSecondary = Color(0xFF28A745);
+  static const Color _lightAccent = Color(0xFFFFC107);
+  static const Color _lightBackground = Color(0xFFF8F9FA);
+  static const Color _lightText = Color.fromARGB(255, 0, 0, 0);
+
+  // Dark Theme Colors
+  static const Color _darkPrimary = Color(0xFF1E90FF);
+  static const Color _darkSecondary = Color(0xFF4CAF50);
+  static const Color _darkAccent = Color(0xFFFFA000);
+  static const Color _darkBackground = Color(0xFF1A1A1A);
+  static const Color _darkText = Color(0xFFF1F1F1);
+
+  static ThemeData lightTheme = ThemeData(
+    brightness: Brightness.light,
+    primaryColor: _lightPrimary,
+    scaffoldBackgroundColor: _lightBackground,
+    cardColor: Colors.white,
+    colorScheme: ColorScheme.light(
+      primary: _lightPrimary,
+      secondary: _lightSecondary,
+      tertiary: _lightAccent,
+      background: _lightBackground,
+      surface: Colors.white,
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: _lightText),
+      bodyMedium: TextStyle(color: _lightText),
+    ),
+    iconTheme: const IconThemeData(color: _lightText),
+    appBarTheme: const AppBarTheme(
+      color: Colors.transparent,
+      iconTheme: IconThemeData(color: _lightPrimary),
+      titleTextStyle: TextStyle(
+        color: _lightText,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+
+  static ThemeData darkTheme = ThemeData(
+    brightness: Brightness.dark,
+    primaryColor: _darkPrimary,
+    scaffoldBackgroundColor: _darkBackground,
+    cardColor: Color(0xFF2A2A2A),
+    colorScheme: ColorScheme.dark(
+      primary: _darkPrimary,
+      secondary: _darkSecondary,
+      tertiary: _darkAccent,
+      background: _darkBackground,
+      surface: Color(0xFF2A2A2A),
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: _darkText),
+      bodyMedium: TextStyle(color: _darkText),
+    ),
+    iconTheme: const IconThemeData(color: _darkText),
+    appBarTheme: const AppBarTheme(
+      color: Colors.transparent,
+      iconTheme: IconThemeData(color: _darkPrimary),
+      titleTextStyle: TextStyle(
+        color: _darkText,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+}
