@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:write4me/screens/reminders_screen.dart';
 
 class ChatInput extends StatelessWidget {
   final TextEditingController controller;
@@ -99,6 +100,18 @@ class ChatInput extends StatelessWidget {
                 onPressed: isInternetDisabled ? null : onToggleInternet,
                 isActive: isInternetMode,
                 label: 'Search Web',
+              ),
+              _buildActionButton(
+                icon: Icons.smart_toy_outlined,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RemindersScreen(),
+                    ),
+                  );
+                },
+                label: 'Agent',
               ),
             ],
           ),

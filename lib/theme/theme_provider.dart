@@ -54,11 +54,10 @@ class AppTheme {
     primaryColor: _lightPrimary,
     scaffoldBackgroundColor: _lightBackground,
     cardColor: Colors.white,
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: _lightPrimary,
       secondary: _lightSecondary,
       tertiary: _lightAccent,
-      background: _lightBackground,
       surface: Colors.white,
     ),
     textTheme: const TextTheme(
@@ -81,12 +80,11 @@ class AppTheme {
     brightness: Brightness.dark,
     primaryColor: _darkPrimary,
     scaffoldBackgroundColor: _darkBackground,
-    cardColor: Color(0xFF2A2A2A),
-    colorScheme: ColorScheme.dark(
+    cardColor: const Color(0xFF2A2A2A),
+    colorScheme: const ColorScheme.dark(
       primary: _darkPrimary,
       secondary: _darkSecondary,
       tertiary: _darkAccent,
-      background: _darkBackground,
       surface: Color(0xFF2A2A2A),
     ),
     textTheme: const TextTheme(

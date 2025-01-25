@@ -1,12 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'homepage.dart';
 import 'theme/theme_provider.dart';
+import 'services/notification_service.dart';
+import 'services/reminder_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize timezone
+  tz.initializeTimeZones();
+  
+  await Hive.initFlutter();
+  
+  final notificationService = NotificationService();
+  await notificationService.init();
+  
+  final reminderService = ReminderService(notificationService);
+  await reminderService.init();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        Provider<ReminderService>.value(value: reminderService),
+      ],
       child: const MyApp(),
     ),
   );

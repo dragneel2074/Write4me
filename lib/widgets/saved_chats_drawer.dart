@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/saved_chat.dart';
-import '../services/chat_storage_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class SavedChatsDrawer extends StatelessWidget {
