@@ -8,10 +8,10 @@ class ImageGenerationService {
     required String prompt,
     int width = 1024,
     int height = 1024,
-    String? model,
+    String? model = 'flux',
   }) async {
     try {
-      int? seed;
+      int? seed = 42;
       String noLogo = 'true';
       String enhance = 'true';
       String safe = 'false';
@@ -20,13 +20,14 @@ class ImageGenerationService {
 
       // Build the URL with parameters
       final url = Uri.parse(
-          '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&model=$model&seed=$seed=42');
-
+          '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed');
+      print(url);
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         return response.bodyBytes;
       } else {
+        print(response.body);
         throw Exception('Failed to generate image: ${response.statusCode}');
       }
     } catch (e) {

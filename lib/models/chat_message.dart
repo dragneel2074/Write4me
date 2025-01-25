@@ -20,4 +20,20 @@ class ChatMessage {
       'content': content,
     };
   }
+
+  Map<String, dynamic> toJson() => {
+    'content': content,
+    'isUser': isUser,
+    'isError': isError,
+    'imageData': imageData?.toList(),
+  };
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+    content: json['content'],
+    isUser: json['isUser'],
+    isError: json['isError'] ?? false,
+    imageData: json['imageData'] != null 
+        ? Uint8List.fromList(List<int>.from(json['imageData']))
+        : null,
+  );
 }

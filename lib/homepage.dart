@@ -16,6 +16,9 @@ import 'services/web_service.dart';
 import 'theme/theme_provider.dart';
 import 'utils/dialog_manager.dart';
 import 'widgets/intro_drawer.dart';
+import 'services/chat_storage_service.dart';
+import 'models/saved_chat.dart';
+import 'widgets/saved_chats_drawer.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -41,68 +44,117 @@ class _HomePageState extends State<HomePage>
   final TextGenerationService _textGenService = TextGenerationService();
   final WebService _webService = WebService();
   final ImageService _imageService = ImageService();
+  final ChatStorageService _chatStorage = ChatStorageService();
+  List<SavedChat> _savedChats = [];
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    await _chatStorage.init();
+    _loadSavedChats();
     _checkServiceStatus();
   }
 
-  
-Future<void> _checkServiceStatus() async {
-  // Add initial checking message
-  setState(() {
-    _messages.add(ChatMessage(
-      content: "Checking if services are online...",
-      isUser: false,
-    ));
-  });
-  
-  bool isTextServiceOnline = false;
-  bool isImageServiceOnline = false;
+  void _loadSavedChats() {
+    setState(() {
+      _savedChats = _chatStorage.getAllChats();
+    });
+  }
 
-  try {
-    final textResponse = await _textGenService.generateText("say hi");
-    isTextServiceOnline = textResponse.isNotEmpty;
-  } catch (e) {
-    isTextServiceOnline = false;
-    if (kDebugMode) {
-      print("Error checking text service status: $e");
+  Future<void> _saveCurrentChat() async {
+    if (_messages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No messages to save')),
+      );
+      return;
+    }
+
+    await _chatStorage.saveChat(_messages);
+    _loadSavedChats();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chat saved successfully')),
+      );
     }
   }
 
-  try {
-    final imageBytes = await _imageGenService.generateImage(prompt: "boy in yellow hat");
-    isImageServiceOnline = imageBytes != null;
-  } catch (e) {
-    isImageServiceOnline = false;
-    if (kDebugMode) {
-      print("Error checking image service status: $e");
+  Future<void> _deleteChat(String id) async {
+    await _chatStorage.deleteChat(id);
+    _loadSavedChats();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chat deleted')),
+      );
     }
   }
 
-  String statusMessage = "Hey! \n\n";
-  statusMessage += isTextServiceOnline
-      ? " Chat Service is Online. Ask Me Anything.  \n\n "
-      : " Chat Service is currently Offline :( Try Again Later.\n\n";
+  void _loadSavedChat(SavedChat chat) {
+    setState(() {
+      _messages.clear();
+      _messages.addAll(chat.chatMessages);
+    });
+  }
 
-  statusMessage += isImageServiceOnline
-      ? " Image Service is Online. Generate Amazing Images"
-      : " Image Service is Offline. Try Again Later";
+  Future<void> _checkServiceStatus() async {
+    // Add initial checking message
+    setState(() {
+      _messages.add(ChatMessage(
+        content: "Checking if services are online...",
+        isUser: false,
+      ));
+    });
+    
+    bool isTextServiceOnline = false;
+    bool isImageServiceOnline = false;
 
-  setState(() {
-    // Remove the checking message
-    _messages.removeAt(0);
-    // Add the status message
-    _messages.add(ChatMessage(
-      content: statusMessage,
-      isUser: false,
-      isError: !isTextServiceOnline || !isImageServiceOnline,
-    ));
-  });
-  _scrollToBottom();
-}
+    try {
+      final textResponse = await _textGenService.generateText("say hi");
+      isTextServiceOnline = textResponse.isNotEmpty;
+    } catch (e) {
+      isTextServiceOnline = false;
+      if (kDebugMode) {
+        print("Error checking text service status: $e");
+      }
+    }
+
+    try {
+      final imageBytes = await _imageGenService.generateImage(prompt: "boy in yellow hat");
+      isImageServiceOnline = imageBytes != null;
+    } catch (e) {
+      isImageServiceOnline = false;
+      if (kDebugMode) {
+        print("Error checking image service status: $e");
+      }
+    }
+
+    String statusMessage = "Hey! \n\n";
+    statusMessage += isTextServiceOnline
+        ? "Chat Service is Online. Ask Me Anything.\n\n"
+        : "Chat Service is currently Offline :( Try Again Later.\n";
+
+    statusMessage += isImageServiceOnline
+        ? " Image Service is Online. Generate Amazing Images"
+        : " Image Service is Offline. Try Again Later";
+
+    setState(() {
+      // Remove the checking message
+      _messages.removeAt(0);
+      // Add the status message
+      _messages.add(ChatMessage(
+        content: statusMessage,
+        isUser: false,
+        isError: !isTextServiceOnline || !isImageServiceOnline,
+      ));
+    });
+    _scrollToBottom();
+  }
 
   @override
   void dispose() {
@@ -312,13 +364,13 @@ Future<void> _checkServiceStatus() async {
         elevation: 0,
         title: Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                // TODO: Implement save chats functionality
-              },
-              tooltip: 'Saved Chats',
-            ),
+            // IconButton(
+            //   icon: const Icon(Icons.menu),
+            //   onPressed: () {
+            //     Scaffold.of(context).openDrawer();
+            //   },
+            //   tooltip: 'Saved Chats',
+            // ),
             const Expanded(
               child: Text(
                 'Write4Me',
@@ -328,6 +380,12 @@ Future<void> _checkServiceStatus() async {
                 ),
               ),
             ),
+            if (_messages.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.save_outlined),
+                onPressed: _saveCurrentChat,
+                tooltip: 'Save chat',
+              ),
             if (_messages.isNotEmpty)
               IconButton(
                 icon: const Icon(Icons.cleaning_services),
@@ -363,6 +421,11 @@ Future<void> _checkServiceStatus() async {
             ),
           ],
         ),
+      ),
+      drawer: SavedChatsDrawer(
+        chats: _savedChats,
+        onChatSelected: _loadSavedChat,
+        onChatDeleted: _deleteChat,
       ),
       body: Column(
         children: [

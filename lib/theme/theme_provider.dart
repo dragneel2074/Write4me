@@ -40,7 +40,7 @@ class AppTheme {
   static const Color _lightSecondary = Color(0xFF28A745);
   static const Color _lightAccent = Color(0xFFFFC107);
   static const Color _lightBackground = Color(0xFFF8F9FA);
-  static const Color _lightText = Color.fromARGB(255, 0, 0, 0);
+  static const Color _lightText = Color(0xFF333333);
 
   // Dark Theme Colors
   static const Color _darkPrimary = Color(0xFF1E90FF);
@@ -62,7 +62,7 @@ class AppTheme {
       surface: Colors.white,
     ),
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: _lightText),
+      bodyLarge: TextStyle(color: _lightText,fontWeight: FontWeight.w400),
       bodyMedium: TextStyle(color: _lightText),
     ),
     iconTheme: const IconThemeData(color: _lightText),
