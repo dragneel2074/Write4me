@@ -3,6 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/chat_message.dart';
 import 'package:flutter/services.dart';
 import '../services/image_service.dart';
+import 'package:flutter/rendering.dart';
 
 class ChatMessages extends StatelessWidget {
   final List<ChatMessage> messages;
@@ -39,14 +40,24 @@ class ChatMessages extends StatelessWidget {
     }
   }
 
+  void _copyText(BuildContext context, String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Text copied to clipboard'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      controller: scrollController,
+        controller: scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: messages.length + (isLoading ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == messages.length) {
+        itemCount: messages.length + (isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == messages.length) {
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Center(
@@ -58,9 +69,9 @@ class ChatMessages extends StatelessWidget {
                   color: Theme.of(context).primaryColor,
                 ),
               ),
-            ),
-          );
-        }
+              ),
+            );
+          }
         final message = messages[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
@@ -78,7 +89,7 @@ class ChatMessages extends StatelessWidget {
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          color: Theme.of(context).primaryColor.withValues(alpha:0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -139,62 +150,89 @@ class ChatMessages extends StatelessWidget {
                           ),
                         ],
                       )
-                    : MarkdownBody(
-                        data: message.content,
-                        styleSheet: MarkdownStyleSheet(
-                          p: TextStyle(
-                            color: message.isUser 
-                                ? Colors.white
-                                : Theme.of(context).textTheme.bodyLarge?.color,
-                            height: 1.4,
-                            fontSize: 15,
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          MarkdownBody(
+                            data: message.content,
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                color: message.isUser 
+                                    ? Colors.white
+                                    : Theme.of(context).textTheme.bodyLarge?.color,
+                                height: 1.4,
+                                fontSize: 15,
+                              ),
+                              code: TextStyle(
+                                color: message.isUser 
+                                    ? Colors.white.withValues(alpha:0.9)
+                                    : Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha:0.9),
+                                backgroundColor: message.isUser 
+                                    ? Colors.white.withValues(alpha:0.1)
+                                    : Theme.of(context).brightness == Brightness.light
+                                        ? Colors.black.withValues(alpha:0.05)
+                                        : Colors.white.withValues(alpha:0.1),
+                                fontSize: 14,
+                              ),
+                              codeblockDecoration: BoxDecoration(
+                                color: message.isUser 
+                                    ? Colors.white.withValues(alpha:0.1)
+                                    : Theme.of(context).brightness == Brightness.light
+                                        ? Colors.black.withValues(alpha:0.05)
+                                        : Colors.white.withValues(alpha:0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              blockquote: TextStyle(
+                                color: message.isUser 
+                                    ? Colors.white.withValues(alpha: 0.9)
+                                    : Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha:0.9),
+                                fontSize: 15,
+                                height: 1.4,
+                              ),
+                              h1: TextStyle(
+                                color: message.isUser 
+                                    ? Colors.white
+                                    : Theme.of(context).textTheme.bodyLarge?.color,
+                                height: 1.4,
+                              ),
+                              h2: TextStyle(
+                                color: message.isUser 
+                                    ? Colors.white
+                                    : Theme.of(context).textTheme.bodyLarge?.color,
+                                height: 1.4,
+                              ),
+                              h3: TextStyle(
+                                color: message.isUser 
+                                    ? Colors.white
+                                    : Theme.of(context).textTheme.bodyLarge?.color,
+                                height: 1.4,
+                              ),
+                            ),
+                            selectable: true,
                           ),
-                          code: TextStyle(
-                            color: message.isUser 
-                                ? Colors.white.withOpacity(0.9)
-                                : Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9),
-                            backgroundColor: message.isUser 
-                                ? Colors.white.withOpacity(0.1)
-                                : Theme.of(context).brightness == Brightness.light
-                                    ? Colors.black.withOpacity(0.05)
-                                    : Colors.white.withOpacity(0.1),
-                            fontSize: 14,
-                          ),
-                          codeblockDecoration: BoxDecoration(
-                            color: message.isUser 
-                                ? Colors.white.withOpacity(0.1)
-                                : Theme.of(context).brightness == Brightness.light
-                                    ? Colors.black.withOpacity(0.05)
-                                    : Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          blockquote: TextStyle(
-                            color: message.isUser 
-                                ? Colors.white.withOpacity(0.9)
-                                : Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9),
-                            fontSize: 15,
-                            height: 1.4,
-                          ),
-                          h1: TextStyle(
-                            color: message.isUser 
-                                ? Colors.white
-                                : Theme.of(context).textTheme.bodyLarge?.color,
-                            height: 1.4,
-                          ),
-                          h2: TextStyle(
-                            color: message.isUser 
-                                ? Colors.white
-                                : Theme.of(context).textTheme.bodyLarge?.color,
-                            height: 1.4,
-                          ),
-                          h3: TextStyle(
-                            color: message.isUser 
-                                ? Colors.white
-                                : Theme.of(context).textTheme.bodyLarge?.color,
-                            height: 1.4,
-                          ),
-                        ),
-                        selectable: true,
+                          if (!message.isUser && message.imageData == null) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.copy,
+                                    size: 16,
+                                    color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 32,
+                                    minHeight: 32,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  tooltip: 'Copy text',
+                                  onPressed: () => _copyText(context, message.content),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
                       ),
               ),
             ],

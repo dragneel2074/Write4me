@@ -11,8 +11,9 @@ import 'package:device_info_plus/device_info_plus.dart';
 class ImageSaver {
   static Future<String?> saveImage(BuildContext context, Uint8List imageData) async {
     if (Platform.isAndroid && await _needsStoragePermission()) {
-      final hasPermission = await _handlePermission(context);
-      if (!hasPermission) return null;
+    if (!context.mounted) return null;
+    final hasPermission =  await _handlePermission(context);
+    if (!hasPermission) return null;
     }
 
     try {
@@ -58,8 +59,9 @@ class ImageSaver {
       final result = await Permission.storage.request();
       return result.isGranted;
     }
-    
+
     if (status.isPermanentlyDenied) {
+      if (!context.mounted) return false;
       final shouldOpenSettings = await _showPermissionDialog(context);
       if (shouldOpenSettings) {
         await openAppSettings();
@@ -104,6 +106,8 @@ class MessageBubble extends StatelessWidget {
 
   Future<void> _copyToClipboard(BuildContext context, String text) async {
     await Clipboard.setData(ClipboardData(text: text));
+      if (!context.mounted) return;
+
     NotificationService.showTopNotification(
       context,
       message: 'Text copied to clipboard',
@@ -112,8 +116,10 @@ class MessageBubble extends StatelessWidget {
 
   Future<void> _downloadImage(BuildContext context, Uint8List imageData) async {
     final savedPath = await ImageSaver.saveImage(context, imageData);
-    
+    if (!context.mounted) return;
+
     if (savedPath != null) {
+
       NotificationService.showTopNotification(
         context,
         message: 'Image saved successfully',
@@ -182,7 +188,7 @@ class MessageBubble extends StatelessWidget {
         children: [
           if (!message.isUser) ...[
             CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
               child: const Icon(Icons.smart_toy, size: 20),
             ),
             const SizedBox(width: 8),
@@ -213,7 +219,7 @@ class MessageBubble extends StatelessWidget {
           if (message.isUser) ...[
             const SizedBox(width: 8),
             CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
               child: const Icon(Icons.person, size: 20),
             ),
           ],

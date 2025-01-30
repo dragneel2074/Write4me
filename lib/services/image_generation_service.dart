@@ -1,5 +1,5 @@
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'dart:typed_data';
 
 class ImageGenerationService {
   static const String baseUrl = 'https://image.pollinations.ai/prompt/';
@@ -21,13 +21,17 @@ class ImageGenerationService {
       // Build the URL with parameters
       final url = Uri.parse(
           '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed');
-      print(url);
+      if (kDebugMode) {
+        print(url);
+      }
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         return response.bodyBytes;
       } else {
-        print(response.body);
+        if (kDebugMode) {
+          print(response.body);
+        }
         throw Exception('Failed to generate image: ${response.statusCode}');
       }
     } catch (e) {

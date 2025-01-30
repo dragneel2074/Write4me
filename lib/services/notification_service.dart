@@ -61,7 +61,7 @@ class NotificationService {
       await _notifications.zonedSchedule(
         id.hashCode,
         title,
-        body,
+        body.length > 1000 ? '${body.substring(0, 997)}...' : body,
         tzDateTime,
         NotificationDetails(
           android: AndroidNotificationDetails(
@@ -71,6 +71,7 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.high,
             enableVibration: true,
+            styleInformation: BigTextStyleInformation(body),
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,
@@ -115,7 +116,7 @@ class NotificationService {
         title,
         body,
         tz.TZDateTime.from(scheduledDate, tz.local),
-        NotificationDetails(
+        const NotificationDetails(
           android: AndroidNotificationDetails(
             'daily_reminders_channel',
             'Daily Reminders',
@@ -124,7 +125,7 @@ class NotificationService {
             priority: Priority.high,
             enableVibration: true,
           ),
-          iOS: const DarwinNotificationDetails(
+          iOS: DarwinNotificationDetails(
             presentAlert: true,
             presentBadge: true,
             presentSound: true,
@@ -174,7 +175,7 @@ class NotificationService {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha:0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

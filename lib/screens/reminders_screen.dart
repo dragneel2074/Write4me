@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:write4me/services/notification_service.dart';
 import '../models/reminder.dart';
 import '../services/reminder_service.dart';
 import '../widgets/reminder_dialog.dart';
@@ -49,8 +48,31 @@ class _RemindersScreenState extends State<RemindersScreen> {
   }
 
   Future<void> _deleteReminder(String id) async {
-    await _reminderService.deleteReminder(id);
-    _loadReminders();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Reminder'),
+        content: const Text('Are you sure you want to delete this reminder?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _reminderService.deleteReminder(id);
+      _loadReminders();
+    }
   }
 
   Future<void> _toggleReminder(Reminder reminder) async {
@@ -80,7 +102,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     Icons.notifications_none,
                     size: 64,
                     color:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                        Theme.of(context).colorScheme.primary.withValues(alpha:0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(

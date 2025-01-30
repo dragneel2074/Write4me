@@ -12,31 +12,36 @@ class ReminderDialog extends StatefulWidget {
 
 class _ReminderDialogState extends State<ReminderDialog> {
   late TextEditingController _titleController;
+  late TextEditingController _promptController;
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
   late ReminderFrequency _frequency;
   late bool _isActive;
+  late bool _hasPrompt;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.reminder?.title);
+    _promptController = TextEditingController(text: widget.reminder?.prompt);
     _selectedDate = widget.reminder?.dateTime ?? DateTime.now();
     _selectedTime = TimeOfDay.fromDateTime(widget.reminder?.dateTime ?? DateTime.now());
     _frequency = widget.reminder?.frequency ?? ReminderFrequency.once;
     _isActive = widget.reminder?.isActive ?? true;
+    _hasPrompt = widget.reminder?.hasPrompt ?? false;
   }
 
   @override
   void dispose() {
     _titleController.dispose();
+    _promptController.dispose();
     super.dispose();
   }
 
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _selectedDate.isBefore(DateTime.now()) ? DateTime.now() : _selectedDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
     );
@@ -52,6 +57,23 @@ class _ReminderDialogState extends State<ReminderDialog> {
     );
     if (picked != null) {
       setState(() => _selectedTime = picked);
+    }
+  }
+
+  void _validateDateTime() {
+    final selectedDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+
+    if (selectedDateTime.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a future date and time')),
+      );
+      return;
     }
   }
 
@@ -106,6 +128,24 @@ class _ReminderDialogState extends State<ReminderDialog> {
               value: _isActive,
               onChanged: (value) => setState(() => _isActive = value),
             ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              title: const Text('Enable AI Prompt'),
+              subtitle: const Text('Generate content at scheduled time'),
+              value: _hasPrompt,
+              onChanged: (value) => setState(() => _hasPrompt = value),
+            ),
+            if (_hasPrompt) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: _promptController,
+                decoration: const InputDecoration(
+                  labelText: 'Prompt',
+                  hintText: 'e.g., Tell me a joke',
+                ),
+                maxLines: 2,
+              ),
+            ],
           ],
         ),
       ),
@@ -122,8 +162,14 @@ class _ReminderDialogState extends State<ReminderDialog> {
               );
               return;
             }
+            if (_hasPrompt && _promptController.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please enter a prompt')),
+              );
+              return;
+            }
 
-            final dateTime = DateTime(
+            final selectedDateTime = DateTime(
               _selectedDate.year,
               _selectedDate.month,
               _selectedDate.day,
@@ -131,12 +177,21 @@ class _ReminderDialogState extends State<ReminderDialog> {
               _selectedTime.minute,
             );
 
+            if (selectedDateTime.isBefore(DateTime.now())) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please select a future date and time')),
+              );
+              return;
+            }
+
             final reminder = Reminder(
               id: widget.reminder?.id,
               title: _titleController.text,
-              dateTime: dateTime,
+              dateTime: selectedDateTime,
               frequency: _frequency,
               isActive: _isActive,
+              hasPrompt: _hasPrompt,
+              prompt: _hasPrompt ? _promptController.text : null,
             );
 
             Navigator.of(context).pop(reminder);

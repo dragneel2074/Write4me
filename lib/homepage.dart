@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'components/chat_input.dart';
 import 'components/chat_messages.dart';
 import 'components/document_list_container.dart';
@@ -13,12 +12,15 @@ import 'services/notification_service.dart';
 import 'services/pdf_service.dart';
 import 'services/text_generation_service.dart';
 import 'services/web_service.dart';
-import 'theme/theme_provider.dart';
 import 'utils/dialog_manager.dart';
 import 'widgets/intro_drawer.dart';
 import 'services/chat_storage_service.dart';
 import 'models/saved_chat.dart';
 import 'widgets/saved_chats_drawer.dart';
+import 'widgets/settings_dialog.dart';
+import 'services/offline_model_service.dart';
+import 'package:provider/provider.dart';
+import 'components/model_selector.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -36,10 +38,11 @@ class _HomePageState extends State<HomePage>
   late final ScrollController _scrollController;
   bool _isImageMode = false;
   bool _isInternetMode = false;
+  bool _isGenerating = false;
 
   // Services
+  late final AIService _aiService;
   final PDFService _pdfService = PDFService();
-  final AIService _aiService = AIService();
   final ImageGenerationService _imageGenService = ImageGenerationService();
   final TextGenerationService _textGenService = TextGenerationService();
   final WebService _webService = WebService();
@@ -55,6 +58,8 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _initializeServices() async {
+    final offlineService = context.read<OfflineModelService>();
+    _aiService = AIService(_textGenService, offlineService);
     await _chatStorage.init();
     _loadSavedChats();
     _checkServiceStatus();
@@ -76,7 +81,7 @@ class _HomePageState extends State<HomePage>
 
     await _chatStorage.saveChat(_messages);
     _loadSavedChats();
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Chat saved successfully')),
@@ -87,7 +92,7 @@ class _HomePageState extends State<HomePage>
   Future<void> _deleteChat(String id) async {
     await _chatStorage.deleteChat(id);
     _loadSavedChats();
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Chat deleted')),
@@ -110,7 +115,7 @@ class _HomePageState extends State<HomePage>
         isUser: false,
       ));
     });
-    
+
     bool isTextServiceOnline = false;
     bool isImageServiceOnline = false;
 
@@ -125,7 +130,8 @@ class _HomePageState extends State<HomePage>
     }
 
     try {
-      final imageBytes = await _imageGenService.generateImage(prompt: "boy in yellow hat");
+      final imageBytes =
+          await _imageGenService.generateImage(prompt: "boy in yellow hat");
       isImageServiceOnline = imageBytes != null;
     } catch (e) {
       isImageServiceOnline = false;
@@ -189,17 +195,21 @@ class _HomePageState extends State<HomePage>
       PDFMemory? newMemory = await _pdfService.pickAndProcessPDF();
       if (newMemory != null) {
         _addContent(newMemory);
-        NotificationService.showTopNotification(
-          context,
-          message: 'PDF processed: ${newMemory.pdfName}',
-        );
+        if (mounted) {
+          NotificationService.showTopNotification(
+            context,
+            message: 'PDF processed: ${newMemory.pdfName}',
+          );
+        }
       }
     } catch (e) {
-      NotificationService.showTopNotification(
-        context,
-        message: 'Error processing PDF: ${e.toString()}',
-        isError: true,
-      );
+      if (mounted) {
+        NotificationService.showTopNotification(
+          context,
+          message: 'Error processing PDF: ${e.toString()}',
+          isError: true,
+        );
+      }
     }
   }
 
@@ -217,12 +227,15 @@ class _HomePageState extends State<HomePage>
         PDFMemory? webMemory = await _webService.processWebContent(url);
         if (webMemory != null) {
           _addContent(webMemory);
+          if (!mounted) return;
           NotificationService.showTopNotification(
             context,
             message: 'Web content processed: ${webMemory.pdfName}',
           );
         }
       } catch (e) {
+                  if (!mounted) return;
+
         NotificationService.showTopNotification(
           context,
           message: 'Error processing web content: ${e.toString()}',
@@ -240,12 +253,16 @@ class _HomePageState extends State<HomePage>
             await _imageService.processImageContent(source);
         if (imageMemory != null) {
           _addContent(imageMemory);
+                    if (!mounted) return;
+
           NotificationService.showTopNotification(
             context,
             message: 'Image content processed: ${imageMemory.pdfName}',
           );
         }
       } catch (e) {
+                  if (!mounted) return;
+
         NotificationService.showTopNotification(
           context,
           message: 'Error processing image: ${e.toString()}',
@@ -264,25 +281,45 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _clearChat() async {
-    final shouldClear = await DialogManager.showClearChatConfirmation(context);
-    if (shouldClear ?? false) {
-      setState(() {
-        _messages.clear();
-        _checkServiceStatus();
-      });
+    // Stop any ongoing generation
+    _aiService.stopGeneration();
+    
+    setState(() {
+      _messages.clear();
+      _isLoading = false;
+      _isGenerating = false;
+      _isImageMode = false;
+      _isInternetMode = false;
+      _controller.clear();
+      _pdfMemories.clear();
+    });
+
+    // Show a brief confirmation
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Started new chat'),
+          duration: Duration(seconds: 1),
+        ),
+      );
     }
   }
 
-  Future<void> _submitMessage() async {
-    if (_controller.text.trim().isEmpty) return;
-
-    final userMessage = _controller.text;
+  Future<void> _stopGeneration() async {
+    _aiService.stopGeneration();
     setState(() {
-      _messages.add(ChatMessage(
-        content: userMessage,
-        isUser: true,
-      ));
+      _isGenerating = false;
+    });
+  }
+
+  Future<void> _submitMessage() async {
+    final message = _controller.text.trim();
+    if (message.isEmpty) return;
+
+    setState(() {
+      _messages.add(ChatMessage(content: message, isUser: true));
       _isLoading = true;
+      _isGenerating = true;
       _controller.clear();
     });
     _scrollToBottom();
@@ -297,12 +334,12 @@ class _HomePageState extends State<HomePage>
         });
 
         final imageData =
-            await _imageGenService.generateImage(prompt: userMessage);
+            await _imageGenService.generateImage(prompt: message);
 
         if (imageData != null) {
           setState(() {
             _messages.add(ChatMessage(
-              content: userMessage,
+              content: message,
               isUser: false,
               imageData: imageData,
             ));
@@ -315,48 +352,63 @@ class _HomePageState extends State<HomePage>
               isError: true,
             ));
           });
-        }
+        };
         setState(() {
           _isImageMode = false;
         });
       } else {
-        // Get last 6 messages for context
-        final recentHistory = _messages.length > 6
-            ? _messages.sublist(_messages.length - 6)
-            : _messages;
-
-        final response = await _aiService.getResponse(
-          userMessage,
-          _pdfMemories.where((memory) => memory.isSelected).toList(),
+        await _aiService.getStreamingResponse(
+          message,
+          _pdfMemories,
+          (response, done) {
+            if (mounted) {
+              setState(() {
+                if (_messages.last.isUser) {
+                  _messages.add(ChatMessage(
+                    content: response,
+                    isUser: false,
+                  ));
+                } else {
+                  _messages.last = ChatMessage(
+                    content: response,
+                    isUser: false,
+                  );
+                }
+                if (done) _isGenerating = false;
+              });
+              _scrollToBottom();
+            }
+          },
           useInternet: _isInternetMode,
-          history: recentHistory,
+          history: _messages,
         );
-
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
           _messages.add(ChatMessage(
-            content: response,
+            content: "Something went wrong! Try again later.",
             isUser: false,
+            isError: true,
           ));
         });
       }
-    } catch (e) {
-      setState(() {
-        _messages.add(ChatMessage(
-          content: "Something went wrong! Try again later.",
-          isUser: false,
-          isError: true,
-        ));
-      });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
-      _scrollToBottom();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isGenerating = false;
+        });
+        _scrollToBottom();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final offlineService = context.watch<OfflineModelService>();
+    final isOffline = offlineService.isOfflineMode;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -364,13 +416,6 @@ class _HomePageState extends State<HomePage>
         elevation: 0,
         title: Row(
           children: [
-            // IconButton(
-            //   icon: const Icon(Icons.menu),
-            //   onPressed: () {
-            //     Scaffold.of(context).openDrawer();
-            //   },
-            //   tooltip: 'Saved Chats',
-            // ),
             const Expanded(
               child: Text(
                 'Write4Me',
@@ -380,44 +425,54 @@ class _HomePageState extends State<HomePage>
                 ),
               ),
             ),
-            if (_messages.isNotEmpty)
-              IconButton(
-                icon: const Icon(Icons.save_outlined),
-                onPressed: _saveCurrentChat,
-                tooltip: 'Save chat',
-              ),
-            if (_messages.isNotEmpty)
-              IconButton(
-                icon: const Icon(Icons.cleaning_services),
-                onPressed: _clearChat,
-                tooltip: 'Clear chat',
+            if (isOffline && offlineService.availableModels.length > 1)
+              PopupMenuButton<String>(
+                tooltip: 'Switch Model',
+                icon: const Icon(Icons.swap_horiz),
+                itemBuilder: (context) => [
+                  for (final model in offlineService.availableModels)
+                    PopupMenuItem(
+                      value: model.path,
+                      child: Row(
+                        children: [
+                          Icon(
+                            model.path == offlineService.selectedModelPath
+                                ? Icons.check_circle
+                                : Icons.circle_outlined,
+                            size: 18,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(model.path.split('/').last.replaceAll('.gguf', '')),
+                        ],
+                      ),
+                    ),
+                ],
+                onSelected: (modelPath) {
+                  offlineService.setSelectedModel(modelPath);
+                },
               ),
             IconButton(
-              icon: const Icon(Icons.info_outline),
+              icon: const Icon(Icons.settings),
               onPressed: () {
                 showDialog(
                   context: context,
-                  barrierDismissible: true,
-                  builder: (BuildContext context) => const IntroDrawer(),
-                  useSafeArea: true,
+                  builder: (context) => SettingsDialog(
+                    hasMessages: _messages.isNotEmpty,
+                    onSaveChat: _saveCurrentChat,
+                    onClearChat: _clearChat,
+                    onShowInfo: () {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: true,
+                        builder: (BuildContext context) => const IntroDrawer(),
+                        useSafeArea: true,
+                      );
+                    },
+                  ),
                 );
               },
-              tooltip: 'App Info',
-            ),
-            IconButton(
-              icon: Icon(
-                Theme.of(context).brightness == Brightness.light
-                    ? Icons.dark_mode
-                    : Icons.light_mode,
-              ),
-              onPressed: () {
-                final themeProvider = Provider.of<ThemeProvider>(
-                  context,
-                  listen: false,
-                );
-                themeProvider.toggleTheme();
-              },
-              tooltip: 'Toggle theme',
+              tooltip: 'Settings',
             ),
           ],
         ),
@@ -448,7 +503,8 @@ class _HomePageState extends State<HomePage>
                     height: 2,
                     width: 120,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.5),
+                      color:
+                          Theme.of(context).primaryColor.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(1),
                     ),
                   ),
@@ -467,15 +523,16 @@ class _HomePageState extends State<HomePage>
               color: Theme.of(context).scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
                   offset: const Offset(0, -2),
-                  blurRadius: 5,
                 ),
               ],
             ),
             padding: const EdgeInsets.all(10),
             child: Column(
               children: [
+                ModelSelector(isOfflineMode: isOffline),
                 DocumentListContainer(
                   documents: _pdfMemories,
                   onSelectionChanged: () => setState(() {}),
@@ -490,21 +547,28 @@ class _HomePageState extends State<HomePage>
                   controller: _controller,
                   isImageMode: _isImageMode,
                   isInternetMode: _isInternetMode,
+                  isGenerating: _isGenerating,
                   onSubmit: _submitMessage,
+                  onStop: _stopGeneration,
                   onAddContent: _showAddOptions,
-                  onToggleInternet: () {
-                    setState(() {
-                      _isInternetMode = !_isInternetMode;
-                      _isImageMode = false;
-                    });
-                  },
-                  onToggleImage: () {
-                    setState(() {
-                      _isImageMode = !_isImageMode;
-                      _isInternetMode = false;
-                    });
-                  },
-                  isInternetDisabled: _pdfMemories.isNotEmpty,
+                  onToggleInternet: isOffline 
+                      ? null  // Now type-safe
+                      : () {
+                          setState(() {
+                            _isInternetMode = !_isInternetMode;
+                            _isImageMode = false;
+                          });
+                        },
+                  onToggleImage: isOffline
+                      ? null  // Now type-safe
+                      : () {
+                          setState(() {
+                            _isImageMode = !_isImageMode;
+                            _isInternetMode = false;
+                          });
+                        },
+                  isInternetDisabled: _pdfMemories.isNotEmpty || isOffline,
+                  isOfflineMode: isOffline,
                 ),
               ],
             ),

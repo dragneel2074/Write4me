@@ -7,9 +7,12 @@ class ChatInput extends StatelessWidget {
   final bool isInternetMode;
   final VoidCallback onSubmit;
   final VoidCallback onAddContent;
-  final VoidCallback onToggleInternet;
-  final VoidCallback onToggleImage;
+  final VoidCallback? onToggleInternet;
+  final VoidCallback? onToggleImage;
   final bool isInternetDisabled;
+  final bool isGenerating;
+  final VoidCallback onStop;
+  final bool isOfflineMode;
 
   const ChatInput({
     super.key,
@@ -18,9 +21,12 @@ class ChatInput extends StatelessWidget {
     required this.isInternetMode,
     required this.onSubmit,
     required this.onAddContent,
-    required this.onToggleInternet,
-    required this.onToggleImage,
+    this.onToggleInternet,
+    this.onToggleImage,
     required this.isInternetDisabled,
+    required this.isGenerating,
+    required this.onStop,
+    this.isOfflineMode = false,
   });
 
   @override
@@ -31,7 +37,7 @@ class ChatInput extends StatelessWidget {
         color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.05),
+            color: Theme.of(context).dividerColor.withValues(alpha:0.05),
           ),
         ),
       ),
@@ -53,12 +59,15 @@ class ChatInput extends StatelessWidget {
                   ),
                   child: TextField(
                     controller: controller,
+                    enabled: !isGenerating,
                     decoration: InputDecoration(
-                      hintText: isImageMode 
-                          ? 'Describe the image you want to create...'
-                          : isInternetMode
-                              ? 'Search the internet...'
-                              : 'Message Write4Me',
+                      hintText: isGenerating 
+                          ? 'Generating...'
+                          : isImageMode 
+                              ? 'Describe the image...'
+                              : isInternetMode
+                                  ? 'Search the internet...'
+                                  : 'Message Write4Me',
                       hintStyle: TextStyle(
                         color: Theme.of(context).textTheme.bodySmall?.color,
                         fontSize: 15,
@@ -72,13 +81,23 @@ class ChatInput extends StatelessWidget {
                 ),
               ),
               _buildActionButton(
-                icon: Icons.send,
-                onPressed: onSubmit,
+                icon: isGenerating ? Icons.stop : Icons.send,
+                onPressed: isGenerating ? onStop : onSubmit,
                 showActive: true,
               ),
             ],
           ),
           const SizedBox(height: 8),
+          if (isOfflineMode)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Offline Mode - Using Local Model',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ),
           // Bottom Action Buttons
           Wrap(
             spacing: 4,
@@ -89,18 +108,20 @@ class ChatInput extends StatelessWidget {
                 onPressed: onAddContent,
                 label: 'Add Files',
               ),
-              _buildActionButton(
-                icon: isImageMode ? Icons.image : Icons.image_outlined,
-                onPressed: onToggleImage,
-                isActive: isImageMode,
-                label: 'Generate Image',
-              ),
-              _buildActionButton(
-                icon: isInternetMode ? Icons.language : Icons.language_outlined,
-                onPressed: isInternetDisabled ? null : onToggleInternet,
-                isActive: isInternetMode,
-                label: 'Search Web',
-              ),
+              if (!isOfflineMode) ...[
+                _buildActionButton(
+                  icon: isImageMode ? Icons.image : Icons.image_outlined,
+                  onPressed: onToggleImage,
+                  isActive: isImageMode,
+                  label: 'Generate Image',
+                ),
+                _buildActionButton(
+                  icon: isInternetMode ? Icons.language : Icons.language_outlined,
+                  onPressed: isInternetDisabled ? null : onToggleInternet,
+                  isActive: isInternetMode,
+                  label: 'Search Web',
+                ),
+              ],
               _buildActionButton(
                 icon: Icons.smart_toy_outlined,
                 onPressed: () {
@@ -122,7 +143,7 @@ class ChatInput extends StatelessWidget {
 
   Widget _buildActionButton({
     required IconData icon,
-    required VoidCallback? onPressed,
+    VoidCallback? onPressed,
     bool isActive = false,
     bool showActive = false,
     String? label,
@@ -134,7 +155,7 @@ class ChatInput extends StatelessWidget {
           size: 20,
           color: (isActive || showActive)
               ? Theme.of(context).primaryColor
-              : Theme.of(context).iconTheme.color?.withOpacity(0.7),
+              : Theme.of(context).iconTheme.color?.withValues(alpha:0.7),
         ),
         label: label != null 
             ? Text(
@@ -143,7 +164,7 @@ class ChatInput extends StatelessWidget {
                   fontSize: 13,
                   color: (isActive || showActive)
                       ? Theme.of(context).primaryColor
-                      : Theme.of(context).iconTheme.color?.withOpacity(0.7),
+                      : Theme.of(context).iconTheme.color?.withValues(alpha:0.7),
                 ),
               )
             : const SizedBox.shrink(),
