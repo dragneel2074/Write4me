@@ -7,6 +7,7 @@ import 'dart:io';
 import '../models/chat_message.dart';
 import '../services/notification_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ImageSaver {
   static Future<String?> saveImage(BuildContext context, Uint8List imageData) async {
@@ -96,12 +97,14 @@ class ImageSaver {
   }
 }
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends ConsumerWidget {
   final ChatMessage message;
+  final bool showAvatar;
 
   const MessageBubble({
     super.key,
     required this.message,
+    required this.showAvatar,
   });
 
   Future<void> _copyToClipboard(BuildContext context, String text) async {
@@ -133,97 +136,52 @@ class MessageBubble extends StatelessWidget {
     }
   }
 
-  Widget _buildMessageContent(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (message.imageData != null) ...[
-          Stack(
-            alignment: Alignment.topRight,
-            children: [
-              Image.memory(
-                message.imageData!,
-                fit: BoxFit.cover,
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.download,
-                  color: Colors.white,
-                ),
-                onPressed: () => _downloadImage(context, message.imageData!),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-        ],
-        MarkdownBody(
-          data: message.content,
-          styleSheet: MarkdownStyleSheet(
-            p: TextStyle(
-              color: message.isUser ? Colors.white : null,
-            ),
-          ),
-        ),
-        if (!message.isUser && message.imageData == null)
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              icon: const Icon(Icons.copy, size: 16),
-              onPressed: () => _copyToClipboard(context, message.content),
-              tooltip: 'Copy text',
-            ),
-          ),
-      ],
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment:
-            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!message.isUser) ...[
-            CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
-              child: const Icon(Icons.smart_toy, size: 20),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: GestureDetector(
-              onLongPress: message.imageData == null
-                  ? () => _copyToClipboard(context, message.content)
-                  : null,
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.7,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isUser = message.isUser;
+    final hasImage = message.imageData != null;
+
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.8,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isUser && showAvatar)
+              const CircleAvatar(
+                radius: 16,
+                child: Icon(Icons.smart_toy, size: 20),
+              )
+            else if (!isUser)
+              const SizedBox(width: 32),
+            Flexible(
+              child: Card(
+                color: isUser 
+                    ? Theme.of(context).primaryColor 
+                    : Theme.of(context).cardColor,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: hasImage
+                      ? Image.memory(message.imageData!)
+                      : MarkdownBody(
+                          data: message.content,
+                          styleSheet: MarkdownStyleSheet(
+                            p: TextStyle(
+                              color: isUser
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : Theme.of(context).textTheme.bodyLarge?.color,
+                            ),
+                          ),
+                        ),
                 ),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: message.isUser
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: !message.isUser
-                      ? Border.all(color: Theme.of(context).dividerColor)
-                      : null,
-                ),
-                child: _buildMessageContent(context),
               ),
             ),
-          ),
-          if (message.isUser) ...[
-            const SizedBox(width: 8),
-            CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
-              child: const Icon(Icons.person, size: 20),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }

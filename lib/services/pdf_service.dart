@@ -3,21 +3,37 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'dart:io';
 import '../models/pdf_memory.dart';
+import 'package:flutter/material.dart';
 
 class PDFService {
   Future<PDFMemory?> pickAndProcessPDF() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: true,
-    );
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: true,
+      );
 
-    if (result != null) {
-      String pdfName = result.files.first.name;
-      String pdfContent = await _extractPDFContent(result);
-      return PDFMemory(pdfName, pdfContent, isSelected: true);
+      if (result == null || result.files.isEmpty) return null;
+
+      final file = result.files.first;
+      if (file.bytes == null) return null;
+
+      final document = PdfDocument(inputBytes: file.bytes!);
+      final extractor = PdfTextExtractor(document);
+      final text = extractor.extractText();
+      document.dispose();
+
+      if (text.trim().isEmpty) return null;
+
+      return PDFMemory(
+        fileName: file.name,
+        extractedText: text,
+      );
+    } catch (e) {
+      debugPrint('Error processing PDF: $e');
+      return null;
     }
-    return null;
   }
 
   Future<String> _extractPDFContent(FilePickerResult result) async {

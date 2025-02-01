@@ -22,60 +22,65 @@ class ReminderService {
       Hive.registerAdapter(ReminderAdapter());
     }
     _box = await Hive.openBox<Reminder>(_boxName);
+    _scheduleAllReminders();
   }
 
-  Future<void> addReminder(Reminder reminder) async {
-    if (reminder.hasPrompt) {
-      // Generate content immediately
-      try {
-        if (kDebugMode) {
-          print(reminder.prompt);
-        }
-        final content = await _textGenService.generateText(reminder.prompt!);
-        if (kDebugMode) {
-          print(content);
-        }
-        reminder = Reminder(
-          id: reminder.id,
-          title: reminder.title,
-          dateTime: reminder.dateTime,
-          frequency: reminder.frequency,
-          isActive: reminder.isActive,
-          hasPrompt: reminder.hasPrompt,
-          prompt: reminder.prompt,
-          generatedContent: content,
-        );
-      } catch (e) {
-        debugPrint('Error generating content: $e');
+  void _scheduleAllReminders() {
+    for (final reminder in _box.values) {
+      if (reminder.isActive) {
+        _scheduleNotification(reminder);
       }
     }
+  }
+
+  Future<void> addReminder(String text, DateTime dateTime) async {
+    final reminder = Reminder(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: text,
+      dateTime: dateTime,
+      frequency: ReminderFrequency.once,
+      isActive: true,
+      hasPrompt: false,
+    );
 
     await _box.put(reminder.id, reminder);
     await _scheduleNotification(reminder);
   }
 
+  Future<void> addAIReminder(String prompt, DateTime dateTime) async {
+    try {
+      if (kDebugMode) {
+        print('Creating AI reminder with prompt: $prompt');
+      }
+      
+      final content = await _textGenService.generateCloudResponse(prompt);
+      
+      final reminder = Reminder(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: 'AI Response',
+        dateTime: dateTime,
+        frequency: ReminderFrequency.once,
+        isActive: true,
+        hasPrompt: true,
+        prompt: prompt,
+        generatedContent: content,
+      );
+
+      await _box.put(reminder.id, reminder);
+      await _scheduleNotification(reminder);
+    } catch (e) {
+      debugPrint('Error creating AI reminder: $e');
+      rethrow;
+    }
+  }
+
   Future<void> updateReminder(Reminder reminder) async {
-    if (reminder.hasPrompt) {
+    if (reminder.hasPrompt && reminder.prompt != null) {
       try {
-        if (kDebugMode) {
-          print('Updating reminder with prompt: ${reminder.prompt}');
-        }
-        final content = await _textGenService.generateText(reminder.prompt!);
-        if (kDebugMode) {
-          print('Generated content: $content');
-        }
-        reminder = Reminder(
-          id: reminder.id,
-          title: reminder.title,
-          dateTime: reminder.dateTime,
-          frequency: reminder.frequency,
-          isActive: reminder.isActive,
-          hasPrompt: reminder.hasPrompt,
-          prompt: reminder.prompt,
-          generatedContent: content,
-        );
+        final content = await _textGenService.generateCloudResponse(reminder.prompt!);
+        reminder = reminder.copyWith(generatedContent: content);
       } catch (e) {
-        debugPrint('Error generating content during update: $e');
+        debugPrint('Error updating AI reminder: $e');
       }
     }
 
@@ -107,77 +112,46 @@ class ReminderService {
     final now = DateTime.now();
     var nextRunTime = reminder.dateTime;
 
-    // Calculate next run time based on frequency
-    switch (reminder.frequency) {
-      case ReminderFrequency.once:
-        if (nextRunTime.isBefore(now)) {
-          // Deactivate one-time reminders after they run
-          reminder.isActive = false;
-          await _box.put(reminder.id, reminder);
-          return;
-        }
-        break;
-      case ReminderFrequency.daily:
-        while (nextRunTime.isBefore(now)) {
-          nextRunTime = nextRunTime.add(const Duration(days: 1));
-        }
-        break;
-      case ReminderFrequency.weekly:
-        while (nextRunTime.isBefore(now)) {
-          nextRunTime = nextRunTime.add(const Duration(days: 7));
-        }
-        break;
-      case ReminderFrequency.monthly:
-        while (nextRunTime.isBefore(now)) {
+    // If the scheduled time has passed, calculate next run based on frequency
+    if (nextRunTime.isBefore(now)) {
+      switch (reminder.frequency) {
+        case ReminderFrequency.once:
+          return; // Don't schedule if it's a one-time reminder that's passed
+        case ReminderFrequency.daily:
           nextRunTime = DateTime(
-            nextRunTime.year,
-            nextRunTime.month + 1,
-            nextRunTime.day,
-            nextRunTime.hour,
-            nextRunTime.minute,
-          );
-        }
-        break;
-      case ReminderFrequency.yearly:
-        while (nextRunTime.isBefore(now)) {
+            now.year,
+            now.month,
+            now.day,
+            reminder.dateTime.hour,
+            reminder.dateTime.minute,
+          ).add(const Duration(days: 1));
+          break;
+        case ReminderFrequency.weekly:
           nextRunTime = DateTime(
-            nextRunTime.year + 1,
-            nextRunTime.month,
-            nextRunTime.day,
-            nextRunTime.hour,
-            nextRunTime.minute,
+            now.year,
+            now.month,
+            now.day,
+            reminder.dateTime.hour,
+            reminder.dateTime.minute,
+          ).add(const Duration(days: 7));
+          break;
+        case ReminderFrequency.monthly:
+          nextRunTime = DateTime(
+            now.year,
+            now.month + 1,
+            reminder.dateTime.day,
+            reminder.dateTime.hour,
+            reminder.dateTime.minute,
           );
-        }
-        break;
+          break;
+      }
     }
 
-    // Update reminder with next run time if it changed
-    if (nextRunTime != reminder.dateTime) {
-      reminder.dateTime = nextRunTime;
-      await _box.put(reminder.id, reminder);
-    }
-
-    // Schedule the notification
-    switch (reminder.frequency) {
-      case ReminderFrequency.once:
-        await _notificationService.scheduleNotification(
-          id: reminder.id,
-          title: title,
-          body: body,
-          scheduledDate: nextRunTime,
-        );
-        break;
-      case ReminderFrequency.daily:
-      case ReminderFrequency.weekly:
-      case ReminderFrequency.monthly:
-      case ReminderFrequency.yearly:
-        await _notificationService.scheduleDailyNotification(
-          id: reminder.id,
-          title: '${reminder.frequency.toString().split('.').last} Reminder',
-          body: body,
-          scheduledTime: TimeOfDay.fromDateTime(nextRunTime),
-        );
-        break;
-    }
+    await _notificationService.scheduleNotification(
+      id: reminder.id,
+      title: title,
+      body: body,
+      scheduledDate: nextRunTime,
+    );
   }
 } 

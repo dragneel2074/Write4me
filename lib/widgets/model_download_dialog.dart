@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/providers.dart';
 import '../services/offline_model_service.dart';
 
-class ModelDownloadDialog extends StatefulWidget {
+class ModelDownloadDialog extends ConsumerStatefulWidget {
   const ModelDownloadDialog({super.key});
 
   @override
-  State<ModelDownloadDialog> createState() => _ModelDownloadDialogState();
+  ConsumerState<ModelDownloadDialog> createState() => _ModelDownloadDialogState();
 }
 
-class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
+class _ModelDownloadDialogState extends ConsumerState<ModelDownloadDialog> {
   String _selectedModel = OfflineModelService.defaultModels.keys.first;
   bool _isDownloading = false;
   double _progress = 0;
@@ -25,11 +26,18 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
   }
 
   Future<void> _downloadModel() async {
+    if (_isCustomUrl && _urlController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid URL')),
+      );
+      return;
+    }
+
     setState(() => _isDownloading = true);
     _cancelToken = CancelToken();
     
     try {
-      final offlineService = context.read<OfflineModelService>();
+      final offlineService = ref.read(offlineModelNotifierProvider);
       
       if (_isCustomUrl) {
         await offlineService.downloadCustomModel(

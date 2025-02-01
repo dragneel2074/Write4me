@@ -3,36 +3,40 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../models/pdf_memory.dart';
 import 'package:gal/gal.dart'; // Import the gal package
+import 'package:flutter/material.dart';
+import '../utils/dialog_manager.dart';
 
 class ImageService {
-  final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  final _textRecognizer = TextRecognizer();
+  final _imagePicker = ImagePicker();
 
-  Future<PDFMemory?> processImageContent(ImageSource source) async {
+  Future<PDFMemory?> pickAndProcessImage() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: source);
+      final pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1800,
+        maxHeight: 1800,
+      );
+      
+      if (pickedFile == null) return null;
 
-      if (image != null) {
-        final inputImage = InputImage.fromFilePath(image.path);
-        final recognizedText = await textRecognizer.processImage(inputImage);
+      final inputImage = InputImage.fromFilePath(pickedFile.path);
+      final recognizedText = await _textRecognizer.processImage(inputImage);
 
-        if (recognizedText.text.isNotEmpty) {
-          return PDFMemory('Image: ${image.name}', recognizedText.text,
-              isSelected: true);
-        } else {
-          throw Exception('No text recognized in the image');
-        }
-      } else {
-        throw Exception('No image selected');
-      }
+      if (recognizedText.text.trim().isEmpty) return null;
+
+      return PDFMemory(
+        fileName: 'Image: ${DateTime.now().toString()}',
+        extractedText: recognizedText.text,
+      );
     } catch (e) {
-      if (kDebugMode) {
-        print('Error processing image: $e');
-      }
+      debugPrint('Error processing image: $e');
       return null;
-    } finally {
-      textRecognizer.close();
     }
+  }
+
+  void dispose() {
+    _textRecognizer.close();
   }
 
   Future<void> saveImage(Uint8List imageData) async {

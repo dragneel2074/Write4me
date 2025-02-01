@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:write4me/widgets/model_download_dialog.dart';
-import '../theme/theme_provider.dart';
-import 'package:http/http.dart' as http;
-import '../services/offline_model_service.dart';
-import 'dart:io';
+import 'package:write4me/theme/theme_provider.dart';
+import 'model_download_dialog.dart';
+import '../providers/providers.dart';
 
-class SettingsDialog extends StatefulWidget {
+class SettingsDialog extends ConsumerWidget {
   final VoidCallback onSaveChat;
   final VoidCallback onClearChat;
   final VoidCallback onShowInfo;
@@ -22,250 +19,6 @@ class SettingsDialog extends StatefulWidget {
     required this.hasMessages,
   });
 
-  @override
-  State<SettingsDialog> createState() => _SettingsDialogState();
-}
-
-class _SettingsDialogState extends State<SettingsDialog> {
-  final TextEditingController _apiKeyController = TextEditingController();
-  bool _isApiKeyVisible = false;
-  bool _isValidating = false;
-  bool _hasChanges = false;
-  bool _isOfflineMode = false;
-  String _selectedModel = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadApiKey();
-    _loadSettings();
-  }
-
-  @override
-  void dispose() {
-    _apiKeyController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    final apiKey = prefs.getString('jina_api_key') ?? '';
-    _apiKeyController.text = apiKey;
-  }
-
-  Future<bool> _validateJinaApiKey(String apiKey) async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://s.jina.ai/When%20was%20Jina%20AI%20founded?count=3'),
-        headers: {
-          'Authorization': 'Bearer $apiKey',
-          'X-Retain-Images': 'none',
-          'X-Return-Format': 'text',
-        },
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      debugPrint('Error validating API key: $e');
-      return false;
-    }
-  }
-
-  Future<void> _saveApiKey() async {
-    if (!_hasChanges) return;
-
-    setState(() => _isValidating = true);
-    
-    final isValid = await _validateJinaApiKey(_apiKeyController.text);
-    
-    if (!mounted) return;
-
-    if (isValid) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('jina_api_key', _apiKeyController.text);
-      if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API key validated and saved successfully')),
-      );
-      }
-      setState(() => _hasChanges = false);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invalid API key. Please check and try again'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-    
-    setState(() => _isValidating = false);
-  }
-
-  Future<void> _launchJinaWebsite() async {
-    final Uri url = Uri.parse('https://jina.ai/#apiform');
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open website')),
-        );
-      }
-    }
-  }
-
-  Future<void> _loadSettings() async {
-    final offlineService = context.read<OfflineModelService>();
-    setState(() {
-      _isOfflineMode = offlineService.isOfflineMode;
-      _selectedModel = offlineService.selectedModelPath;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<OfflineModelService>(
-      builder: (context, offlineService, child) {
-        final models = offlineService.availableModels;
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.settings,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Settings',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Content
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Chat Section
-                          _buildSectionHeader(context, 'Chat'),
-                          Card(
-                            child: Column(
-                              children: [
-                                ListTile(
-                                  leading: const Icon(Icons.save),
-                                  title: const Text('Save Current Chat'),
-                                  enabled: widget.hasMessages,
-                                  onTap: widget.onSaveChat,
-                                ),
-                                const Divider(height: 1),
-                                ListTile(
-                                  leading: const Icon(Icons.add_circle_outline),
-                                  title: const Text('New Chat'),
-                                  enabled: widget.hasMessages,
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    widget.onClearChat();
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Model Settings Section
-                          _buildSectionHeader(context, 'Model Settings'),
-                          Card(
-                            child: Column(
-                              children: [
-                                // Theme Switch
-                                Consumer<ThemeProvider>(
-                                  builder: (context, themeProvider, child) {
-                                    return SwitchListTile(
-                                      title: const Text('Dark Theme'),
-                                      secondary: const Icon(Icons.dark_mode),
-                                      value: themeProvider.isDarkMode,
-                                      onChanged: (value) {
-                                        themeProvider.toggleTheme();
-                                      },
-                                    );
-                                  },
-                                ),
-                                const Divider(height: 1),
-                                // Offline Mode Switch
-                                SwitchListTile(
-                                  title: const Text('Offline Mode'),
-                                  subtitle: Text(models.isEmpty 
-                                      ? 'No models available' 
-                                      : '${models.length} model(s) available'),
-                                  secondary: const Icon(Icons.offline_bolt),
-                                  value: offlineService.isOfflineMode,
-                                  onChanged: models.isEmpty ? null : (value) async {
-                                    await offlineService.setOfflineMode(value);
-                                  },
-                                ),
-                                if (models.isNotEmpty) ...[
-                                  const Divider(),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    child: Text(
-                                      'Selected Model: ${offlineService.currentModelName}',
-                                      style: Theme.of(context).textTheme.bodyMedium,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // Footer
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 8),
@@ -278,102 +31,149 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildModelTile(BuildContext context, File model, OfflineModelService service) {
-    final modelName = model.path.split('/').last.replaceAll('.gguf', '');
-    final isSelected = model.path == service.selectedModelPath;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final offlineService = ref.watch(offlineModelNotifierProvider);
+    final models = offlineService.availableModels;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: isSelected 
-          ? Theme.of(context).colorScheme.primaryContainer 
-          : null,
-      child: ListTile(
-        title: Text(
-          modelName,
-          style: TextStyle(
-            fontWeight: isSelected ? FontWeight.bold : null,
-          ),
-        ),
-        leading: Radio<String>(
-          value: model.path,
-          groupValue: service.selectedModelPath,
-          onChanged: (value) {
-            if (value != null) service.setSelectedModel(value);
-          },
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline),
-          onPressed: () => _showDeleteDialog(context, model, service),
-        ),
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
-    );
-  }
-
-  Future<bool?> _showDownloadDialog(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Download Required'),
-        content: const Text(
-          'Offline mode requires downloading a model (300MB+). Download now?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Download'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showDeleteDialog(
-    BuildContext context, 
-    File model, 
-    OfflineModelService service,
-  ) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Model'),
-        content: Text(
-          'Are you sure you want to delete ${model.path.split('/').last}?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.settings,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Settings',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: const Text('Delete'),
-          ),
-        ],
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Chat Section
+                      _buildSectionHeader(context, 'Chat'),
+                      Card(
+                        child: Column(
+                          children: [
+                            if (hasMessages) ...[
+                              ListTile(
+                                leading: const Icon(Icons.save),
+                                title: const Text('Save Current Chat'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  onSaveChat();
+                                },
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                leading: const Icon(Icons.delete),
+                                title: const Text('Clear Chat'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  onClearChat();
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Model Settings
+                      _buildSectionHeader(context, 'Model Settings'),
+                      Card(
+                        child: Column(
+                          children: [
+                            // Theme Switch
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final themeNotifier = ref.watch(themeNotifierProvider.notifier);
+                                return SwitchListTile(
+                                  title: const Text('Dark Theme'),
+                                  secondary: const Icon(Icons.dark_mode),
+                                  value: themeNotifier.isDarkMode,
+                                  onChanged: (_) => themeNotifier.toggleTheme(),
+                                );
+                              },
+                            ),
+                            const Divider(height: 1),
+                            // Offline Mode Switch
+                            SwitchListTile(
+                              title: const Text('Offline Mode'),
+                              subtitle: Text(models.isEmpty 
+                                  ? 'No models available' 
+                                  : '${models.length} model(s) available'),
+                              secondary: const Icon(Icons.offline_bolt),
+                              value: offlineService.isOfflineMode,
+                              onChanged: models.isEmpty ? null : (value) async {
+                                await offlineService.setOfflineMode(value);
+                              },
+                            ),
+                            if (models.isNotEmpty) ...[
+                              const Divider(),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  'Selected Model: ${offlineService.currentModelName}',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Footer
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
-
-    if (confirm == true && context.mounted) {
-      try {
-        await service.deleteModel(model.path);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Model deleted successfully')),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting model: $e')),
-          );
-        }
-      }
-    }
   }
 } 

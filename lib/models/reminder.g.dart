@@ -22,13 +22,16 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       dateTime: fields[2] as DateTime,
       frequency: fields[3] as ReminderFrequency,
       isActive: fields[4] as bool,
+      hasPrompt: fields[5] as bool,
+      prompt: fields[6] as String?,
+      generatedContent: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Reminder obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +41,13 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       ..writeByte(3)
       ..write(obj.frequency)
       ..writeByte(4)
-      ..write(obj.isActive);
+      ..write(obj.isActive)
+      ..writeByte(5)
+      ..write(obj.hasPrompt)
+      ..writeByte(6)
+      ..write(obj.prompt)
+      ..writeByte(7)
+      ..write(obj.generatedContent);
   }
 
   @override

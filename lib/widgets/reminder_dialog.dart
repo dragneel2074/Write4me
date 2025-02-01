@@ -1,186 +1,132 @@
 import 'package:flutter/material.dart';
-import '../models/reminder.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/reminder_provider.dart';
 
-class ReminderDialog extends StatefulWidget {
-  final Reminder? reminder;
+class ReminderDialog extends ConsumerStatefulWidget {
+  final String initialText;
 
-  const ReminderDialog({super.key, this.reminder});
+  const ReminderDialog({
+    super.key,
+    required this.initialText,
+  });
 
   @override
-  State<ReminderDialog> createState() => _ReminderDialogState();
+  ConsumerState<ReminderDialog> createState() => _ReminderDialogState();
 }
 
-class _ReminderDialogState extends State<ReminderDialog> {
-  late TextEditingController _titleController;
-  late TextEditingController _promptController;
+class _ReminderDialogState extends ConsumerState<ReminderDialog> {
+  late final TextEditingController _textController;
   late DateTime _selectedDate;
-  late TimeOfDay _selectedTime;
-  late ReminderFrequency _frequency;
-  late bool _isActive;
-  late bool _hasPrompt;
+  bool _isAIReminder = false;
+  Duration _selectedDuration = const Duration(minutes: 30);
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.reminder?.title);
-    _promptController = TextEditingController(text: widget.reminder?.prompt);
-    _selectedDate = widget.reminder?.dateTime ?? DateTime.now();
-    _selectedTime = TimeOfDay.fromDateTime(widget.reminder?.dateTime ?? DateTime.now());
-    _frequency = widget.reminder?.frequency ?? ReminderFrequency.once;
-    _isActive = widget.reminder?.isActive ?? true;
-    _hasPrompt = widget.reminder?.hasPrompt ?? false;
+    _textController = TextEditingController(text: widget.initialText);
+    _selectedDate = DateTime.now().add(_selectedDuration);
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _promptController.dispose();
+    _textController.dispose();
     super.dispose();
   }
-
-  Future<void> _selectDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate.isBefore(DateTime.now()) ? DateTime.now() : _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-    );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  Future<void> _selectTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (picked != null) {
-      setState(() => _selectedTime = picked);
-    }
-  }
-
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.reminder == null ? 'Create Reminder' : 'Edit Reminder'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                hintText: 'Enter reminder title',
-              ),
+      title: const Text('Set Reminder'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SwitchListTile(
+            title: const Text('AI Reminder'),
+            subtitle: const Text('Generate content at scheduled time'),
+            value: _isAIReminder,
+            onChanged: (value) => setState(() => _isAIReminder = value),
+          ),
+          TextField(
+            controller: _textController,
+            decoration: InputDecoration(
+              labelText: _isAIReminder ? 'AI Prompt' : 'Reminder Text',
+              hintText: _isAIReminder ? 'e.g., Tell me a joke' : null,
             ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: const Text('Date'),
-              subtitle: Text(
-                '${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}',
-              ),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: _selectDate,
-            ),
-            ListTile(
-              title: const Text('Time'),
-              subtitle: Text(_selectedTime.format(context)),
-              trailing: const Icon(Icons.access_time),
-              onTap: _selectTime,
-            ),
-            DropdownButtonFormField<ReminderFrequency>(
-              value: _frequency,
-              decoration: const InputDecoration(labelText: 'Frequency'),
-              items: ReminderFrequency.values.map((frequency) {
+            maxLines: null,
+          ),
+          const SizedBox(height: 16),
+          ListTile(
+            title: const Text('Remind me in'),
+            trailing: DropdownButton<Duration>(
+              value: _selectedDuration,
+              items: [
+                const Duration(minutes: 30),
+                const Duration(hours: 1),
+                const Duration(hours: 3),
+                const Duration(hours: 24),
+              ].map((duration) {
+                String text = duration.inHours >= 1
+                    ? '${duration.inHours} hours'
+                    : '${duration.inMinutes} minutes';
                 return DropdownMenuItem(
-                  value: frequency,
-                  child: Text(frequency.toString().split('.').last),
+                  value: duration,
+                  child: Text(text),
                 );
               }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _frequency = value);
+              onChanged: (duration) {
+                if (duration != null) {
+                  setState(() {
+                    _selectedDuration = duration;
+                    _selectedDate = DateTime.now().add(duration);
+                  });
                 }
               },
             ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              title: const Text('Active'),
-              value: _isActive,
-              onChanged: (value) => setState(() => _isActive = value),
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              title: const Text('Enable AI Prompt'),
-              subtitle: const Text('Generate content at scheduled time'),
-              value: _hasPrompt,
-              onChanged: (value) => setState(() => _hasPrompt = value),
-            ),
-            if (_hasPrompt) ...[
-              const SizedBox(height: 8),
-              TextField(
-                controller: _promptController,
-                decoration: const InputDecoration(
-                  labelText: 'Prompt',
-                  hintText: 'e.g., Tell me a joke',
-                ),
-                maxLines: 2,
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () {
-            if (_titleController.text.isEmpty) {
+          onPressed: () async {
+            if (_textController.text.trim().isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please enter a title')),
-              );
-              return;
-            }
-            if (_hasPrompt && _promptController.text.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please enter a prompt')),
+                const SnackBar(content: Text('Please enter some text')),
               );
               return;
             }
 
-            final selectedDateTime = DateTime(
-              _selectedDate.year,
-              _selectedDate.month,
-              _selectedDate.day,
-              _selectedTime.hour,
-              _selectedTime.minute,
-            );
-
-            if (selectedDateTime.isBefore(DateTime.now())) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please select a future date and time')),
-              );
-              return;
+            final reminderNotifier = ref.read(reminderNotifierProvider.notifier);
+            try {
+              if (_isAIReminder) {
+                await reminderNotifier.addAIReminder(
+                  _textController.text,
+                  _selectedDate,
+                );
+              } else {
+                await reminderNotifier.addReminder(
+                  _textController.text,
+                  _selectedDate,
+                );
+              }
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Reminder set!')),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
             }
-
-            final reminder = Reminder(
-              id: widget.reminder?.id,
-              title: _titleController.text,
-              dateTime: selectedDateTime,
-              frequency: _frequency,
-              isActive: _isActive,
-              hasPrompt: _hasPrompt,
-              prompt: _hasPrompt ? _promptController.text : null,
-            );
-
-            Navigator.of(context).pop(reminder);
           },
-          child: Text(widget.reminder == null ? 'Create' : 'Update'),
+          child: const Text('Set'),
         ),
       ],
     );
