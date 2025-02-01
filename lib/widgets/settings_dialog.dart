@@ -123,6 +123,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
   Widget build(BuildContext context) {
     return Consumer<OfflineModelService>(
       builder: (context, offlineService, child) {
+        final models = offlineService.availableModels;
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -217,55 +218,22 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                 // Offline Mode Switch
                                 SwitchListTile(
                                   title: const Text('Offline Mode'),
-                                  subtitle: Text(
-                                    offlineService.isOfflineMode
-                                      ? 'Using: ${offlineService.currentModelName}'
-                                      : 'No data leaves your device.'
-                                  ),
+                                  subtitle: Text(models.isEmpty 
+                                      ? 'No models available' 
+                                      : '${models.length} model(s) available'),
                                   secondary: const Icon(Icons.offline_bolt),
                                   value: offlineService.isOfflineMode,
-                                  onChanged: (value) async {
-                                    if (value && offlineService.availableModels.isEmpty) {
-                                      final download = await _showDownloadDialog(context);
-                                      if (download == true && context.mounted) {
-                                        await showDialog(
-                                          context: context,
-                                          barrierDismissible: false,
-                                          builder: (context) => const ModelDownloadDialog(),
-                                        );
-                                      }
-                                    }
+                                  onChanged: models.isEmpty ? null : (value) async {
                                     await offlineService.setOfflineMode(value);
                                   },
                                 ),
-                                if (offlineService.isOfflineMode || offlineService.useLocalModel) ...[
-                                  const Divider(height: 1),
+                                if (models.isNotEmpty) ...[
+                                  const Divider(),
                                   Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Available Models',
-                                          style: Theme.of(context).textTheme.titleSmall,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        ...offlineService.availableModels.map((model) => 
-                                          _buildModelTile(context, model, offlineService),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: FilledButton.icon(
-                                            icon: const Icon(Icons.download),
-                                            label: const Text('Download Additional Model'),
-                                            onPressed: () => showDialog(
-                                              context: context,
-                                              builder: (_) => const ModelDownloadDialog(),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text(
+                                      'Selected Model: ${offlineService.currentModelName}',
+                                      style: Theme.of(context).textTheme.bodyMedium,
                                     ),
                                   ),
                                 ],

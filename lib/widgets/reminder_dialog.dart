@@ -60,22 +60,6 @@ class _ReminderDialogState extends State<ReminderDialog> {
     }
   }
 
-  void _validateDateTime() {
-    final selectedDateTime = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-      _selectedTime.hour,
-      _selectedTime.minute,
-    );
-
-    if (selectedDateTime.isBefore(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a future date and time')),
-      );
-      return;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

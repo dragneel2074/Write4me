@@ -182,11 +182,44 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _showAddOptions() async {
-    await DialogManager.showAddOptionsDialog(
-      context,
-      onWebSelected: _processWebContent,
-      onFileSelected: _pickPDFAndCreateRAG,
-      onImageSelected: _processImageContent,
+    final offlineService = context.read<OfflineModelService>();
+    final isOffline = offlineService.isOfflineMode;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf),
+              title: const Text('Add PDF'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickPDFAndCreateRAG();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('Add Image'),
+              onTap: () {
+                Navigator.pop(context);
+                _processImageContent();
+              },
+            ),
+            // Only show web URL option in online mode
+            if (!isOffline)
+              ListTile(
+                leading: const Icon(Icons.link),
+                title: const Text('Add Web URL'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _processWebContent();
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -198,7 +231,7 @@ class _HomePageState extends State<HomePage>
         if (mounted) {
           NotificationService.showTopNotification(
             context,
-            message: 'PDF processed: ${newMemory.pdfName}',
+            message: 'PDF processed: ${newMemory.name}',
           );
         }
       }
@@ -230,7 +263,7 @@ class _HomePageState extends State<HomePage>
           if (!mounted) return;
           NotificationService.showTopNotification(
             context,
-            message: 'Web content processed: ${webMemory.pdfName}',
+            message: 'Web content processed: ${webMemory.name}',
           );
         }
       } catch (e) {
@@ -257,7 +290,7 @@ class _HomePageState extends State<HomePage>
 
           NotificationService.showTopNotification(
             context,
-            message: 'Image content processed: ${imageMemory.pdfName}',
+            message: 'Image content processed: ${imageMemory.name}',
           );
         }
       } catch (e) {
@@ -275,7 +308,7 @@ class _HomePageState extends State<HomePage>
   void _showExtractedText(PDFMemory memory) {
     DialogManager.showExtractedText(
       context,
-      memory.pdfName,
+      memory.name,
       memory.extractedText,
     );
   }
@@ -352,7 +385,7 @@ class _HomePageState extends State<HomePage>
               isError: true,
             ));
           });
-        };
+        }
         setState(() {
           _isImageMode = false;
         });
@@ -523,7 +556,7 @@ class _HomePageState extends State<HomePage>
               color: Theme.of(context).scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -552,22 +585,20 @@ class _HomePageState extends State<HomePage>
                   onStop: _stopGeneration,
                   onAddContent: _showAddOptions,
                   onToggleInternet: isOffline 
-                      ? null  // Now type-safe
+                      ? null  // Disable in offline mode
                       : () {
                           setState(() {
                             _isInternetMode = !_isInternetMode;
                             _isImageMode = false;
                           });
                         },
-                  onToggleImage: isOffline
-                      ? null  // Now type-safe
-                      : () {
-                          setState(() {
-                            _isImageMode = !_isImageMode;
-                            _isInternetMode = false;
-                          });
-                        },
-                  isInternetDisabled: _pdfMemories.isNotEmpty || isOffline,
+                  onToggleImage: () {
+                    setState(() {
+                      _isImageMode = !_isImageMode;
+                      _isInternetMode = false;
+                    });
+                  },
+                  isInternetDisabled: _pdfMemories.isNotEmpty || isOffline,  // Disable when offline
                   isOfflineMode: isOffline,
                 ),
               ],

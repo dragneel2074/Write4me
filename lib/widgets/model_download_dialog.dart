@@ -15,15 +15,19 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
   double _progress = 0;
   final _urlController = TextEditingController();
   bool _isCustomUrl = false;
+  CancelToken? _cancelToken;
 
   @override
   void dispose() {
     _urlController.dispose();
+    _cancelToken?.cancel();
     super.dispose();
   }
 
   Future<void> _downloadModel() async {
     setState(() => _isDownloading = true);
+    _cancelToken = CancelToken();
+    
     try {
       final offlineService = context.read<OfflineModelService>();
       
@@ -31,11 +35,13 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
         await offlineService.downloadCustomModel(
           _urlController.text.trim(),
           (progress) => setState(() => _progress = progress),
+          _cancelToken!,
         );
       } else {
         await offlineService.downloadModel(
           _selectedModel,
           (progress) => setState(() => _progress = progress),
+          _cancelToken!,
         );
       }
 
@@ -47,13 +53,22 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        if (e is CancelException) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Download cancelled')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
       }
     } finally {
       if (mounted) {
-        setState(() => _isDownloading = false);
+        setState(() {
+          _isDownloading = false;
+          _progress = 0;
+        });
       }
     }
   }
@@ -126,21 +141,16 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _isDownloading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          onPressed: _isDownloading 
+              ? () {
+                  _cancelToken?.cancel();
+                  Navigator.pop(context);
+                }
+              : () => Navigator.pop(context),
+          child: Text(_isDownloading ? 'Cancel' : 'Close'),
         ),
         FilledButton(
-          onPressed: _isDownloading
-              ? null
-              : () {
-                  if (_isCustomUrl && _urlController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter a valid URL')),
-                    );
-                    return;
-                  }
-                  _downloadModel();
-                },
+          onPressed: _isDownloading ? null : _downloadModel,
           child: Text(_isDownloading ? 'Downloading...' : 'Download'),
         ),
       ],

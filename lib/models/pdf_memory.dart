@@ -1,11 +1,10 @@
-
 class PDFMemory {
-  final String pdfName;
+  final String name;
   final String extractedText;
   bool isSelected;
 
   PDFMemory(
-    this.pdfName,
+    this.name,
     this.extractedText, {
     this.isSelected = false,
   });

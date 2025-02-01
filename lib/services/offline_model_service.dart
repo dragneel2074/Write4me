@@ -8,10 +8,24 @@ import 'dart:async';
 
 import 'package:write4me/models/chat_message.dart';
 
+class CancelToken {
+  bool _isCancelled = false;
+  bool get isCancelled => _isCancelled;
+  void cancel() => _isCancelled = true;
+}
+
+class CancelException implements Exception {
+  final String message;
+  CancelException([this.message = 'Operation cancelled']);
+  @override
+  String toString() => message;
+}
+
 class OfflineModelService extends ChangeNotifier {
   static const String _selectedModelKey = 'selected_model';
   static const String _isOfflineModeKey = 'is_offline_mode';
   static const String _useLocalModelKey = 'use_local_model';
+  static const String _downloadedModelsKey = 'downloaded_models';
   
   static const Map<String, String> defaultModels = {
     'Qwen-R1': 'https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf',
@@ -22,6 +36,7 @@ class OfflineModelService extends ChangeNotifier {
   String _selectedModelPath = '';
   List<File> _availableModels = [];
   bool _useLocalModel = false;
+  Set<String> _downloadedUrls = {};  // Track downloaded URLs
   
   bool get isOfflineMode => _isOfflineMode;
   String get selectedModelPath => _selectedModelPath;
@@ -30,12 +45,13 @@ class OfflineModelService extends ChangeNotifier {
 
   String get currentModelName {
     if (_selectedModelPath.isEmpty) return '';
-    return _selectedModelPath.split('/').last.replaceAll('.gguf', '');
+    return formatModelName(_selectedModelPath);
   }
 
   Future<void> init() async {
     await _loadPreferences();
     await _checkAvailableModels();
+    await _loadDownloadedUrls();
   }
 
   Future<void> _loadPreferences() async {
@@ -91,37 +107,37 @@ class OfflineModelService extends ChangeNotifier {
     }
   }
 
-  Future<void> downloadModel(String modelName, Function(double) onProgress) async {
-    final modelUrl = defaultModels[modelName];
-    if (modelUrl == null) return;
+  Future<void> _loadDownloadedUrls() async {
+    final prefs = await SharedPreferences.getInstance();
+    _downloadedUrls = Set<String>.from(
+      prefs.getStringList(_downloadedModelsKey) ?? []
+    );
+  }
+
+  Future<void> _saveDownloadedUrls() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _downloadedModelsKey, 
+      _downloadedUrls.toList()
+    );
+  }
+
+  Future<void> downloadModel(
+    String modelName, 
+    void Function(double) onProgress,
+    CancelToken cancelToken,
+  ) async {
+    final url = defaultModels[modelName];
+    if (url == null) throw Exception('Model not found');
+
+    if (_downloadedUrls.contains(url)) {
+      throw Exception('Model already downloaded');
+    }
 
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName = '$modelName.gguf';
-      final modelPath = '${directory.path}/$fileName';
-
-      final file = File(modelPath);
-      if (await file.exists()) {
-        await file.delete();
-      }
-
-      final response = await http.Client().send(
-        http.Request('GET', Uri.parse(modelUrl))
-      );
-      
-      final contentLength = response.contentLength ?? 0;
-      final sink = file.openWrite();
-      int downloaded = 0;
-
-      await for (final chunk in response.stream) {
-        sink.add(chunk);
-        downloaded += chunk.length;
-        onProgress(downloaded / contentLength);
-      }
-      
-      await sink.flush();
-      await sink.close();
-
+      final modelPath = await _downloadFile(url, onProgress, cancelToken);
+      _downloadedUrls.add(url);
+      await _saveDownloadedUrls();
       await setSelectedModel(modelPath);
       await _checkAvailableModels();
     } catch (e) {
@@ -130,7 +146,32 @@ class OfflineModelService extends ChangeNotifier {
     }
   }
 
-  Future<void> downloadCustomModel(String url, Function(double) onProgress) async {
+  Future<void> downloadCustomModel(
+    String url, 
+    void Function(double) onProgress,
+    CancelToken cancelToken,
+  ) async {
+    if (_downloadedUrls.contains(url)) {
+      throw Exception('Model already downloaded');
+    }
+
+    try {
+      final modelPath = await _downloadFile(url, onProgress, cancelToken);
+      _downloadedUrls.add(url);
+      await _saveDownloadedUrls();
+      await setSelectedModel(modelPath);
+      await _checkAvailableModels();
+    } catch (e) {
+      debugPrint('Error downloading custom model: $e');
+      rethrow;
+    }
+  }
+
+  Future<String> _downloadFile(
+    String url, 
+    void Function(double) onProgress,
+    CancelToken cancelToken,
+  ) async {
     if (!url.toLowerCase().endsWith('.gguf')) {
       throw Exception('Invalid model file. URL must end with .gguf');
     }
@@ -157,19 +198,28 @@ class OfflineModelService extends ChangeNotifier {
       final sink = file.openWrite();
       int downloaded = 0;
 
-      await for (final chunk in response.stream) {
-        sink.add(chunk);
-        downloaded += chunk.length;
-        onProgress(downloaded / contentLength);
+      try {
+        await for (final chunk in response.stream) {
+          if (cancelToken.isCancelled) {
+            await sink.close();
+            await file.delete();
+            throw CancelException();
+          }
+          sink.add(chunk);
+          downloaded += chunk.length;
+          onProgress(downloaded / contentLength);
+        }
+        
+        await sink.flush();
+        await sink.close();
+        return modelPath;
+      } catch (e) {
+        await sink.close();
+        await file.delete();
+        rethrow;
       }
-      
-      await sink.flush();
-      await sink.close();
-
-      await setSelectedModel(modelPath);
-      await _checkAvailableModels();
     } catch (e) {
-      debugPrint('Error downloading custom model: $e');
+      debugPrint('Error downloading file: $e');
       rethrow;
     }
   }
@@ -189,13 +239,15 @@ class OfflineModelService extends ChangeNotifier {
     }
 
     try {
-      // Convert history to messages
+      bool firstResponse = true;
       final messages = <Message>[];
       
-      // Add system message first
+      // Add system message with enhanced context handling
       messages.add(Message(
         Role.system, 
-        'You are a helpful assistant who answers concisely and thinks less.'
+        '''You are a helpful assistant who answers concisely.
+When provided with document context, analyze it carefully to provide accurate answers.
+For images with text, refer to the extracted text to provide relevant information.'''
       ));
 
       // Add recent history (last 6 messages)
@@ -226,7 +278,16 @@ class OfflineModelService extends ChangeNotifier {
         logger: (log) => debugPrint('[llama.cpp] $log'),
       );
 
-      await fllamaChat(request, onResponse);
+      await fllamaChat(
+        request,
+        (response, done) {
+          // Replace placeholder with first real response
+          if (firstResponse && response.trim().isNotEmpty) {
+            firstResponse = false;
+          }
+          onResponse(response, done);
+        },
+      );
     } catch (e) {
       debugPrint('Error generating response: $e');
       rethrow;
@@ -239,23 +300,50 @@ class OfflineModelService extends ChangeNotifier {
       if (await file.exists()) {
         await file.delete();
         
-        // If we deleted the selected model, select another one if available
+        // Remove from available models first
+        _availableModels.removeWhere((f) => f.path == modelPath);
+        
+        // Remove the URL from downloaded list
+        final modelUrl = _downloadedUrls.firstWhere(
+          (url) => url.contains(file.uri.pathSegments.last),
+          orElse: () => '',
+        );
+        if (modelUrl.isNotEmpty) {
+          _downloadedUrls.remove(modelUrl);
+          await _saveDownloadedUrls();
+        }
+        
+        // Update selected model if needed
         if (modelPath == _selectedModelPath) {
-          _availableModels.remove(file);
           if (_availableModels.isNotEmpty) {
             await setSelectedModel(_availableModels.first.path);
           } else {
             await setSelectedModel('');
             await setOfflineMode(false);
+            await setUseLocalModel(false);
           }
-        } else {
-          _availableModels.remove(file);
         }
+        
         notifyListeners();
       }
     } catch (e) {
       debugPrint('Error deleting model: $e');
       rethrow;
     }
+  }
+
+  // Add a method to format model name
+  String formatModelName(String path) {
+    final fileName = path.split('/').last.replaceAll('.gguf', '');
+    
+    // Handle Qwen model naming specifically
+    if (fileName.toLowerCase().contains('qwen')) {
+      final match = RegExp(r'qwen[^b]*b').firstMatch(fileName.toLowerCase());
+      if (match != null) {
+        return match.group(0)!.replaceAll('-', ' ').toUpperCase();
+      }
+    }
+    
+    return fileName;
   }
 } 

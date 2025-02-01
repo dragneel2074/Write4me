@@ -34,7 +34,7 @@ class ModelSelector extends StatelessWidget {
                 ),
               // Local model chips
               ...offlineService.availableModels.map((model) {
-                final modelName = model.path.split('/').last.replaceAll('.gguf', '');
+                final modelName = offlineService.formatModelName(model.path);
                 return ChoiceChip(
                   label: Text(modelName),
                   selected: (isOfflineMode || offlineService.useLocalModel) && 
