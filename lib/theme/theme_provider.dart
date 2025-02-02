@@ -1,33 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'chat_theme.dart';
 
-part 'theme_provider.g.dart';
-
-@riverpod
-class ThemeNotifier extends _$ThemeNotifier {
+class ThemeProvider extends ChangeNotifier {
   static const String _themeKey = 'theme_mode';
+  ThemeMode _themeMode = ThemeMode.light;
 
-  @override
-  ThemeMode build() {
+  ThemeProvider() {
     _loadThemeMode();
-    return ThemeMode.light;
   }
+
+  ThemeMode get themeMode => _themeMode;
+  bool get isDarkMode => _themeMode == ThemeMode.dark;
 
   Future<void> _loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool(_themeKey) ?? false;
-    state = isDark ? ThemeMode.dark : ThemeMode.light;
+    final savedTheme = prefs.getString(_themeKey);
+    if (savedTheme != null) {
+      _themeMode = ThemeMode.values.firstWhere(
+        (mode) => mode.toString() == savedTheme,
+        orElse: () => ThemeMode.system,
+      );
+      notifyListeners();
+    }
   }
 
-  Future<void> toggleTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isDark = state == ThemeMode.dark;
-    await prefs.setBool(_themeKey, !isDark);
-    state = isDark ? ThemeMode.light : ThemeMode.dark;
+  void toggleTheme() {
+    _themeMode = isDarkMode ? ThemeMode.light : ThemeMode.dark;
+    notifyListeners();
   }
 
-  bool get isDarkMode => state == ThemeMode.dark;
+  // Optional: If you still want direct theme setting
+  void setThemeMode(ThemeMode mode) {
+    _themeMode = mode;
+    notifyListeners();
+  }
 }
 
 class AppTheme {
@@ -84,6 +91,16 @@ class AppTheme {
         fontWeight: FontWeight.w600,
       ),
     ),
+    extensions: [
+      ChatThemeExtension(
+        userBubbleColor: Colors.blue,
+        botBubbleColor: const Color(0xFFF5F5F5),
+        userTextColor: Colors.white,
+        botTextColor: Colors.black87,
+        bubbleIconColor: Colors.blue,
+        bubbleIconBackgroundColor: Colors.blue.withOpacity(0.1),
+      ),
+    ],
   );
 
   static ThemeData darkTheme = ThemeData(
@@ -117,5 +134,15 @@ class AppTheme {
         fontWeight: FontWeight.w600,
       ),
     ),
+    extensions: [
+      ChatThemeExtension(
+        userBubbleColor: Colors.blue,
+        botBubbleColor: Colors.grey[800]!,
+        userTextColor: Colors.white,
+        botTextColor: Colors.white,
+        bubbleIconColor: Colors.blue,
+        bubbleIconBackgroundColor: Colors.blue.withOpacity(0.1),
+      ),
+    ],
   );
 }

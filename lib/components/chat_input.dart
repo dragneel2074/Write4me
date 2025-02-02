@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/providers.dart';
 // import 'package:write4me/screens/reminders_screen.dart';
 
-class ChatInput extends ConsumerWidget {
+class ChatInput extends StatelessWidget {
   final TextEditingController controller;
   final bool isImageMode;
   final bool isInternetMode;
-  final bool isGenerating;
   final VoidCallback onSubmit;
-  final VoidCallback onStop;
   final VoidCallback onAddContent;
   final VoidCallback? onToggleInternet;
-  final VoidCallback onToggleImage;
+  final VoidCallback? onToggleImage;
   final bool isInternetDisabled;
+  final bool isGenerating;
+  final VoidCallback onStop;
   final bool isOfflineMode;
 
   const ChatInput({
@@ -21,41 +19,18 @@ class ChatInput extends ConsumerWidget {
     required this.controller,
     required this.isImageMode,
     required this.isInternetMode,
-    required this.isGenerating,
     required this.onSubmit,
-    required this.onStop,
     required this.onAddContent,
-    required this.onToggleInternet,
-    required this.onToggleImage,
+    this.onToggleInternet,
+    this.onToggleImage,
     required this.isInternetDisabled,
-    required this.isOfflineMode,
+    required this.isGenerating,
+    required this.onStop,
+    this.isOfflineMode = false,
   });
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    required String label,
-    bool isSelected = false,
-    bool isDisabled = false,
-  }) {
-    return Tooltip(
-      message: label,
-      child: IconButton(
-        icon: Icon(
-          icon,
-          color: isDisabled 
-              ? Colors.grey 
-              : isSelected 
-                  ? Colors.blue 
-                  : null,
-        ),
-        onPressed: isDisabled ? null : onPressed,
-      ),
-    );
-  }
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       decoration: BoxDecoration(
@@ -72,44 +47,43 @@ class ChatInput extends ConsumerWidget {
           // Text Input Field with Submit Button
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: onAddContent,
-              ),
               Expanded(
-                child: TextField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    hintText: isImageMode 
-                        ? 'Describe the image you want...'
-                        : 'Type your message...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.light 
+                        ? const Color(0xFFF5F5F5)
+                        : Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  maxLines: null,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => onSubmit(),
-                  enabled: !isGenerating,
+                  child: TextField(
+                    controller: controller,
+                    enabled: !isGenerating,
+                    decoration: InputDecoration(
+                      hintText: isGenerating 
+                          ? 'Generating...'
+                          : isImageMode 
+                              ? 'Describe the image...'
+                              : isInternetMode
+                                  ? 'Search the internet...'
+                                  : 'Message Write4Me',
+                      hintStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    style: const TextStyle(fontSize: 15),
+                    onSubmitted: (_) => onSubmit(),
+                  ),
                 ),
               ),
               _buildActionButton(
-                icon: Icons.language,
-                onPressed: onToggleInternet!,
-                label: 'Web Search',
-                isSelected: isInternetMode,
-                isDisabled: isInternetDisabled,
-              ),
-              _buildActionButton(
-                icon: Icons.image,
-                onPressed: onToggleImage,
-                label: 'Image Generation',
-                isSelected: isImageMode,
-                isDisabled: isOfflineMode,
-              ),
-              IconButton(
-                icon: Icon(isGenerating ? Icons.stop : Icons.send),
+                icon: isGenerating ? Icons.stop : Icons.send,
                 onPressed: isGenerating ? onStop : onSubmit,
+                showActive: true,
               ),
             ],
           ),
@@ -129,23 +103,25 @@ class ChatInput extends ConsumerWidget {
             spacing: 4,
             runSpacing: 8,
             children: [
-              // _buildActionButton(
-              //   icon: Icons.add,
-              //   onPressed: onAddContent,
-              //   label: 'Add Files',
-              // ),
-              // if (!isOfflineMode) ...[
-              //   _buildActionButton(
-              //     icon: isImageMode ? Icons.image : Icons.image_outlined,
-              //     onPressed: onToggleImage,
-              //     label: 'Generate Image',
-              //   ),
-              //   _buildActionButton(
-              //     icon: isInternetMode ? Icons.language : Icons.language_outlined,
-              //     onPressed: isInternetDisabled || isOfflineMode ? null : onToggleInternet,
-              //     label: 'Search Web',
-              //   ),
-              // ],
+              _buildActionButton(
+                icon: Icons.add,
+                onPressed: onAddContent,
+                label: 'Add Files',
+              ),
+              if (!isOfflineMode) ...[
+                _buildActionButton(
+                  icon: isImageMode ? Icons.image : Icons.image_outlined,
+                  onPressed: onToggleImage,
+                  isActive: isImageMode,
+                  label: 'Generate Image',
+                ),
+                _buildActionButton(
+                  icon: isInternetMode ? Icons.language : Icons.language_outlined,
+                  onPressed: isInternetDisabled || isOfflineMode ? null : onToggleInternet,
+                  isActive: isInternetMode,
+                  label: 'Search Web',
+                ),
+              ],
               // _buildActionButton(
               //   icon: Icons.smart_toy_outlined,
               //   onPressed: () {
@@ -161,6 +137,46 @@ class ChatInput extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    VoidCallback? onPressed,
+    bool isActive = false,
+    bool showActive = false,
+    String? label,
+  }) {
+    return Builder(
+      builder: (context) => TextButton.icon(
+        icon: Icon(
+          icon,
+          size: 20,
+          color: (isActive || showActive)
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).iconTheme.color?.withValues(alpha:0.7),
+        ),
+        label: label != null 
+            ? Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: (isActive || showActive)
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).iconTheme.color?.withValues(alpha:0.7),
+                ),
+              )
+            : const SizedBox.shrink(),
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.symmetric(
+            horizontal: label != null ? 8 : 12,
+            vertical: 8,
+          ),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ),
     );
   }

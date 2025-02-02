@@ -1,32 +1,111 @@
-import 'package:flutter/foundation.dart';
 import '../models/pdf_memory.dart';
 import '../models/chat_message.dart';
 import 'text_generation_service.dart';
 import '../utils/text_utils.dart';
 import 'offline_model_service.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
-class AIService {
+class AIService extends ChangeNotifier {
   final TextGenerationService _textGenService;
   final OfflineModelService _offlineService;
-  bool _isCancelled = false;
+  bool _isGenerating = false;
 
-  AIService(this._textGenService, this._offlineService);
+  AIService(this._textGenService, this._offlineService) {
+    // Listen to offline service changes
+    _offlineService.addListener(_onOfflineServiceChanged);
+  }
+
+  @override
+  void dispose() {
+    _offlineService.removeListener(_onOfflineServiceChanged);
+    super.dispose();
+  }
+
+  void _onOfflineServiceChanged() {
+    // Notify listeners when offline service changes
+    notifyListeners();
+  }
+
+  bool get isGenerating => _isGenerating;
+
+  Future<void> getStreamingResponse(
+    String prompt,
+    List<PDFMemory> pdfMemories,
+    void Function(String, bool) onResponse, {
+    bool useInternet = false,
+    List<ChatMessage> history = const [],
+  }) async {
+    if (_isGenerating) return;
+
+    _isGenerating = true;
+    notifyListeners();
+
+    try {
+      // Build context from selected memories
+      List<String> context = [];
+      if (pdfMemories.isNotEmpty) {
+        for (var memory in pdfMemories) {
+          if (memory.isSelected) {
+            final trimmedText = TextUtils.trimToWordLimit(memory.extractedText);
+            context.add(trimmedText);
+          }
+        }
+      }
+
+      // Prevent web URL processing in offline mode
+      if (_offlineService.isOfflineMode && useInternet) {
+        onResponse('Web search is not available in offline mode.', true);
+        return;
+      }
+
+      if (_offlineService.isOfflineMode || _offlineService.useLocalModel) {
+        // Use offline model with context
+        final contextPrompt = context.isNotEmpty 
+            ? '''
+Context from documents:
+${context.join('\n\n')}
+
+Based on the above context, please answer:
+$prompt'''
+            : prompt;
+
+        await _offlineService.generateStreamingResponse(
+          contextPrompt,
+          onResponse,
+          history: history,
+        );
+      } else {
+        // Use online service
+        await _textGenService.generateStreamingResponse(
+          prompt,
+          pdfMemories,
+          onResponse,
+          useInternet: useInternet,
+          history: history,
+        );
+      }
+    } finally {
+      _isGenerating = false;
+      notifyListeners();
+    }
+  }
 
   void stopGeneration() {
-    _isCancelled = true;
+    _isGenerating = false;
+    notifyListeners();
   }
 
   Future<String> getResponse(
-    String prompt,
+    String question,
     List<PDFMemory> selectedMemories, {
     bool useInternet = false,
-    List<ChatMessage>? history,
+    List<ChatMessage> history = const [],
   }) async {
     final completer = Completer<String>();
 
     await getStreamingResponse(
-      prompt,
+      question,
       selectedMemories,
       (response, done) {
         if (done) completer.complete(response);
@@ -36,61 +115,5 @@ class AIService {
     );
 
     return completer.future;
-  }
-
-  Future<void> getStreamingResponse(
-    String prompt,
-    List<PDFMemory> selectedMemories,
-    void Function(String, bool) onResponse, {
-    bool useInternet = false,
-    List<ChatMessage>? history,
-  }) async {
-    _isCancelled = false;
-    
-    // Show initial placeholder
-    onResponse('Generating Response...', false);
-    
-    // Build context from selected memories
-    final selectedDocs = selectedMemories.where((m) => m.isSelected).toList();
-    String context = '';
-    
-    if (selectedDocs.isNotEmpty) {
-      context = selectedDocs.map((doc) => doc.extractedText).join('\n\n');
-    }
-
-    if (_offlineService.isOfflineMode || 
-        (!useInternet && _offlineService.useLocalModel)) {
-      final contextPrompt = context.isNotEmpty 
-          ? '''
-Context:
-$context
-
-Based on the above context, ${prompt.trim()}'''
-          : prompt;
-
-      await _textGenService.generateStreamingResponse(
-        contextPrompt,
-        (response, done) {
-          if (_isCancelled) {
-            onResponse('Generation cancelled', true);
-            return;
-          }
-          onResponse(response, done);
-        },
-      );
-    } else {
-      // Handle cloud generation
-      try {
-        final response = await _textGenService.generateCloudResponse(
-          prompt,
-          context: context,
-          history: history,
-        );
-        onResponse(response, true);
-      } catch (e) {
-        debugPrint('Error in cloud generation: $e');
-        onResponse('Error: $e', true);
-      }
-    }
   }
 }

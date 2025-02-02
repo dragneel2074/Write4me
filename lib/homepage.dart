@@ -1,18 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'components/chat_input.dart';
 import 'components/chat_messages.dart';
 import 'components/document_list_container.dart';
-import 'components/model_selector.dart';
 import 'models/chat_message.dart';
 import 'models/pdf_memory.dart';
-import 'services/ai_service.dart';
 import 'services/image_generation_service.dart';
 import 'services/image_service.dart';
 import 'services/notification_service.dart';
 import 'services/pdf_service.dart';
-import 'services/text_generation_service.dart';
 import 'services/web_service.dart';
 import 'utils/dialog_manager.dart';
 import 'widgets/intro_drawer.dart';
@@ -20,11 +16,12 @@ import 'services/chat_storage_service.dart';
 import 'models/saved_chat.dart';
 import 'widgets/saved_chats_drawer.dart';
 import 'widgets/settings_dialog.dart';
-import 'services/offline_model_service.dart';
-import 'package:provider/provider.dart';
-import 'providers/providers.dart';
-import 'providers/chat_provider.dart';
-import 'providers/service_status_provider.dart';
+import 'components/model_selector.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/chat_provider.dart';
+import '../providers/service_provider.dart';
+import '../providers/ui_state_provider.dart';
+import '../providers/offline_mode_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -33,119 +30,101 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
+class _HomePageState extends ConsumerState<HomePage>
+    with SingleTickerProviderStateMixin {
   final List<PDFMemory> _pdfMemories = [];
   final TextEditingController _controller = TextEditingController();
-  final List<ChatMessage> _messages = [];
-  bool _isLoading = false;
   late final ScrollController _scrollController;
+  
+  // Move these to a new StateNotifier
   bool _isImageMode = false;
   bool _isInternetMode = false;
-  bool _isGenerating = false;
 
-  // Services
-  late final AIService _aiService;
+  // Services that don't need state management
   final PDFService _pdfService = PDFService();
   final ImageGenerationService _imageGenService = ImageGenerationService();
-  final TextGenerationService _textGenService = TextGenerationService();
   final WebService _webService = WebService();
   final ImageService _imageService = ImageService();
   final ChatStorageService _chatStorage = ChatStorageService();
+
+  // Move this to a StateNotifier
   List<SavedChat> _savedChats = [];
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    _loadSavedChats();
-    _checkServiceStatus();
+    _initializeServices();
   }
 
   Future<void> _initializeServices() async {
-    final offlineService = ref.read(offlineModelNotifierProvider);
-    _aiService = AIService(_textGenService, offlineService);
     await _chatStorage.init();
     _loadSavedChats();
-    _checkServiceStatus();
-  }
-
-  void _loadSavedChats() {
-    final chatStorage = ref.read(chatStorageNotifierProvider);
-    setState(() {
-      _savedChats = chatStorage.getAllChats();
+    
+    // Only check service status after offline service is initialized
+    ref.read(offlineModelInitProvider.future).then((_) {
+      _checkServiceStatus();
     });
   }
 
-  Future<void> _saveCurrentChat() async {
-    final chatState = ref.read(chatNotifierProvider);
-    if (chatState.messages.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No messages to save')),
-      );
-      return;
-    }
-
-    final chatStorage = ref.read(chatStorageNotifierProvider);
-    await chatStorage.saveChat(chatState.messages);
-    _loadSavedChats();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chat saved successfully')),
-      );
-    }
-  }
-
-  Future<void> _deleteChat(String id) async {
-    final chatStorage = ref.read(chatStorageNotifierProvider);
-    await chatStorage.deleteChat(id);
-    _loadSavedChats();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chat deleted')),
-      );
-    }
+  void _loadSavedChats() {
+    final chats = _chatStorage.getAllChats();
+    ref.read(uiStateProvider.notifier).setSavedChats(chats);
   }
 
   void _loadSavedChat(SavedChat chat) {
-    final chatNotifier = ref.read(chatNotifierProvider.notifier);
-    chatNotifier.clearMessages();
-    for (final message in chat.chatMessages) {
-      chatNotifier.addMessage(message);
-    }
+    ref.read(chatProvider.notifier).loadMessages(chat.chatMessages);
   }
 
-  Future<void> _checkServiceStatus() async {
-    final chatNotifier = ref.read(chatNotifierProvider.notifier);
-    
-    // Add initial checking message
-    chatNotifier.addMessage(ChatMessage(
-      content: "Checking if services are online...",
-      isUser: false,
-    ));
 
-    final statusNotifier = ref.read(serviceStatusNotifierProvider.notifier);
-    await statusNotifier.checkStatus();
+  Future<void> _checkServiceStatus() async {
+    final chatNotifier = ref.read(chatProvider.notifier);
+    final textGenService = ref.read(textGenerationServiceProvider);
     
-    final status = await ref.read(serviceStatusNotifierProvider.future);
-    
+    chatNotifier.addMessage(
+      ChatMessage(
+        content: "Checking if services are online...",
+        isUser: false,
+      ),
+    );
+
+    bool isTextServiceOnline = false;
+    bool isImageServiceOnline = false;
+
+    try {
+      final textResponse = await textGenService.generateText("say hi");
+      isTextServiceOnline = textResponse.isNotEmpty;
+    } catch (e) {
+      isTextServiceOnline = false;
+    }
+
+    try {
+      final imageBytes = await _imageGenService.generateImage(prompt: "boy in yellow hat");
+      isImageServiceOnline = imageBytes!.isNotEmpty;
+    } catch (e) {
+      isImageServiceOnline = false;
+      if (kDebugMode) {
+        print("Error checking image service status: $e");
+      }
+    }
+
     String statusMessage = "Hey! \n\n";
-    statusMessage += status.isTextServiceOnline
+    statusMessage += isTextServiceOnline
         ? "Chat Service is Online. Ask Me Anything.\n\n"
         : "Chat Service is currently Offline :( Try Again Later.\n";
 
-    statusMessage += status.isImageServiceOnline
-        ? "Image Service is Online. Generate Amazing Images"
-        : "Image Service is Offline. Try Again Later";
+    statusMessage += isImageServiceOnline
+        ? " Image Service is Online. Generate Amazing Images"
+        : " Image Service is Offline. Try Again Later";
 
-    // Remove the checking message and add the status message
-    chatNotifier.clearMessages();
-    chatNotifier.addMessage(ChatMessage(
-      content: statusMessage,
-      isUser: false,
-      isError: !status.isTextServiceOnline || !status.isImageServiceOnline,
-    ));
+    // Update status message
+    chatNotifier.loadMessages([
+      ChatMessage(
+        content: statusMessage,
+        isUser: false,
+        isError: !isTextServiceOnline || !isImageServiceOnline,
+      ),
+    ]);
   }
 
   @override
@@ -168,9 +147,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showAddOptions() async {
-    final offlineService = ref.read(offlineModelNotifierProvider);
-    final isOffline = offlineService.isOfflineMode;
-
+    final offlineModeState = ref.read(offlineModeProvider);
+    final isOffline = offlineModeState.isOfflineMode;
+    
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -210,17 +189,14 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _pickPDFAndCreateRAG() async {
-    final pdfService = ref.read(pdfServiceProvider);
-    final chatNotifier = ref.read(chatNotifierProvider.notifier);
-    
     try {
-      final memory = await pdfService.pickAndProcessPDF();
-      if (memory != null) {
-        chatNotifier.addPDFMemory(memory);
+      PDFMemory? newMemory = await _pdfService.pickAndProcessPDF();
+      if (newMemory != null) {
+        _addContent(newMemory);
         if (mounted) {
           NotificationService.showTopNotification(
             context,
-            message: 'PDF processed: ${memory.fileName}',
+            message: 'PDF processed: ${newMemory.name}',
           );
         }
       }
@@ -235,288 +211,387 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
-  Future<void> _processWebContent() async {
-    final webService = ref.read(webServiceProvider);
-    final chatNotifier = ref.read(chatNotifierProvider.notifier);
-    
-    final url = await DialogManager.showURLInputDialog(context);
-    if (url == null || url.isEmpty) return;
+  void _addContent(PDFMemory memory) {
+    setState(() {
+      _pdfMemories.add(memory);
+      _isInternetMode = false;
+    });
+  }
 
-    try {
-      final memory = await webService.processWebContent(url);
-      if (memory != null) {
-        chatNotifier.addPDFMemory(memory);
-        if (!mounted) return;
+  Future<void> _processWebContent() async {
+    final url = await DialogManager.showURLInputDialog(context);
+    if (url != null) {
+      try {
+        PDFMemory? webMemory = await _webService.processWebContent(url);
+        if (webMemory != null) {
+          _addContent(webMemory);
+          if (!mounted) return;
+          NotificationService.showTopNotification(
+            context,
+            message: 'Web content processed: ${webMemory.name}',
+          );
+        }
+      } catch (e) {
+                  if (!mounted) return;
+
         NotificationService.showTopNotification(
           context,
-          message: 'Web content processed: ${memory.fileName}',
+          message: 'Error processing web content: ${e.toString()}',
+          isError: true,
         );
       }
-    } catch (e) {
-      if (!mounted) return;
-
-      NotificationService.showTopNotification(
-        context,
-        message: 'Error processing web content: ${e.toString()}',
-        isError: true,
-      );
     }
   }
 
   Future<void> _processImageContent() async {
-    final imageService = ref.read(imageServiceProvider);
-    final chatNotifier = ref.read(chatNotifierProvider.notifier);
-    
-    try {
-      final memory = await imageService.pickAndProcessImage();
-      if (memory != null) {
-        chatNotifier.addPDFMemory(memory);
-        if (!mounted) return;
+    final source = await DialogManager.showImageSourceDialog(context);
+    if (source != null) {
+      try {
+        PDFMemory? imageMemory =
+            await _imageService.processImageContent(source);
+        if (imageMemory != null) {
+          _addContent(imageMemory);
+                    if (!mounted) return;
+
+          NotificationService.showTopNotification(
+            context,
+            message: 'Image content processed: ${imageMemory.name}',
+          );
+        }
+      } catch (e) {
+                  if (!mounted) return;
 
         NotificationService.showTopNotification(
           context,
-          message: 'Image content processed: ${memory.fileName}',
+          message: 'Error processing image: ${e.toString()}',
+          isError: true,
         );
       }
-    } catch (e) {
-      if (!mounted) return;
-
-      NotificationService.showTopNotification(
-        context,
-        message: 'Error processing image: ${e.toString()}',
-        isError: true,
-      );
     }
   }
 
   void _showExtractedText(PDFMemory memory) {
     DialogManager.showExtractedText(
       context,
-      memory.fileName,
+      memory.name,
       memory.extractedText,
     );
   }
 
-  void _clearChat() {
-    ref.read(chatNotifierProvider.notifier).clearMessages();
+  Future<void> _clearChat() async {
+    final aiService = ref.read(aiServiceProvider);
+    aiService.stopGeneration();
+    
+    final chatNotifier = ref.read(chatProvider.notifier);
+    chatNotifier.clearMessages();
+    
+    ref.read(uiStateProvider.notifier).resetModes();
+    _controller.clear();
+    setState(() {
+      _pdfMemories.clear();
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Started new chat'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   Future<void> _stopGeneration() async {
-    _aiService.stopGeneration();
-    setState(() {
-      _isGenerating = false;
-    });
+    final aiService = ref.read(aiServiceProvider);
+    aiService.stopGeneration();
+    ref.read(chatProvider.notifier).setGenerating(false);
   }
 
   Future<void> _submitMessage() async {
-    if (_controller.text.trim().isEmpty) return;
+    final message = _controller.text.trim();
+    if (message.isEmpty) return;
 
-    final chatNotifier = ref.read(chatNotifierProvider.notifier);
-    final chatState = ref.read(chatNotifierProvider);
-    final question = _controller.text;
-    _controller.clear();
-
-    if (chatState.isImageMode) {
-      await chatNotifier.handleImageGeneration(question);
-      return;
-    }
-
-    chatNotifier.addMessage(ChatMessage(
-      content: question,
-      isUser: true,
-    ));
+    final chatNotifier = ref.read(chatProvider.notifier);
+    final chatState = ref.read(chatProvider);
+    final aiService = ref.read(aiServiceProvider);
+    final uiState = ref.read(uiStateProvider);
+    final offlineModeState = ref.read(offlineModeProvider);
+    
+    // Add user message
+    final userMessage = ChatMessage(content: message, isUser: true);
+    chatNotifier.addMessage(userMessage);
+    
+    // Set loading state
+    chatNotifier.startLoading();
     chatNotifier.setGenerating(true);
+    _controller.clear();
+    _scrollToBottom();
 
     try {
-      final aiService = ref.read(aiServiceProvider);
-      await aiService.getStreamingResponse(
-        question,
-        chatState.pdfMemories,
-        (response, done) {
-          if (chatNotifier.state.messages.last.isUser) {
-            chatNotifier.addMessage(ChatMessage(
-              content: response,
-              isUser: false,
-            ));
-          } else {
-            chatNotifier.updateLastMessage(ChatMessage(
-              content: response,
-              isUser: false,
-            ));
-          }
-          chatNotifier.setGenerating(!done);
-          _scrollToBottom();
-        },
-        useInternet: chatState.isInternetMode,
-        history: chatState.messages,
-      );
-    } catch (e) {
-      chatNotifier.addMessage(ChatMessage(
-        content: 'Error: $e',
-        isUser: false,
-        isError: true,
-      ));
-      chatNotifier.setGenerating(false);
-    }
-  }
+      if (uiState.isImageMode) {
+        chatNotifier.addMessage(
+          ChatMessage(
+            content: "Generating image... Please wait.",
+            isUser: false,
+          )
+        );
 
-  void _showInfo() {
-    showDialog(
-      context: context,
-      builder: (context) => const IntroDrawer(),
-    );
+        final imageData = await _imageGenService.generateImage(prompt: message);
+
+        if (imageData != null) {
+          chatNotifier.addMessage(
+            ChatMessage(
+              content: message,
+              isUser: false,
+              imageData: imageData,
+            )
+          );
+        } else {
+          chatNotifier.setError("Failed to generate image.");
+        }
+        setState(() => _isImageMode = false);
+      } else {
+        // Add initial AI message
+        chatNotifier.addMessage(
+          ChatMessage(content: '', isUser: false)
+        );
+        
+        // Don't allow internet mode in offline mode
+        final useInternet = !offlineModeState.isOfflineMode && uiState.isInternetMode;
+        
+        await aiService.getStreamingResponse(
+          message,
+          _pdfMemories,
+          (response, done) {
+            if (mounted) {
+              chatNotifier.updateLastMessage(response);
+              if (done) chatNotifier.setGenerating(false);
+              _scrollToBottom();
+            }
+          },
+          useInternet: useInternet,
+          history: chatState.messages,
+        );
+      }
+    } catch (e) {
+      chatNotifier.setError("Something went wrong! Try again later.");
+    } finally {
+      if (mounted) {
+        chatNotifier.stopLoading();
+        chatNotifier.setGenerating(false);
+        _scrollToBottom();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final offlineService = ref.watch(offlineModelNotifierProvider);
-    final chatState = ref.watch(chatNotifierProvider);
+    // Watch the initialization state
+    final initState = ref.watch(offlineModelInitProvider);
+    
+    return initState.when(
+      data: (_) {
+        final offlineModeState = ref.watch(offlineModeProvider);
+        final chatState = ref.watch(chatProvider);
+        final uiState = ref.watch(uiStateProvider);
+        final aiService = ref.watch(aiServiceProvider);
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Write4Me',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Write4Me',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (offlineModeState.isOfflineMode && offlineModeState.availableModels.length > 1)
+                  PopupMenuButton<String>(
+                    tooltip: 'Switch Model',
+                    icon: const Icon(Icons.swap_horiz),
+                    itemBuilder: (context) => [
+                      for (final model in offlineModeState.availableModels)
+                        PopupMenuItem(
+                          value: model.path,
+                          child: Row(
+                            children: [
+                              Icon(
+                                model.path == offlineModeState.selectedModelPath
+                                    ? Icons.check_circle
+                                    : Icons.circle_outlined,
+                                size: 18,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(model.path.split('/').last.replaceAll('.gguf', '')),
+                            ],
+                          ),
+                        ),
+                    ],
+                    onSelected: (modelPath) {
+                      ref.read(offlineModeProvider.notifier).setSelectedModel(modelPath);
+                    },
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => SettingsDialog(
+                        hasMessages: chatState.messages.isNotEmpty,
+                        onSaveChat: _saveCurrentChat,
+                        onClearChat: _clearChat,
+                        onShowInfo: () {
+                          showDialog(
+                            context: context,
+                            barrierDismissible: true,
+                            builder: (BuildContext context) => const IntroDrawer(),
+                            useSafeArea: true,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  tooltip: 'Settings',
+                ),
+              ],
+            ),
+          ),
+          drawer: SavedChatsDrawer(
+            chats: uiState.savedChats,
+            onChatSelected: _loadSavedChat,
+            onChatDeleted: _deleteChat,
+          ),
+          body: Column(
+            children: [
+              if (chatState.messages.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Ask anything,\nget instant answers.',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        height: 2,
+                        width: 120,
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(context).primaryColor.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: ChatMessages(
+                  scrollController: _scrollController,
                 ),
               ),
-            ),
-            if (offlineService.isOfflineMode && offlineService.availableModels.length > 1)
-              PopupMenuButton<String>(
-                tooltip: 'Switch Model',
-                icon: const Icon(Icons.swap_horiz),
-                itemBuilder: (context) => [
-                  for (final model in offlineService.availableModels)
-                    PopupMenuItem(
-                      value: model.path,
-                      child: Row(
-                        children: [
-                          Icon(
-                            model.path == offlineService.selectedModelPath
-                                ? Icons.check_circle
-                                : Icons.circle_outlined,
-                            size: 18,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(model.path.split('/').last.replaceAll('.gguf', '')),
-                        ],
-                      ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, -2),
                     ),
-                ],
-                onSelected: (modelPath) {
-                  offlineService.setSelectedModel(modelPath);
-                },
+                  ],
+                ),
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  children: [
+                    ModelSelector(
+                      isOfflineMode: offlineModeState.isOfflineMode,
+                    ),
+                    DocumentListContainer(
+                      documents: _pdfMemories,
+                      onSelectionChanged: () => setState(() {}),
+                      onLongPress: _showExtractedText,
+                      onRemove: (memory) {
+                        setState(() {
+                          _pdfMemories.remove(memory);
+                        });
+                      },
+                    ),
+                    ChatInput(
+                      controller: _controller,
+                      isImageMode: uiState.isImageMode,
+                      isInternetMode: uiState.isInternetMode,
+                      isGenerating: chatState.isGenerating,
+                      onSubmit: _submitMessage,
+                      onStop: _stopGeneration,
+                      onAddContent: _showAddOptions,
+                      onToggleInternet: offlineModeState.isOfflineMode 
+                          ? null
+                          : () => ref.read(uiStateProvider.notifier).toggleInternetMode(),
+                      onToggleImage: () => ref.read(uiStateProvider.notifier).toggleImageMode(),
+                      isInternetDisabled: _pdfMemories.isNotEmpty || offlineModeState.isOfflineMode,
+                      isOfflineMode: offlineModeState.isOfflineMode,
+                    ),
+                  ],
+                ),
               ),
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => SettingsDialog(
-                    hasMessages: chatState.messages.isNotEmpty,
-                    onSaveChat: _saveCurrentChat,
-                    onClearChat: _clearChat,
-                    onShowInfo: _showInfo,
-                  ),
-                );
-              },
-              tooltip: 'Settings',
-            ),
-          ],
+            ],
+          ),
+        );
+      },
+      loading: () => const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
         ),
       ),
-      drawer: SavedChatsDrawer(
-        chats: _savedChats,
-        onChatSelected: _loadSavedChat,
-        onChatDeleted: _deleteChat,
-      ),
-      body: Column(
-        children: [
-          if (_messages.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                children: [
-                  const Text(
-                    'Ask anything,\nget instant answers.',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    height: 2,
-                    width: 120,
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).primaryColor.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: ChatMessages(
-              messages: chatState.messages,
-              isLoading: _isLoading,
-              scrollController: _scrollController,
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              children: [
-                ModelSelector(isOfflineMode: offlineService.isOfflineMode),
-                DocumentListContainer(
-                  documents: chatState.pdfMemories,
-                  onSelectionChanged: () => setState(() {}),
-                  onLongPress: _showExtractedText,
-                  onRemove: (memory) {
-                    ref.read(chatNotifierProvider.notifier).removePDFMemory(memory);
-                  },
-                ),
-                ChatInput(
-                  controller: _controller,
-                  isImageMode: chatState.isImageMode,
-                  isInternetMode: chatState.isInternetMode,
-                  isGenerating: chatState.isGenerating,
-                  onSubmit: _submitMessage,
-                  onStop: _stopGeneration,
-                  onAddContent: _showAddOptions,
-                  onToggleInternet: offlineService.isOfflineMode 
-                      ? null 
-                      : () => ref.read(chatNotifierProvider.notifier).toggleInternetMode(),
-                  onToggleImage: () => ref.read(chatNotifierProvider.notifier).toggleImageMode(),
-                  isInternetDisabled: chatState.pdfMemories.isNotEmpty || offlineService.isOfflineMode,
-                  isOfflineMode: offlineService.isOfflineMode,
-                ),
-              ],
-            ),
-          ),
-        ],
+      error: (error, _) => Scaffold(
+        body: Center(
+          child: Text('Error initializing: $error'),
+        ),
       ),
     );
+  }
+
+  Future<void> _saveCurrentChat() async {
+    final chatState = ref.read(chatProvider);
+    if (chatState.messages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No messages to save')),
+      );
+      return;
+    }
+
+    await _chatStorage.saveChat(chatState.messages);
+    _loadSavedChats();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chat saved successfully')),
+      );
+    }
+  }
+
+  Future<void> _deleteChat(String id) async {
+    await _chatStorage.deleteChat(id);
+    _loadSavedChats();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chat deleted')),
+      );
+    }
   }
 }

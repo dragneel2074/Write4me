@@ -4,55 +4,112 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import '../models/pdf_memory.dart';
 import 'package:gal/gal.dart'; // Import the gal package
 import 'package:flutter/material.dart';
-import '../utils/dialog_manager.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 
 class ImageService {
   final _textRecognizer = TextRecognizer();
-  final _imagePicker = ImagePicker();
+  final _picker = ImagePicker();
+  bool _isRequestingPermission = false;
 
-  Future<PDFMemory?> pickAndProcessImage() async {
+  Future<bool> _requestPermission(Permission permission) async {
+    if (_isRequestingPermission) {
+      return false;
+    }
+
     try {
-      final pickedFile = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1800,
-        maxHeight: 1800,
-      );
-      
+      _isRequestingPermission = true;
+      final status = await permission.request();
+      return status.isGranted;
+    } finally {
+      _isRequestingPermission = false;
+    }
+  }
+
+  Future<PDFMemory?> processImageContent(ImageSource source) async {
+    try {
+      // Request permissions first
+      bool permissionGranted = false;
+      if (source == ImageSource.camera) {
+        permissionGranted = await _requestPermission(Permission.camera);
+        if (!permissionGranted) {
+          throw Exception('Camera permission denied');
+        }
+      } else {
+        permissionGranted = await _requestPermission(Permission.photos);
+        if (!permissionGranted) {
+          throw Exception('Photos permission denied');
+        }
+      }
+
+      // Pick image with error handling
+      XFile? pickedFile;
+      try {
+        pickedFile = await _picker.pickImage(
+          source: source,
+          maxWidth: 1800,
+          maxHeight: 1800,
+          imageQuality: 85,
+        );
+      } catch (e) {
+        debugPrint('Error picking image: $e');
+        // If first attempt fails, try again without image constraints
+        pickedFile = await _picker.pickImage(
+          source: source,
+        );
+      }
+
       if (pickedFile == null) return null;
 
-      final inputImage = InputImage.fromFilePath(pickedFile.path);
+      // Verify file exists and is readable
+      final file = File(pickedFile.path);
+      if (!await file.exists()) {
+        throw Exception('Selected file does not exist');
+      }
+
+      // Process image
+      final inputImage = InputImage.fromFile(file);
       final recognizedText = await _textRecognizer.processImage(inputImage);
 
-      if (recognizedText.text.trim().isEmpty) return null;
+      if (recognizedText.text.isEmpty) {
+        throw Exception('No text found in image');
+      }
 
       return PDFMemory(
-        fileName: 'Image: ${DateTime.now().toString()}',
-        extractedText: recognizedText.text,
+        'Image: ${pickedFile.name}',
+        recognizedText.text,
+        isSelected: true,
       );
     } catch (e) {
       debugPrint('Error processing image: $e');
-      return null;
+      rethrow;
+    }
+  }
+
+  Future<void> saveImage(Uint8List imageData) async {
+    try {
+      final permissionGranted = await _requestPermission(Permission.storage);
+      if (!permissionGranted) {
+        throw Exception('Storage permission denied');
+      }
+
+      // Use gal package to save the image with error handling
+      try {
+        await Gal.putImageBytes(
+          imageData,
+          name: "Write4Me_${DateTime.now().millisecondsSinceEpoch}",
+        );
+      } on GalException catch (e) {
+        debugPrint('Gal error: ${e.type}');
+        rethrow;
+      }
+    } catch (e) {
+      debugPrint('Error saving image: $e');
+      rethrow;
     }
   }
 
   void dispose() {
     _textRecognizer.close();
-  }
-
-  Future<void> saveImage(Uint8List imageData) async {
-    try {
-      // Use the gal package to save the image
-      await Gal.putImageBytes(
-        imageData,
-        name: "Write4Me_${DateTime.now().millisecondsSinceEpoch}",
-      );
-      debugPrint('Image saved successfully');
-    } on GalException catch (e) {
-      debugPrint('Error saving image: ${e.type.message}');
-      rethrow;
-    } catch (e) {
-      debugPrint('Unexpected error saving image: $e');
-      rethrow;
-    }
   }
 }

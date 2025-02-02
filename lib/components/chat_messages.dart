@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import '../models/chat_message.dart';
 import 'package:flutter/services.dart';
 import '../services/image_service.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'message_bubble.dart';
+import '../providers/chat_provider.dart';
+import '../theme/chat_theme.dart';
+import 'chat_bubble.dart';
 
 class ChatMessages extends ConsumerWidget {
-  final List<ChatMessage> messages;
-  final bool isLoading;
   final ScrollController scrollController;
 
   const ChatMessages({
     super.key,
-    required this.messages,
-    required this.isLoading,
     required this.scrollController,
   });
 
@@ -54,24 +49,34 @@ class ChatMessages extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (messages.isEmpty) {
-      return const Center(
-        child: Text('Start a conversation...'),
+    final chatState = ref.watch(chatProvider);
+    final theme = Theme.of(context);
+    final chatTheme = theme.extension<ChatThemeExtension>()!;
+    
+    if (chatState.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            chatState.error!,
+            style: TextStyle(
+              color: theme.colorScheme.error,
+              fontSize: 16,
+            ),
+          ),
+        ),
       );
     }
-
+    
     return ListView.builder(
       controller: scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-      itemCount: messages.length,
+      itemCount: chatState.messages.length,
       itemBuilder: (context, index) {
-        final message = messages[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: MessageBubble(
-            message: message,
-            showAvatar: index == 0 || messages[index - 1].isUser != message.isUser,
-          ),
+        final message = chatState.messages[index];
+        return ChatBubble(
+          message: message,
+          isLast: index == chatState.messages.length - 1,
         );
       },
     );

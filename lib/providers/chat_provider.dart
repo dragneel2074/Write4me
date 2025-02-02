@@ -1,33 +1,64 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/chat_message.dart';
-import '../models/pdf_memory.dart';
-import 'providers.dart';
 
-part 'chat_provider.g.dart';
+// Chat state class to hold all chat-related state
+class ChatState {
+  final List<ChatMessage> messages;
+  final bool isLoading;
+  final bool isGenerating;
+  final String? error;
 
-@Riverpod(keepAlive: true)
-class ChatNotifier extends _$ChatNotifier {
-  @override
-  ChatState build() {
+  ChatState({
+    this.messages = const [],
+    this.isLoading = false,
+    this.isGenerating = false,
+    this.error,
+  });
+
+  ChatState copyWith({
+    List<ChatMessage>? messages,
+    bool? isLoading,
+    bool? isGenerating,
+    String? error,
+  }) {
     return ChatState(
-      messages: [],
-      pdfMemories: [],
-      isGenerating: false,
-      isImageMode: false,
-      isInternetMode: false,
+      messages: messages ?? this.messages,
+      isLoading: isLoading ?? this.isLoading,
+      isGenerating: isGenerating ?? this.isGenerating,
+      error: error ?? this.error,
     );
   }
+}
+
+class ChatNotifier extends StateNotifier<ChatState> {
+  ChatNotifier() : super(ChatState());
 
   void addMessage(ChatMessage message) {
+    final List<ChatMessage> updatedMessages = List.from(state.messages);
+    updatedMessages.add(message);
+    
     state = state.copyWith(
-      messages: [...state.messages, message],
+      messages: updatedMessages,
+      error: null,
     );
   }
 
-  void updateLastMessage(ChatMessage message) {
+  void updateLastMessage(String content) {
     if (state.messages.isEmpty) return;
-    final messages = [...state.messages];
-    messages[messages.length - 1] = message;
+    
+    final lastMessage = state.messages.last;
+    final updatedMessage = ChatMessage(
+      content: content,
+      isUser: lastMessage.isUser,
+      imageData: lastMessage.imageData,
+    );
+    
+    state = state.copyWith(
+      messages: [...state.messages.take(state.messages.length - 1), updatedMessage],
+    );
+  }
+
+  void loadMessages(List<ChatMessage> messages) {
     state = state.copyWith(messages: messages);
   }
 
@@ -35,117 +66,45 @@ class ChatNotifier extends _$ChatNotifier {
     state = state.copyWith(messages: []);
   }
 
-  void setGenerating(bool isGenerating) {
-    state = state.copyWith(isGenerating: isGenerating);
+  void startLoading() {
+    state = state.copyWith(isLoading: true, error: null);
   }
 
-  void toggleImageMode() {
+  void stopLoading() {
+    state = state.copyWith(isLoading: false);
+  }
+
+  void setGenerating(bool value) {
+    state = state.copyWith(isGenerating: value);
+  }
+
+  void setError(String message) {
     state = state.copyWith(
-      isImageMode: !state.isImageMode,
-      isInternetMode: false,
+      error: message,
+      isLoading: false,
+      isGenerating: false,
     );
-  }
-
-  void toggleInternetMode() {
-    state = state.copyWith(
-      isInternetMode: !state.isInternetMode,
-      isImageMode: false,
-    );
-  }
-
-  void addPDFMemory(PDFMemory memory) {
-    state = state.copyWith(
-      pdfMemories: [...state.pdfMemories, memory],
-    );
-  }
-
-  void removePDFMemory(PDFMemory memory) {
-    state = state.copyWith(
-      pdfMemories: state.pdfMemories.where((m) => m != memory).toList(),
-    );
-  }
-
-  void togglePDFMemorySelection(PDFMemory memory) {
-    final index = state.pdfMemories.indexOf(memory);
-    if (index == -1) return;
-
-    final updatedMemories = [...state.pdfMemories];
-    updatedMemories[index] = memory.copyWith(
-      isSelected: !memory.isSelected,
-    );
-
-    state = state.copyWith(pdfMemories: updatedMemories);
-  }
-
-  Future<void> handleImageGeneration(String prompt) async {
-    setGenerating(true);
-    addMessage(ChatMessage(
-      content: prompt,
-      isUser: true,
-    ));
-    addMessage(ChatMessage(
-      content: "Generating image... Please wait.",
-      isUser: false,
-    ));
-
-    try {
-      final imageGenService = ref.read(imageGenerationServiceProvider);
-      final imageData = await imageGenService.generateImage(prompt);
-
-      if (imageData != null) {
-        updateLastMessage(ChatMessage(
-          content: prompt,
-          isUser: false,
-          imageData: imageData,
-        ));
-      } else {
-        updateLastMessage(ChatMessage(
-          content: "Failed to generate image.",
-          isUser: false,
-          isError: true,
-        ));
-      }
-    } catch (e) {
-      updateLastMessage(ChatMessage(
-        content: "Error generating image: $e",
-        isUser: false,
-        isError: true,
-      ));
-    } finally {
-      setGenerating(false);
-      toggleImageMode();
-    }
   }
 }
 
-class ChatState {
-  final List<ChatMessage> messages;
-  final List<PDFMemory> pdfMemories;
-  final bool isGenerating;
-  final bool isImageMode;
-  final bool isInternetMode;
+// Providers
+final chatProvider = StateNotifierProvider<ChatNotifier, ChatState>((ref) {
+  return ChatNotifier();
+});
 
-  ChatState({
-    required this.messages,
-    required this.pdfMemories,
-    required this.isGenerating,
-    required this.isImageMode,
-    required this.isInternetMode,
-  });
+// Convenience providers for individual states
+final chatMessagesProvider = Provider<List<ChatMessage>>((ref) {
+  return ref.watch(chatProvider).messages;
+});
 
-  ChatState copyWith({
-    List<ChatMessage>? messages,
-    List<PDFMemory>? pdfMemories,
-    bool? isGenerating,
-    bool? isImageMode,
-    bool? isInternetMode,
-  }) {
-    return ChatState(
-      messages: messages ?? this.messages,
-      pdfMemories: pdfMemories ?? this.pdfMemories,
-      isGenerating: isGenerating ?? this.isGenerating,
-      isImageMode: isImageMode ?? this.isImageMode,
-      isInternetMode: isInternetMode ?? this.isInternetMode,
-    );
-  }
-} 
+final chatLoadingProvider = Provider<bool>((ref) {
+  return ref.watch(chatProvider).isLoading;
+});
+
+final chatGeneratingProvider = Provider<bool>((ref) {
+  return ref.watch(chatProvider).isGenerating;
+});
+
+final chatErrorProvider = Provider<String?>((ref) {
+  return ref.watch(chatProvider).error;
+}); 

@@ -1,165 +1,144 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/providers.dart';
 import '../services/offline_model_service.dart';
 
-class ModelDownloadDialog extends ConsumerStatefulWidget {
-  const ModelDownloadDialog({super.key});
+class ModelDownloadDialog extends StatefulWidget {
+  final Function(String url, void Function(double) onProgress, String fileName) onDownload;
+
+  const ModelDownloadDialog({
+    super.key,
+    required this.onDownload,
+  });
 
   @override
-  ConsumerState<ModelDownloadDialog> createState() => _ModelDownloadDialogState();
+  State<ModelDownloadDialog> createState() => _ModelDownloadDialogState();
 }
 
-class _ModelDownloadDialogState extends ConsumerState<ModelDownloadDialog> {
-  String _selectedModel = OfflineModelService.defaultModels.keys.first;
+class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
+  final _urlController = TextEditingController();
+  final _fileNameController = TextEditingController();
+  bool _isCustomModel = false;
   bool _isDownloading = false;
   double _progress = 0;
-  final _urlController = TextEditingController();
-  bool _isCustomUrl = false;
-  CancelToken? _cancelToken;
+  String? _selectedModel;
 
   @override
   void dispose() {
     _urlController.dispose();
-    _cancelToken?.cancel();
+    _fileNameController.dispose();
     super.dispose();
   }
 
-  Future<void> _downloadModel() async {
-    if (_isCustomUrl && _urlController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid URL')),
-      );
-      return;
+  void _startDownload() {
+    String url;
+    String fileName;
+
+    if (_isCustomModel) {
+      if (_urlController.text.isEmpty || _fileNameController.text.isEmpty) return;
+      url = _urlController.text;
+      fileName = _fileNameController.text;
+    } else {
+      if (_selectedModel == null) return;
+      url = OfflineModelService.defaultModels[_selectedModel!]!;
+      fileName = '${_selectedModel!.toLowerCase()}.gguf';
     }
 
-    setState(() => _isDownloading = true);
-    _cancelToken = CancelToken();
-    
-    try {
-      final offlineService = ref.read(offlineModelNotifierProvider);
-      
-      if (_isCustomUrl) {
-        await offlineService.downloadCustomModel(
-          _urlController.text.trim(),
-          (progress) => setState(() => _progress = progress),
-          _cancelToken!,
-        );
-      } else {
-        await offlineService.downloadModel(
-          _selectedModel,
-          (progress) => setState(() => _progress = progress),
-          _cancelToken!,
-        );
-      }
+    setState(() {
+      _isDownloading = true;
+    });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Model downloaded successfully')),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        if (e is CancelException) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Download cancelled')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
-        }
-      }
-    } finally {
-      if (mounted) {
+    widget.onDownload(
+      url,
+      (progress) {
         setState(() {
-          _isDownloading = false;
-          _progress = 0;
+          _progress = progress;
         });
-      }
-    }
+      },
+      fileName,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final availableModels = [
-      ...OfflineModelService.defaultModels.keys,
-      'Custom URL',
-    ];
-
     return AlertDialog(
       title: const Text('Download Model'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Select a model to download:',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            DropdownButton<String>(
-              value: _selectedModel,
-              isExpanded: true,
-              items: availableModels.map((name) {
-                return DropdownMenuItem(
-                  value: name,
-                  child: Text(name),
-                );
-              }).toList(),
-              onChanged: _isDownloading ? null : (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedModel = value;
-                    _isCustomUrl = value == 'Custom URL';
-                  });
-                }
+            // Model type selector
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  label: Text('Predefined Models'),
+                ),
+                ButtonSegment(
+                  value: true,
+                  label: Text('Custom Model'),
+                ),
+              ],
+              selected: {_isCustomModel},
+              onSelectionChanged: (value) {
+                setState(() {
+                  _isCustomModel = value.first;
+                });
               },
             ),
-            if (_isCustomUrl) ...[
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
+            
+            // Predefined models dropdown or custom model input
+            if (_isCustomModel) ...[
               TextField(
                 controller: _urlController,
                 decoration: const InputDecoration(
                   labelText: 'Model URL',
-                  hintText: 'Enter GGUF model URL',
-                  border: OutlineInputBorder(),
+                  hintText: 'Enter the URL of the GGUF model',
                 ),
-                enabled: !_isDownloading,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _fileNameController,
+                decoration: const InputDecoration(
+                  labelText: 'File Name',
+                  hintText: 'Enter the name for the model file',
+                ),
+              ),
+            ] else ...[
+              DropdownButtonFormField<String>(
+                value: _selectedModel,
+                decoration: const InputDecoration(
+                  labelText: 'Select Model',
+                ),
+                items: OfflineModelService.defaultModels.keys.map((String model) {
+                  return DropdownMenuItem<String>(
+                    value: model,
+                    child: Text(model),
+                  );
+                }).toList(),
+                onChanged: (String? value) {
+                  setState(() {
+                    _selectedModel = value;
+                  });
+                },
               ),
             ],
+            
             if (_isDownloading) ...[
               const SizedBox(height: 16),
               LinearProgressIndicator(value: _progress),
-              const SizedBox(height: 8),
-              Text(
-                '${(_progress * 100).toStringAsFixed(1)}%',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              Text('${(_progress * 100).toStringAsFixed(1)}%'),
             ],
-            const SizedBox(height: 16),
-            Text(
-              'Note: Models are typically 300MB-2GB. Please ensure you have enough storage and a stable connection.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: _isDownloading 
-              ? () {
-                  _cancelToken?.cancel();
-                  Navigator.pop(context);
-                }
-              : () => Navigator.pop(context),
-          child: Text(_isDownloading ? 'Cancel' : 'Close'),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: _isDownloading ? null : _downloadModel,
-          child: Text(_isDownloading ? 'Downloading...' : 'Download'),
+          onPressed: _isDownloading ? null : _startDownload,
+          child: const Text('Download'),
         ),
       ],
     );

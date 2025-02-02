@@ -1,178 +1,167 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:write4me/theme/theme_provider.dart';
-import 'model_download_dialog.dart';
-import '../providers/providers.dart';
+import 'package:write4me/widgets/model_download_dialog.dart';
+import '../providers/theme_provider.dart';
+import '../providers/offline_mode_provider.dart';
+import '../services/model_management_service.dart';
 
 class SettingsDialog extends ConsumerWidget {
+  final bool hasMessages;
   final VoidCallback onSaveChat;
   final VoidCallback onClearChat;
   final VoidCallback onShowInfo;
-  final bool hasMessages;
 
   const SettingsDialog({
     super.key,
+    required this.hasMessages,
     required this.onSaveChat,
     required this.onClearChat,
     required this.onShowInfo,
-    required this.hasMessages,
   });
-
-  Widget _buildSectionHeader(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final offlineService = ref.watch(offlineModelNotifierProvider);
-    final models = offlineService.availableModels;
+    final offlineModeState = ref.watch(offlineModeProvider);
+    final themeMode = ref.watch(themeProvider);
 
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
+    return AlertDialog(
+      title: const Text('Settings'),
+      content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
+            // Theme toggle
+            ListTile(
+              leading: Icon(
+                themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.settings,
-                    color: Theme.of(context).colorScheme.onPrimary,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Settings',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ],
+              title: const Text('Dark Mode'),
+              trailing: Switch(
+                value: themeMode == ThemeMode.dark,
+                onChanged: (value) {
+                  ref.read(themeProvider.notifier).setThemeMode(
+                    value ? ThemeMode.dark : ThemeMode.light,
+                  );
+                },
               ),
             ),
-            // Content
-            Flexible(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Chat Section
-                      _buildSectionHeader(context, 'Chat'),
-                      Card(
-                        child: Column(
-                          children: [
-                            if (hasMessages) ...[
-                              ListTile(
-                                leading: const Icon(Icons.save),
-                                title: const Text('Save Current Chat'),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  onSaveChat();
-                                },
-                              ),
-                              const Divider(height: 1),
-                              ListTile(
-                                leading: const Icon(Icons.delete),
-                                title: const Text('Clear Chat'),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  onClearChat();
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Model Settings
-                      _buildSectionHeader(context, 'Model Settings'),
-                      Card(
-                        child: Column(
-                          children: [
-                            // Theme Switch
-                            Consumer(
-                              builder: (context, ref, child) {
-                                final themeNotifier = ref.watch(themeNotifierProvider.notifier);
-                                return SwitchListTile(
-                                  title: const Text('Dark Theme'),
-                                  secondary: const Icon(Icons.dark_mode),
-                                  value: themeNotifier.isDarkMode,
-                                  onChanged: (_) => themeNotifier.toggleTheme(),
-                                );
-                              },
-                            ),
-                            const Divider(height: 1),
-                            // Offline Mode Switch
-                            SwitchListTile(
-                              title: const Text('Offline Mode'),
-                              subtitle: Text(models.isEmpty 
-                                  ? 'No models available' 
-                                  : '${models.length} model(s) available'),
-                              secondary: const Icon(Icons.offline_bolt),
-                              value: offlineService.isOfflineMode,
-                              onChanged: models.isEmpty ? null : (value) async {
-                                await offlineService.setOfflineMode(value);
-                              },
-                            ),
-                            if (models.isNotEmpty) ...[
-                              const Divider(),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  'Selected Model: ${offlineService.currentModelName}',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            // Offline mode section
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.cloud_off),
+              title: const Text('Offline Mode'),
+              trailing: Switch(
+                value: offlineModeState.isOfflineMode,
+                onChanged: (value) {
+                  if (value && offlineModeState.availableModels.isEmpty) {
+                    _showDownloadModelPrompt(context, ref);
+                  } else {
+                    ref.read(offlineModeProvider.notifier).setOfflineMode(value);
+                  }
+                },
               ),
             ),
-            // Footer
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  ),
-                ],
+            if (!offlineModeState.isOfflineMode && offlineModeState.availableModels.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.memory),
+                title: const Text('Use Local Model'),
+                trailing: Switch(
+                  value: offlineModeState.useLocalModel,
+                  onChanged: (value) {
+                    ref.read(offlineModeProvider.notifier).setUseLocalModel(value);
+                  },
+                ),
               ),
+            if (offlineModeState.availableModels.isNotEmpty) ...[
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('Local Models', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              ...offlineModeState.availableModels.map((model) => 
+                ModelManagementService.buildModelTile(
+                  context,
+                  model,
+                  ref.read(offlineModeProvider.notifier),
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('Add Model'),
+                onPressed: () => _showModelDownloadDialog(context, ref),
+              ),
+            ],
+            // Chat actions
+            if (hasMessages) ...[
+              ListTile(
+                leading: const Icon(Icons.save),
+                title: const Text('Save Chat'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onSaveChat();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete),
+                title: const Text('Clear Chat'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onClearChat();
+                },
+              ),
+            ],
+            // Info
+            ListTile(
+              leading: const Icon(Icons.info),
+              title: const Text('About'),
+              onTap: () {
+                Navigator.pop(context);
+                onShowInfo();
+              },
             ),
           ],
         ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showDownloadModelPrompt(BuildContext context, WidgetRef ref) async {
+    final download = await ModelManagementService.showDownloadDialog(context);
+    if (download == true) {
+      await _showModelDownloadDialog(context, ref);
+    }
+  }
+
+  Future<void> _showModelDownloadDialog(BuildContext context, WidgetRef ref) async {
+    showDialog(
+      context: context,
+      builder: (context) => ModelDownloadDialog(
+        onDownload: (url, onProgress, fileName) async {
+          try {
+            await ref.read(offlineModeProvider.notifier).downloadModel(
+              url,
+              onProgress,
+              fileName,
+            );
+            if (context.mounted) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Model downloaded successfully')),
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error downloading model: $e')),
+              );
+            }
+          }
+        },
       ),
     );
   }

@@ -123,25 +123,60 @@ class OfflineModelService extends ChangeNotifier {
   }
 
   Future<void> downloadModel(
-    String modelName, 
+    String url,
     void Function(double) onProgress,
-    CancelToken cancelToken,
+    String fileName,
   ) async {
-    final url = defaultModels[modelName];
-    if (url == null) throw Exception('Model not found');
-
     if (_downloadedUrls.contains(url)) {
       throw Exception('Model already downloaded');
     }
 
+    if (!url.toLowerCase().endsWith('.gguf')) {
+      throw Exception('Invalid model file. URL must end with .gguf');
+    }
+
     try {
-      final modelPath = await _downloadFile(url, onProgress, cancelToken);
-      _downloadedUrls.add(url);
-      await _saveDownloadedUrls();
-      await setSelectedModel(modelPath);
-      await _checkAvailableModels();
+      final directory = await getApplicationDocumentsDirectory();
+      final modelPath = '${directory.path}/$fileName';
+
+      final file = File(modelPath);
+      if (await file.exists()) {
+        throw Exception('A model with this name already exists');
+      }
+
+      final response = await http.Client().send(
+        http.Request('GET', Uri.parse(url))
+      );
+      
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download model: ${response.statusCode}');
+      }
+
+      final contentLength = response.contentLength ?? 0;
+      final sink = file.openWrite();
+      int downloaded = 0;
+
+      try {
+        await for (final chunk in response.stream) {
+          sink.add(chunk);
+          downloaded += chunk.length;
+          onProgress(downloaded / contentLength);
+        }
+        
+        await sink.flush();
+        await sink.close();
+
+        _downloadedUrls.add(url);
+        await _saveDownloadedUrls();
+        await setSelectedModel(modelPath);
+        await _checkAvailableModels();
+      } catch (e) {
+        await sink.close();
+        await file.delete();
+        rethrow;
+      }
     } catch (e) {
-      debugPrint('Error downloading model: $e');
+      debugPrint('Error downloading file: $e');
       rethrow;
     }
   }

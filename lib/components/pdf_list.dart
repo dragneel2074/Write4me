@@ -26,7 +26,7 @@ class PDFList extends StatelessWidget {
         final isLongText = wordCount > 500;
 
         return ListTile(
-          title: Text(memory.fileName, style: const TextStyle(fontSize: 10),),
+          title: Text(memory.name, style: const TextStyle(fontSize: 10),),
           subtitle: isLongText
               ? Text(
                   'Warning: Only first 500 words will be used',
