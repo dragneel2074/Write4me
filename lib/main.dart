@@ -5,6 +5,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'homepage.dart';
 import 'theme/theme_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/navigator_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +29,7 @@ class MyApp extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
     
     return MaterialApp(
+      navigatorKey: ref.watch(navigatorKeyProvider),
       title: 'Write4Me',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,

@@ -139,17 +139,26 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   void clearError() {
-    state = state.copyWith(error: null);
+    if (state.error != null) {
+      state = state.copyWith(
+        error: null,
+        isLoading: false,
+        isGenerating: false,
+      );
+    }
   }
 
   void cleanupErrorMessages() {
     if (state.messages.isNotEmpty) {
       final lastMessage = state.messages.last;
       if (!lastMessage.isUser && 
-          lastMessage.content.contains('Error Generating Response')) {
+          (lastMessage.content.contains('Error Generating Response') ||
+           lastMessage.content.contains('Something went wrong'))) {
         state = state.copyWith(
           messages: state.messages.take(state.messages.length - 1).toList(),
           error: null,
+          isLoading: false,
+          isGenerating: false,
         );
       }
     }

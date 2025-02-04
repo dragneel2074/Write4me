@@ -149,7 +149,7 @@ class ChatBubble extends StatelessWidget {
               Builder(
                 builder: (context) {
                   if (sanitizedContent.isEmpty) {
-                    return const Text('Empty message');
+                    return const Text('Generating response...');
                   }
                   
                   try {

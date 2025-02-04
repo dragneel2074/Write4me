@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:write4me/providers/chat_provider.dart';
+import 'package:write4me/providers/navigator_provider.dart';
 import 'package:write4me/providers/service_provider.dart';
 import '../services/offline_model_service.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
 
 class OfflineModeState {
   final bool isOfflineMode;
@@ -57,16 +59,65 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     );
   }
 
+  // Check internet connectivity
+  Future<bool> _checkInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
+
   Future<void> setOfflineMode(bool value) async {
+    // If trying to switch to online mode, check internet first
+    if (!value) {  // switching to online mode
+      final hasInternet = await _checkInternetConnection();
+      if (!hasInternet) {
+        // Show dialog to confirm mode switch
+        final context = ref.read(navigatorKeyProvider).currentContext;
+        if (context == null) return;
+
+        final shouldSwitch = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('No Internet Connection'),
+              content: const Text(
+                'Would you like to stay in offline mode?'
+              ),
+              actions: [
+                TextButton(
+                  child: const Text('Continue Online'),
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+                ElevatedButton(
+                  child: const Text('Stay Offline'),
+                  onPressed: () => Navigator.of(context).pop(true),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (shouldSwitch == true) {
+          return; // Keep offline mode if user chooses to stay offline
+        }
+      }
+    }
+
     _service.setOfflineMode(value);
     state = state.copyWith(
       isOfflineMode: value,
       useLocalModel: value ? true : state.useLocalModel,
     );
 
+    // Clear any existing errors when switching modes
+    ref.read(chatProvider.notifier).clearError();
+
     // If switching to offline mode, clean up error messages
     if (value) {
-      // ref.read(chatProvider.notifier).cleanupErrorMessages();
       _cleanupErrorMessages();
     }
 

@@ -46,107 +46,107 @@ class ChatMessages extends ConsumerWidget {
     MessageUtils.showSuccess(context, 'Text copied to clipboard');
   }
 
-  Widget _buildErrorWidget(
-    BuildContext context,
-    WidgetRef ref,
-    String error,
-    bool isOffline,
-  ) {
-    final offlineModeState = ref.watch(offlineModeProvider);
-    final hasLocalModels = offlineModeState.availableModels.isNotEmpty;
+  // Widget _buildErrorWidget(
+  //   BuildContext context,
+  //   WidgetRef ref,
+  //   String error,
+  //   bool isOffline,
+  // ) {
+  //   final offlineModeState = ref.watch(offlineModeProvider);
+  //   final hasLocalModels = offlineModeState.availableModels.isNotEmpty;
 
-    // If offline mode is active and we have local models, don't show the error
-    if (offlineModeState.isOfflineMode && hasLocalModels) {
-      return const SizedBox.shrink();
-    }
+  //   // If offline mode is active and we have local models, don't show the error
+  //   if (offlineModeState.isOfflineMode && hasLocalModels) {
+  //     return const SizedBox.shrink();
+  //   }
 
-    if (isOffline) {
-      return Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.cloud_off,
-                size: 48,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'No Internet Connection',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              if (hasLocalModels) ...[
-                const Text(
-                  'Would you like to switch to offline mode?',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.offline_bolt),
-                  label: const Text('Switch to Offline Mode'),
-                  onPressed: () {
-                    ref.read(offlineModeProvider.notifier).setOfflineMode(true);
-                    ref.read(chatProvider.notifier).clearError();
-                  },
-                ),
-              ] else ...[
-                const Text(
-                  'No offline models available.\nPlease download a model when you\'re back online.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Check Connection'),
-                  onPressed: () async {
-                    final isOnline = await _checkInternetConnection();
-                    if (isOnline) {
-                      ref.read(offlineModeProvider.notifier).setOfflineMode(false);
-                      ref.read(chatProvider.notifier).clearError();
-                    }
-                  },
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-    }
+  //   if (isOffline) {
+  //     return Center(
+  //       child: SingleChildScrollView(
+  //         padding: const EdgeInsets.all(24.0),
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             const Icon(
+  //               Icons.cloud_off,
+  //               size: 48,
+  //               color: Colors.grey,
+  //             ),
+  //             const SizedBox(height: 16),
+  //             const Text(
+  //               'No Internet Connection',
+  //               style: TextStyle(
+  //                 fontSize: 20,
+  //                 fontWeight: FontWeight.bold,
+  //               ),
+  //               textAlign: TextAlign.center,
+  //             ),
+  //             const SizedBox(height: 8),
+  //             if (hasLocalModels) ...[
+  //               const Text(
+  //                 'Would you like to switch to offline mode?',
+  //                 textAlign: TextAlign.center,
+  //               ),
+  //               const SizedBox(height: 16),
+  //               ElevatedButton.icon(
+  //                 icon: const Icon(Icons.offline_bolt),
+  //                 label: const Text('Switch to Offline Mode'),
+  //                 onPressed: () {
+  //                   ref.read(offlineModeProvider.notifier).setOfflineMode(true);
+  //                   ref.read(chatProvider.notifier).clearError();
+  //                 },
+  //               ),
+  //             ] else ...[
+  //               const Text(
+  //                 'No offline models available.\nPlease download a model when you\'re back online.',
+  //                 textAlign: TextAlign.center,
+  //               ),
+  //               const SizedBox(height: 16),
+  //               OutlinedButton.icon(
+  //                 icon: const Icon(Icons.refresh),
+  //                 label: const Text('Check Connection'),
+  //                 onPressed: () async {
+  //                   final isOnline = await _checkInternetConnection();
+  //                   if (isOnline) {
+  //                     ref.read(offlineModeProvider.notifier).setOfflineMode(false);
+  //                     ref.read(chatProvider.notifier).clearError();
+  //                   }
+  //                 },
+  //               ),
+  //             ],
+  //           ],
+  //         ),
+  //       ),
+  //     );
+  //   }
 
-    // For other errors
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              error,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                ref.read(chatProvider.notifier).clearError();
-              },
-              child: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  //   // For other errors
+  //   return Center(
+  //     child: SingleChildScrollView(
+  //       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+  //       child: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           Text(
+  //             error,
+  //             style: TextStyle(
+  //               color: Theme.of(context).colorScheme.error,
+  //               fontSize: 16,
+  //             ),
+  //             textAlign: TextAlign.center,
+  //           ),
+  //           const SizedBox(height: 16),
+  //           ElevatedButton(
+  //             onPressed: () {
+  //               ref.read(chatProvider.notifier).clearError();
+  //             },
+  //             child: const Text('Try Again'),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -180,20 +180,20 @@ class ChatMessages extends ConsumerWidget {
     }
     
     // Handle error states
-    if (chatState.error != null) {
-      return FutureBuilder<bool>(
-        future: _checkInternetConnection(),
-        builder: (context, snapshot) {
-          final isOffline = snapshot.hasData && !snapshot.data!;
-          return _buildErrorWidget(
-            context,
-            ref,
-            chatState.error!,
-            isOffline,
-          );
-        },
-      );
-    }
+    // if (chatState.error != null) {
+    //   return FutureBuilder<bool>(
+    //     future: _checkInternetConnection(),
+    //     builder: (context, snapshot) {
+    //       final isOffline = snapshot.hasData && !snapshot.data!;
+    //       return _buildErrorWidget(
+    //         context,
+    //         ref,
+    //         chatState.error!,
+    //         isOffline,
+    //       );
+    //     },
+    //   );
+    // }
 
     if (chatState.messages.isEmpty) {
       return const Center(
