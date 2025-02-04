@@ -87,8 +87,8 @@ class ChatMessages extends ConsumerWidget {
                   icon: const Icon(Icons.offline_bolt),
                   label: const Text('Switch to Offline Mode'),
                   onPressed: () {
-                    ref.read(offlineModeProvider.notifier).setOfflineMode(true);
                     ref.read(chatProvider.notifier).clearError();
+                    ref.read(offlineModeProvider.notifier).setOfflineMode(true);
                   },
                 ),
               ] else ...[
