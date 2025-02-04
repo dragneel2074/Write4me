@@ -55,6 +55,11 @@ class ChatMessages extends ConsumerWidget {
     final offlineModeState = ref.watch(offlineModeProvider);
     final hasLocalModels = offlineModeState.availableModels.isNotEmpty;
 
+    // If offline mode is active and we have local models, don't show the error
+    if (offlineModeState.isOfflineMode && hasLocalModels) {
+      return const SizedBox.shrink();
+    }
+
     if (isOffline) {
       return Center(
         child: SingleChildScrollView(
@@ -87,8 +92,8 @@ class ChatMessages extends ConsumerWidget {
                   icon: const Icon(Icons.offline_bolt),
                   label: const Text('Switch to Offline Mode'),
                   onPressed: () {
-                    ref.read(chatProvider.notifier).clearError();
                     ref.read(offlineModeProvider.notifier).setOfflineMode(true);
+                    ref.read(chatProvider.notifier).clearError();
                   },
                 ),
               ] else ...[
@@ -146,9 +151,35 @@ class ChatMessages extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chatState = ref.watch(chatProvider);
+    final offlineModeState = ref.watch(offlineModeProvider);
     final theme = Theme.of(context);
     final chatTheme = theme.extension<ChatThemeExtension>()!;
     
+    // Show messages if we're in offline mode with local models
+    if (offlineModeState.isOfflineMode && offlineModeState.availableModels.isNotEmpty) {
+      if (chatState.messages.isEmpty) {
+        return const Center(
+          child: Text('No messages yet'),
+        );
+      }
+      
+      return ListView.builder(
+        controller: scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+        itemCount: chatState.messages.length,
+        itemBuilder: (context, index) {
+          final message = chatState.messages[index];
+          return ChatBubble(
+            message: message,
+            isLast: index == chatState.messages.length - 1,
+            onCopyText: (text) => _copyText(context, text),
+            onSaveImage: (imageData) => _saveImage(context, imageData),
+          );
+        },
+      );
+    }
+    
+    // Handle error states
     if (chatState.error != null) {
       return FutureBuilder<bool>(
         future: _checkInternetConnection(),

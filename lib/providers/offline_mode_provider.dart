@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:write4me/providers/chat_provider.dart';
 import 'package:write4me/providers/service_provider.dart';
 import '../services/offline_model_service.dart';
 import 'dart:io';
@@ -41,12 +42,13 @@ class OfflineModeState {
 
 class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
   final OfflineModelService _service;
+  final Ref ref;
 
-  OfflineModeNotifier(this._service) : super(const OfflineModeState()) {
-    _init();
+  OfflineModeNotifier(this._service, this.ref) : super(const OfflineModeState()) {
+    _loadState();
   }
 
-  Future<void> _init() async {
+  Future<void> _loadState() async {
     state = state.copyWith(
       isOfflineMode: _service.isOfflineMode,
       useLocalModel: _service.useLocalModel,
@@ -55,13 +57,35 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     );
   }
 
-  void setOfflineMode(bool value) {
+  Future<void> setOfflineMode(bool value) async {
     _service.setOfflineMode(value);
     state = state.copyWith(
       isOfflineMode: value,
-      useLocalModel: value ? true : false,
+      useLocalModel: value ? true : state.useLocalModel,
     );
+
+    // If switching to offline mode, clean up error messages
+    if (value) {
+      // ref.read(chatProvider.notifier).cleanupErrorMessages();
+      _cleanupErrorMessages();
+    }
+
     _service.notifyListeners();
+  }
+
+  void _cleanupErrorMessages() {
+    final chatNotifier = ref.read(chatProvider.notifier);
+    final messages = ref.read(chatProvider).messages;
+
+    if (messages.isNotEmpty) {
+      final lastMessage = messages.last;
+      if (!lastMessage.isUser && 
+          lastMessage.content.contains('Error Generating Response')) {
+        // Remove the last message
+        final updatedMessages = messages.take(messages.length - 1).toList();
+        chatNotifier.loadMessages(updatedMessages);
+      }
+    }
   }
 
   void setUseLocalModel(bool value) {
@@ -108,6 +132,10 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     );
     _service.notifyListeners();
   }
+
+  Future<void> _saveState() async {
+    // Implementation of _saveState method
+  }
 }
 
 final offlineModeProvider = StateNotifierProvider<OfflineModeNotifier, OfflineModeState>((ref) {
@@ -117,7 +145,7 @@ final offlineModeProvider = StateNotifierProvider<OfflineModeNotifier, OfflineMo
   return initState.when(
     data: (_) {
       final service = ref.watch(offlineModelServiceProvider);
-      return OfflineModeNotifier(service);
+      return OfflineModeNotifier(service, ref);
     },
     loading: () => throw Exception('OfflineModelService is still initializing'),
     error: (error, _) => throw Exception('Failed to initialize OfflineModelService: $error'),

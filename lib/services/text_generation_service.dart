@@ -136,10 +136,25 @@ $query $dateStr
       // Send the final response
       onResponse(response, true);
     } catch (e) {
-      onResponse('Error generating response: $e', true);
+      // onResponse('Error generating response: $e', true);
+      onResponse(_getUserFriendlyError(e), true);
       throw Exception('Failed to get response: $e');
     }
   }
+
+  String _getUserFriendlyError(dynamic error) {
+    if (error is SocketException) {
+      return 'No internet connection. Please check your network and try again.';
+    } else if (error is TimeoutException) {
+      return 'Request took too long. Please try again.';
+    } else if (error is HttpException) {
+      return 'Temporary service issue. Please try again in a moment.';
+    } else if (error.toString().contains('Jina API key')) {
+      return 'API key missing. Please add your Jina API key in settings.';
+    }
+    return 'Oops! Something went wrong. Please try again.';
+  }
+
 
   Future<String> generateText(
     String prompt, {
@@ -156,7 +171,8 @@ $query $dateStr
           debugPrint('Jina search results: $searchResults');
         } catch (e) {
           debugPrint('Error during Jina search: $e');
-          return 'Error: $e'; // Return error to user
+          // return 'Error: $e'; // Return error to user
+          rethrow;
         }
       }
 
