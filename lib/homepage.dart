@@ -412,33 +412,33 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   ),
                 ),
-                if (offlineModeState.isOfflineMode && offlineModeState.availableModels.length > 1)
-                  PopupMenuButton<String>(
-                    tooltip: 'Switch Model',
-                    icon: const Icon(Icons.swap_horiz),
-                    itemBuilder: (context) => [
-                      for (final model in offlineModeState.availableModels)
-                        PopupMenuItem(
-                          value: model.path,
-                          child: Row(
-                            children: [
-                              Icon(
-                                model.path == offlineModeState.selectedModelPath
-                                    ? Icons.check_circle
-                                    : Icons.circle_outlined,
-                                size: 18,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(model.path.split('/').last.replaceAll('.gguf', '')),
-                            ],
-                          ),
-                        ),
-                    ],
-                    onSelected: (modelPath) {
-                      ref.read(offlineModeProvider.notifier).setSelectedModel(modelPath);
-                    },
-                  ),
+                // if (offlineModeState.isOfflineMode && offlineModeState.availableModels.length > 1)
+                //   PopupMenuButton<String>(
+                //     tooltip: 'Switch Model',
+                //     icon: const Icon(Icons.swap_horiz),
+                //     itemBuilder: (context) => [
+                //       for (final model in offlineModeState.availableModels)
+                //         PopupMenuItem(
+                //           value: model.path,
+                //           child: Row(
+                //             children: [
+                //               Icon(
+                //                 model.path == offlineModeState.selectedModelPath
+                //                     ? Icons.check_circle
+                //                     : Icons.circle_outlined,
+                //                 size: 18,
+                //                 color: Theme.of(context).primaryColor,
+                //               ),
+                //               const SizedBox(width: 8),
+                //               Text(model.path.split('/').last.replaceAll('.gguf', '')),
+                //             ],
+                //           ),
+                //         ),
+                //     ],
+                //     onSelected: (modelPath) {
+                //       ref.read(offlineModeProvider.notifier).setSelectedModel(modelPath);
+                //     },
+                //   ),
                 IconButton(
                   icon: const Icon(Icons.settings),
                   onPressed: () {

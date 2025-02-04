@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import '../services/image_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_provider.dart';
+import '../providers/offline_mode_provider.dart';
 import '../theme/chat_theme.dart';
 import 'chat_bubble.dart';
+import 'dart:io';
+import '../utils/message_utils.dart';
 
 class ChatMessages extends ConsumerWidget {
   final ScrollController scrollController;
@@ -14,35 +17,125 @@ class ChatMessages extends ConsumerWidget {
     required this.scrollController,
   });
 
+  // Check internet connectivity
+  Future<bool> _checkInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _saveImage(BuildContext context, Uint8List imageData) async {
     try {
       await ImageService().saveImage(imageData);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Image saved to gallery'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        MessageUtils.showSuccess(context, 'Image saved to gallery');
       }
     } catch (e) {
+      MessageUtils.logError('Failed to save image', e);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save image'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        MessageUtils.showError(context, 'Failed to save image');
       }
     }
   }
 
   void _copyText(BuildContext context, String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Text copied to clipboard'),
-        duration: Duration(seconds: 2),
+    MessageUtils.showSuccess(context, 'Text copied to clipboard');
+  }
+
+  Widget _buildErrorWidget(
+    BuildContext context,
+    WidgetRef ref,
+    String error,
+    bool isOffline,
+  ) {
+    final offlineModeState = ref.watch(offlineModeProvider);
+    final hasLocalModels = offlineModeState.availableModels.isNotEmpty;
+
+    if (isOffline) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.cloud_off,
+                size: 48,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No Internet Connection',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              if (hasLocalModels) ...[
+                const Text(
+                  'Would you like to switch to offline mode?',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.offline_bolt),
+                  label: const Text('Switch to Offline Mode'),
+                  onPressed: () {
+                    ref.read(offlineModeProvider.notifier).setOfflineMode(true);
+                    ref.read(chatProvider.notifier).clearError();
+                  },
+                ),
+              ] else ...[
+                const Text(
+                  'No offline models available.\nPlease download a model when you\'re back online.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Check Connection'),
+                  onPressed: () async {
+                    final isOnline = await _checkInternetConnection();
+                    if (isOnline) {
+                      ref.read(offlineModeProvider.notifier).setOfflineMode(false);
+                      ref.read(chatProvider.notifier).clearError();
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    // For other errors
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            error,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(chatProvider.notifier).clearError();
+            },
+            child: const Text('Try Again'),
+          ),
+        ],
       ),
     );
   }
@@ -54,17 +147,23 @@ class ChatMessages extends ConsumerWidget {
     final chatTheme = theme.extension<ChatThemeExtension>()!;
     
     if (chatState.error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
+      return FutureBuilder<bool>(
+        future: _checkInternetConnection(),
+        builder: (context, snapshot) {
+          final isOffline = snapshot.hasData && !snapshot.data!;
+          return _buildErrorWidget(
+            context,
+            ref,
             chatState.error!,
-            style: TextStyle(
-              color: theme.colorScheme.error,
-              fontSize: 16,
-            ),
-          ),
-        ),
+            isOffline,
+          );
+        },
+      );
+    }
+
+    if (chatState.messages.isEmpty) {
+      return const Center(
+        child: Text('No messages yet'),
       );
     }
     

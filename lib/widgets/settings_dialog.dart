@@ -61,17 +61,17 @@ class SettingsDialog extends ConsumerWidget {
                 },
               ),
             ),
-            if (!offlineModeState.isOfflineMode && offlineModeState.availableModels.isNotEmpty)
-              ListTile(
-                leading: const Icon(Icons.memory),
-                title: const Text('Use Local Model'),
-                trailing: Switch(
-                  value: offlineModeState.useLocalModel,
-                  onChanged: (value) {
-                    ref.read(offlineModeProvider.notifier).setUseLocalModel(value);
-                  },
-                ),
-              ),
+            // if (!offlineModeState.isOfflineMode && offlineModeState.availableModels.isNotEmpty)
+            //   ListTile(
+            //     leading: const Icon(Icons.memory),
+            //     title: const Text('Use Local Model'),
+            //     trailing: Switch(
+            //       value: offlineModeState.useLocalModel,
+            //       onChanged: (value) {
+            //         ref.read(offlineModeProvider.notifier).setUseLocalModel(value);
+            //       },
+            //     ),
+            //   ),
             if (offlineModeState.availableModels.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.only(top: 8),

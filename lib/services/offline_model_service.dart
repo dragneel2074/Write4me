@@ -132,51 +132,62 @@ class OfflineModelService extends ChangeNotifier {
     }
 
     if (!url.toLowerCase().endsWith('.gguf')) {
-      throw Exception('Invalid model file. URL must end with .gguf');
+      throw Exception('Invalid model file format. Only GGUF files are supported.');
     }
 
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final modelPath = '${directory.path}/$fileName';
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File('${directory.path}/$fileName');
 
-      final file = File(modelPath);
-      if (await file.exists()) {
-        throw Exception('A model with this name already exists');
+    try {
+      // Check internet connection first
+      try {
+        final result = await InternetAddress.lookup('google.com');
+        if (result.isEmpty || result[0].rawAddress.isEmpty) {
+          throw Exception('No internet connection');
+        }
+      } on SocketException catch (_) {
+        throw Exception('No internet connection');
       }
 
-      final response = await http.Client().send(
-        http.Request('GET', Uri.parse(url))
-      );
+      // Start download
+      final response = await http.Client().send(http.Request('GET', Uri.parse(url)));
       
       if (response.statusCode != 200) {
-        throw Exception('Failed to download model: ${response.statusCode}');
+        throw Exception('Failed to connect to server (Status: ${response.statusCode})');
       }
 
-      final contentLength = response.contentLength ?? 0;
+      final totalBytes = response.contentLength ?? 0;
+      int receivedBytes = 0;
+
       final sink = file.openWrite();
-      int downloaded = 0;
-
+      
       try {
-        await for (final chunk in response.stream) {
+        await response.stream.forEach((chunk) {
           sink.add(chunk);
-          downloaded += chunk.length;
-          onProgress(downloaded / contentLength);
-        }
+          receivedBytes += chunk.length;
+          if (totalBytes > 0) {
+            onProgress(receivedBytes / totalBytes);
+          }
+        });
         
-        await sink.flush();
         await sink.close();
-
         _downloadedUrls.add(url);
         await _saveDownloadedUrls();
-        await setSelectedModel(modelPath);
+        
         await _checkAvailableModels();
+        if (_selectedModelPath.isEmpty && _availableModels.isNotEmpty) {
+          await setSelectedModel(_availableModels.first.path);
+        }
       } catch (e) {
         await sink.close();
         await file.delete();
-        rethrow;
+        throw Exception('Download interrupted. Please try again.');
       }
     } catch (e) {
       debugPrint('Error downloading file: $e');
+      if (await file.exists()) {
+        await file.delete();
+      }
       rethrow;
     }
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/offline_model_service.dart';
+import '../utils/message_utils.dart';
 
 class ModelDownloadDialog extends StatefulWidget {
   final Function(String url, void Function(double) onProgress, String fileName) onDownload;
@@ -28,7 +29,15 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
     super.dispose();
   }
 
-  void _startDownload() {
+  String _getErrorMessage(dynamic error) {
+    // Log the actual error for debugging
+    debugPrint('Download error details: $error');
+    
+    // Return a simple message to the user
+    return 'Error downloading the model';
+  }
+
+  void _startDownload() async {
     String url;
     String fileName;
 
@@ -44,17 +53,59 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
 
     setState(() {
       _isDownloading = true;
+      _progress = 0;
     });
 
-    widget.onDownload(
-      url,
-      (progress) {
+    try {
+      bool downloadCompleted = false;
+      
+      await widget.onDownload(
+        url,
+        (progress) {
+          if (mounted) {
+            setState(() {
+              _progress = progress;
+            });
+            // Mark as completed only if we reach 100%
+            if (progress >= 1.0) {
+              downloadCompleted = true;
+            }
+          }
+        },
+        fileName,
+      );
+
+      // Only show success and close dialog if download actually completed
+      if (mounted && downloadCompleted) {
+        Navigator.pop(context);
+        MessageUtils.showSuccess(context, 'Model downloaded successfully');
+      } else if (mounted) {
         setState(() {
-          _progress = progress;
+          _isDownloading = false;
+          _progress = 0;
         });
-      },
-      fileName,
-    );
+        MessageUtils.showError(
+          context, 
+          'Error downloading the model',
+          onRetry: _startDownload,
+        );
+      }
+    } catch (e) {
+      MessageUtils.logError('Model download failed', e);
+      
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _progress = 0;
+        });
+        
+        MessageUtils.showError(
+          context, 
+          'Error downloading the model',
+          onRetry: _startDownload,
+        );
+      }
+    }
   }
 
   @override
