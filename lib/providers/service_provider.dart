@@ -2,8 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ai_service.dart';
 import '../services/text_generation_service.dart';
 import '../services/offline_model_service.dart';
-import '../services/reminder_service.dart';
-import '../services/notification_service.dart';
 
 // Initialize OfflineModelService first
 final offlineModelServiceProvider = Provider<OfflineModelService>((ref) {

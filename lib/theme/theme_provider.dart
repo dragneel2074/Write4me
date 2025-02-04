@@ -71,7 +71,6 @@ class AppTheme {
       secondary: _lightSecondary,
       tertiary: _lightAccent,
       surface: _lightBubble,
-      background: _lightBackground,
     ),
     textTheme: const TextTheme(
       bodyLarge: TextStyle(
@@ -118,7 +117,6 @@ class AppTheme {
       secondary: _darkSecondary,
       tertiary: _darkAccent,
       surface: _darkBubble,
-      background: _darkBackground,
     ),
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: _darkText),

@@ -3,9 +3,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../models/pdf_memory.dart';
 import 'package:gal/gal.dart'; // Import the gal package
-import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class ImageService {
   final _textRecognizer = TextRecognizer();
@@ -13,14 +13,34 @@ class ImageService {
   bool _isRequestingPermission = false;
 
   Future<bool> _requestPermission(Permission permission) async {
-    if (_isRequestingPermission) {
-      return false;
-    }
+    if (_isRequestingPermission) return false;
 
     try {
       _isRequestingPermission = true;
       final status = await permission.request();
       return status.isGranted;
+    } finally {
+      _isRequestingPermission = false;
+    }
+  }
+
+  Future<bool> _requestStoragePermission() async {
+    if (_isRequestingPermission) return false;
+
+    try {
+      _isRequestingPermission = true;
+      
+      // Check Android version
+      final deviceInfo = await DeviceInfoPlugin().androidInfo;
+      final sdkInt = deviceInfo.version.sdkInt;
+
+      if (sdkInt >= 33) { // Android 13 and above
+        final photos = await Permission.photos.request();
+        return photos.isGranted;
+      } else {
+        final storage = await Permission.storage.request();
+        return storage.isGranted;
+      }
     } finally {
       _isRequestingPermission = false;
     }
@@ -88,7 +108,7 @@ class ImageService {
 
   Future<void> saveImage(Uint8List imageData) async {
     try {
-      final permissionGranted = await _requestPermission(Permission.storage);
+      final permissionGranted = await _requestStoragePermission();
       if (!permissionGranted) {
         throw Exception('Storage permission denied');
       }
@@ -97,7 +117,7 @@ class ImageService {
       try {
         await Gal.putImageBytes(
           imageData,
-          name: "Write4Me_${DateTime.now().millisecondsSinceEpoch}",
+          name: "Write4Me_${DateTime.now().millisecondsSinceEpoch}.png",
         );
       } on GalException catch (e) {
         debugPrint('Gal error: ${e.type}');

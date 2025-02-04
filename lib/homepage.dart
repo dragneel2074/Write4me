@@ -48,7 +48,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final ChatStorageService _chatStorage = ChatStorageService();
 
   // Move this to a StateNotifier
-  List<SavedChat> _savedChats = [];
+  final List<SavedChat> _savedChats = [];
 
   @override
   void initState() {

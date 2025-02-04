@@ -77,6 +77,8 @@ class ChatMessages extends ConsumerWidget {
         return ChatBubble(
           message: message,
           isLast: index == chatState.messages.length - 1,
+          onCopyText: (text) => _copyText(context, text),
+          onSaveImage: (imageData) => _saveImage(context, imageData),
         );
       },
     );

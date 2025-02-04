@@ -7,20 +7,69 @@ class DialogManager {
     String title,
     String content,
   ) {
+    // Sanitize the content before displaying
+    String sanitizedContent = '';
+    try {
+      // Remove any null characters and normalize line endings
+      sanitizedContent = content
+          .replaceAll(RegExp(r'\u0000'), '') // Remove null bytes
+          .replaceAll(RegExp(r'[\u{FFFD}]'), '') // Remove replacement character
+          .replaceAll(RegExp(r'\r\n|\r'), '\n') // Normalize line endings
+          .replaceAll(RegExp(r'[^\x20-\x7E\n]'), ' ') // Keep only printable ASCII and newlines
+          .replaceAll(RegExp(r' {2,}'), ' ') // Normalize multiple spaces
+          .trim();
+    } catch (e) {
+      debugPrint('Error sanitizing PDF content: $e');
+      sanitizedContent = 'Error: Could not display text content properly';
+    }
+
     return showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: SingleChildScrollView(
-            child: Text(content),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Close'),
-              onPressed: () => Navigator.of(context).pop(),
+        return Dialog(
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
             ),
-          ],
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      sanitizedContent.isEmpty 
+                          ? 'No text content available'
+                          : sanitizedContent,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
