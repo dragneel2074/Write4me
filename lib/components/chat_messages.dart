@@ -57,10 +57,10 @@ class ChatMessages extends ConsumerWidget {
 
     if (isOffline) {
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
                 Icons.cloud_off,
@@ -117,25 +117,28 @@ class ChatMessages extends ConsumerWidget {
 
     // For other errors
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            error,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
-              fontSize: 16,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              error,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              ref.read(chatProvider.notifier).clearError();
-            },
-            child: const Text('Try Again'),
-          ),
-        ],
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(chatProvider.notifier).clearError();
+              },
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
       ),
     );
   }
