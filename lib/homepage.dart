@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'components/chat_input.dart';
@@ -35,7 +38,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final List<PDFMemory> _pdfMemories = [];
   final TextEditingController _controller = TextEditingController();
   late final ScrollController _scrollController;
-  
+
   // Move these to a new StateNotifier
   bool _isImageMode = false;
   bool _isInternetMode = false;
@@ -60,7 +63,7 @@ class _HomePageState extends ConsumerState<HomePage>
   Future<void> _initializeServices() async {
     await _chatStorage.init();
     _loadSavedChats();
-    
+
     // Only check service status after offline service is initialized
     ref.read(offlineModelInitProvider.future).then((_) {
       _checkServiceStatus();
@@ -80,7 +83,7 @@ class _HomePageState extends ConsumerState<HomePage>
   Future<void> _checkServiceStatus() async {
     final chatNotifier = ref.read(chatProvider.notifier);
     final textGenService = ref.read(textGenerationServiceProvider);
-    
+
     chatNotifier.addMessage(
       ChatMessage(
         content: "Checking if services are online...",
@@ -99,8 +102,13 @@ class _HomePageState extends ConsumerState<HomePage>
     }
 
     try {
-      final imageBytes = await _imageGenService.generateImage(prompt: "boy in yellow hat");
-      isImageServiceOnline = imageBytes!.isNotEmpty;
+      final imageBytes =
+          await _imageGenService.generateImage(prompt: "boy in yellow hat")
+          .catchError((e) {
+        debugPrint("Image Service check failed: $e");
+        return null;
+      });
+      isImageServiceOnline = imageBytes != null;
     } catch (e) {
       isImageServiceOnline = false;
       if (kDebugMode) {
@@ -149,7 +157,7 @@ class _HomePageState extends ConsumerState<HomePage>
   Future<void> _showAddOptions() async {
     final offlineModeState = ref.read(offlineModeProvider);
     final isOffline = offlineModeState.isOfflineMode;
-    
+
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -232,7 +240,7 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         }
       } catch (e) {
-                  if (!mounted) return;
+        if (!mounted) return;
 
         NotificationService.showTopNotification(
           context,
@@ -251,7 +259,7 @@ class _HomePageState extends ConsumerState<HomePage>
             await _imageService.processImageContent(source);
         if (imageMemory != null) {
           _addContent(imageMemory);
-                    if (!mounted) return;
+          if (!mounted) return;
 
           NotificationService.showTopNotification(
             context,
@@ -259,7 +267,7 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         }
       } catch (e) {
-                  if (!mounted) return;
+        if (!mounted) return;
 
         NotificationService.showTopNotification(
           context,
@@ -281,10 +289,10 @@ class _HomePageState extends ConsumerState<HomePage>
   Future<void> _clearChat() async {
     final aiService = ref.read(aiServiceProvider);
     aiService.stopGeneration();
-    
+
     final chatNotifier = ref.read(chatProvider.notifier);
     chatNotifier.clearMessages();
-    
+
     ref.read(uiStateProvider.notifier).resetModes();
     _controller.clear();
     setState(() {
@@ -313,68 +321,103 @@ class _HomePageState extends ConsumerState<HomePage>
 
     final chatNotifier = ref.read(chatProvider.notifier);
     final chatState = ref.read(chatProvider);
-    final aiService = ref.read(aiServiceProvider);
     final uiState = ref.read(uiStateProvider);
     final offlineModeState = ref.read(offlineModeProvider);
-    
-    // Add user message
-    final userMessage = ChatMessage(content: message, isUser: true);
-    chatNotifier.addMessage(userMessage);
-    
-    // Set loading state
-    chatNotifier.startLoading();
-    chatNotifier.setGenerating(true);
+    final aiService = ref.read(aiServiceProvider);
+
     _controller.clear();
-    _scrollToBottom();
+    chatNotifier.startLoading();
+
+    // Add user message
+    chatNotifier.addMessage(ChatMessage(
+      content: message,
+      isUser: true,
+    ));
 
     try {
       if (uiState.isImageMode) {
-        chatNotifier.addMessage(
-          ChatMessage(
-            content: "Generating image... Please wait.",
-            isUser: false,
-          )
+        // Add placeholder message
+        final placeholderMessage = ChatMessage(
+          content: "Generating image... Please wait.",
+          isUser: false,
+          // timestamp: DateTime.now().millisecondsSinceEpoch,
         );
+        chatNotifier.addMessage(placeholderMessage);
 
-        final imageData = await _imageGenService.generateImage(prompt: message);
+        final imageData = await _imageGenService.generateImage(prompt: message)
+          .catchError((e) {
+            final userMessage = _getImageError(e);
+            // Replace placeholder with error message
+            chatNotifier.replaceMessage(
+              placeholderMessage,
+              ChatMessage(
+                content: userMessage,
+                isUser: false,
+                isError: true,
+                // timestamp: DateTime.now().millisecondsSinceEpoch,
+              ),
+            );
+            return null;
+          });
 
         if (imageData != null) {
-          chatNotifier.addMessage(
+          // Replace placeholder with actual image
+          chatNotifier.replaceMessage(
+            placeholderMessage,
             ChatMessage(
               content: message,
               isUser: false,
               imageData: imageData,
-            )
+              // timestamp: DateTime.now().millisecondsSinceEpoch,
+            ),
           );
-        } else {
-          chatNotifier.setError("Failed to generate image.");
         }
-        setState(() => _isImageMode = false);
       } else {
         // Add initial AI message
-        chatNotifier.addMessage(
-          ChatMessage(content: '', isUser: false)
+        final placeholderMessage = ChatMessage(
+          content: 'Generating response...',
+          isUser: false,
+          // timestamp: DateTime.now().millisecondsSinceEpoch,
         );
-        
+        chatNotifier.addMessage(placeholderMessage);
+
         // Don't allow internet mode in offline mode
         final useInternet = !offlineModeState.isOfflineMode && uiState.isInternetMode;
-        
-        await aiService.getStreamingResponse(
-          message,
-          _pdfMemories,
-          (response, done) {
-            if (mounted) {
-              chatNotifier.updateLastMessage(response);
-              if (done) chatNotifier.setGenerating(false);
-              _scrollToBottom();
-            }
-          },
-          useInternet: useInternet,
-          history: chatState.messages,
-        );
+
+        try {
+          await aiService.getStreamingResponse(
+            message,
+            _pdfMemories,
+            (response, done) {
+              if (mounted) {
+                chatNotifier.updateLastMessage(response);
+                if (done) chatNotifier.setGenerating(false);
+                _scrollToBottom();
+              }
+            },
+            useInternet: useInternet,
+            history: chatState.messages,
+          );
+        } catch (e) {
+          chatNotifier.replaceMessage(
+            placeholderMessage,
+            ChatMessage(
+              content: _getUserFriendlyError(e),
+              isUser: false,
+              isError: true,
+              // timestamp: DateTime.now().millisecondsSinceEpoch,
+            ),
+          );
+        }
       }
     } catch (e) {
-      chatNotifier.setError("Something went wrong! Try again later.");
+      final errorMessage = uiState.isImageMode ? _getImageError(e) : _getUserFriendlyError(e);
+      chatNotifier.addMessage(ChatMessage(
+        content: errorMessage,
+        isUser: false,
+        isError: true,
+        // timestamp: DateTime.now().millisecondsSinceEpoch,
+      ));
     } finally {
       if (mounted) {
         chatNotifier.stopLoading();
@@ -384,11 +427,33 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
+  String _getImageError(dynamic error) {
+    if (error is NetworkException) {
+      return 'Image generation failed: No internet connection. Please check your network.';
+    } else if (error is TimeoutException) {
+      return 'Image generation took too long. Please try again.';
+    } else if (error is HttpException) {
+      return 'Temporary image service issue. Please try again later.';
+    }
+    return 'Image generation failed. Please try again.';
+  }
+
+  String _getUserFriendlyError(dynamic error) {
+    if (error is SocketException) {
+      return 'No internet connection. Please check your network and try again.';
+    } else if (error is TimeoutException) {
+      return 'Request took too long. Please try again.';
+    } else if (error is HttpException) {
+      return 'Temporary service issue. Please try again in a moment.';
+    }
+    return 'Something went wrong. Please try again.';
+  }
+
   @override
   Widget build(BuildContext context) {
     // Watch the initialization state
     final initState = ref.watch(offlineModelInitProvider);
-    
+
     return initState.when(
       data: (_) {
         final offlineModeState = ref.watch(offlineModeProvider);
@@ -452,7 +517,8 @@ class _HomePageState extends ConsumerState<HomePage>
                           showDialog(
                             context: context,
                             barrierDismissible: true,
-                            builder: (BuildContext context) => const IntroDrawer(),
+                            builder: (BuildContext context) =>
+                                const IntroDrawer(),
                             useSafeArea: true,
                           );
                         },
@@ -473,7 +539,8 @@ class _HomePageState extends ConsumerState<HomePage>
             children: [
               if (chatState.messages.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                   child: Column(
                     children: [
                       const Text(
@@ -490,8 +557,9 @@ class _HomePageState extends ConsumerState<HomePage>
                         height: 2,
                         width: 120,
                         decoration: BoxDecoration(
-                          color:
-                              Theme.of(context).primaryColor.withValues(alpha: 0.5),
+                          color: Theme.of(context)
+                              .primaryColor
+                              .withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(1),
                         ),
                       ),
@@ -538,11 +606,15 @@ class _HomePageState extends ConsumerState<HomePage>
                       onSubmit: _submitMessage,
                       onStop: _stopGeneration,
                       onAddContent: _showAddOptions,
-                      onToggleInternet: offlineModeState.isOfflineMode 
+                      onToggleInternet: offlineModeState.isOfflineMode
                           ? null
-                          : () => ref.read(uiStateProvider.notifier).toggleInternetMode(),
-                      onToggleImage: () => ref.read(uiStateProvider.notifier).toggleImageMode(),
-                      isInternetDisabled: _pdfMemories.isNotEmpty || offlineModeState.isOfflineMode,
+                          : () => ref
+                              .read(uiStateProvider.notifier)
+                              .toggleInternetMode(),
+                      onToggleImage: () =>
+                          ref.read(uiStateProvider.notifier).toggleImageMode(),
+                      isInternetDisabled: _pdfMemories.isNotEmpty ||
+                          offlineModeState.isOfflineMode,
                       isOfflineMode: offlineModeState.isOfflineMode,
                     ),
                   ],

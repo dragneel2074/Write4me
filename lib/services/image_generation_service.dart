@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,10 +34,22 @@ class ImageGenerationService {
         if (kDebugMode) {
           print(response.body);
         }
-        throw Exception('Failed to generate image: ${response.statusCode}');
+        throw HttpException('Server error: ${response.statusCode}');
       }
+    } on SocketException catch (e) {
+      debugPrint('No internet connection. ${e.toString()}');
+      throw NetworkException('No internet connection.');
     } catch (e) {
-      throw Exception('Error generating image: $e');
+      throw Exception('Failed to generate image: $e');
     }
   }
+  
+}
+      
+// Add custom exception classes
+class NetworkException implements Exception {
+  final String message;
+  NetworkException(this.message);
+  @override
+  String toString() => message;
 }

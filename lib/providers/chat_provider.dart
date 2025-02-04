@@ -130,8 +130,15 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   void setError(String message) {
-    debugPrint('Setting error: $message');
+    debugPrint('Setting error message: $message');
+    final errorMessage = ChatMessage(
+      content: message,
+      isUser: false,
+      isError: true,
+      // timestamp: DateTime.now().millisecondsSinceEpoch,
+    );
     state = state.copyWith(
+      messages: [...state.messages, errorMessage],
       error: message,
       isLoading: false,
       isGenerating: false,
@@ -147,6 +154,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
       );
     }
   }
+  void removeMessage(ChatMessage message) {
+    state = state.copyWith(
+      messages: state.messages.where((m) => m != message).toList(),
+    );
+  }
 
   void cleanupErrorMessages() {
     if (state.messages.isNotEmpty) {
@@ -161,6 +173,20 @@ class ChatNotifier extends StateNotifier<ChatState> {
           isGenerating: false,
         );
       }
+    }
+  }
+
+  void replaceMessage(ChatMessage oldMessage, ChatMessage newMessage) {
+    final index = state.messages.indexOf(oldMessage);
+    if (index != -1) {
+      final newMessages = List<ChatMessage>.from(state.messages);
+      newMessages[index] = newMessage;
+      state = state.copyWith(
+        messages: newMessages,
+        error: null,
+        isLoading: false,
+        isGenerating: false,
+      );
     }
   }
 }
