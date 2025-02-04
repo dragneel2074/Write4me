@@ -373,16 +373,16 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         }
       } else {
-        // Add initial AI message
         final placeholderMessage = ChatMessage(
           content: 'Generating response...',
           isUser: false,
-          // timestamp: DateTime.now().millisecondsSinceEpoch,
         );
         chatNotifier.addMessage(placeholderMessage);
 
-        // Don't allow internet mode in offline mode
-        final useInternet = !offlineModeState.isOfflineMode && uiState.isInternetMode;
+        // Check both offline mode and local model selection
+        final useInternet = !offlineModeState.isOfflineMode && 
+                          !offlineModeState.useLocalModel && 
+                          uiState.isInternetMode;
 
         try {
           await aiService.getStreamingResponse(
