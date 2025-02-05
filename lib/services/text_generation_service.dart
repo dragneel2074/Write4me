@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io'; // For SocketException
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/text_utils.dart';
 import '../models/chat_message.dart';
@@ -14,10 +14,12 @@ class TextGenerationService {
   static const String unwanted2 =
       'Image Service is Online. Generate Amazing Images';
 
+  final _dio = Dio();
+
   String _formatPrompt(
     String prompt,
     List<String>? context,
-    bool useInternet,
+    bool useWebSearch,
     List<ChatMessage> history,
   ) {
     final StringBuffer formattedPrompt = StringBuffer();
@@ -31,7 +33,7 @@ class TextGenerationService {
     if (context == null || context.isEmpty) {
       if (history.isNotEmpty) {
         formattedPrompt.writeln('Previous conversation:');
-        if (!useInternet) {
+        if (!useWebSearch) {
           for (var message in history.take(6)) {
             final cleanedContent = cleanText(message.content);
             if (kDebugMode) {
@@ -46,12 +48,12 @@ class TextGenerationService {
 
     // Add current query
     if (context == null || context.isEmpty) {
-      formattedPrompt.write(useInternet
+      formattedPrompt.write(useWebSearch
           ? 'Search the internet and provide accurate information about: $prompt'
           : prompt);
     } else {
       formattedPrompt.write('''
-Query: ${useInternet ? 'Search the internet and answer based on both the context and current information about' : 'Answer based on the context about'}: 
+Query: ${useWebSearch ? 'Search the internet and answer based on both the context and current information about' : 'Answer based on the context about'}: 
 $prompt
 
 Context:
@@ -63,37 +65,31 @@ ${context.join('\n')}
   }
 
   Future<String> _searchWithJina(String query) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final apiKey = prefs.getString('jina_api_key');
-      
-      if (apiKey == null || apiKey.isEmpty) {
-        throw Exception('Jina API key not found. Please add it in settings.');
-      }
+    final apiKey = await getJinaApiKey();
+    if (apiKey.isEmpty) {
+      throw Exception('Jina API key not found');
+    }
 
-      // Format current date and time
+    try {
       final now = DateTime.now();
       final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      // final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
       
-      // Add date and time to query
-      final enhancedQuery = '''
-$query $dateStr 
-''';
-      if (kDebugMode) {
-        print(enhancedQuery);
-      }
-      final response = await http.get(
-        Uri.parse('$jinaSearchUrl${Uri.encodeComponent(enhancedQuery)}?count=5'),
-        headers: {
-          'Authorization': 'Bearer $apiKey',
-          'X-Retain-Images': 'none',
-          'X-Return-Format': 'text',
-        },
+      final enhancedQuery = '''$query $dateStr''';
+      debugPrint(enhancedQuery);
+
+      final response = await _dio.get(
+        '$jinaSearchUrl${Uri.encodeComponent(enhancedQuery)}?count=5',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'X-Retain-Images': 'none',
+            'X-Return-Format': 'text',
+          },
+        ),
       );
 
       if (response.statusCode == 200) {
-        return '${response.body} \n\n Today is $dateStr';
+        return '${response.data} \n\n Today is $dateStr';
       } else {
         throw Exception('Failed to search: ${response.statusCode}');
       }
@@ -107,13 +103,10 @@ $query $dateStr
     String prompt,
     List<PDFMemory> selectedMemories,
     void Function(String, bool) onResponse, {
-    bool useInternet = false,
+    bool useWebSearch = false,
     List<ChatMessage> history = const [],
   }) async {
     try {
-      // Show initial placeholder
-      onResponse('Generating Response...', false);
-      
       // Build context from selected memories
       List<String> context = [];
       if (selectedMemories.isNotEmpty) {
@@ -125,18 +118,65 @@ $query $dateStr
         }
       }
 
-      // Generate the response
-      final response = await generateText(
-        prompt,
-        context: context.isNotEmpty ? context : null,
-        useInternet: useInternet,
-        history: history,
-      );
+      if (useWebSearch) {
+        // Show searching status
+        onResponse('Searching the web...', false);
+        
+        try {
+          debugPrint('prompt in generateText: $prompt');
+          final searchResults = await _searchWithJina(prompt);
+          
+          // Show search complete status
+          onResponse('Search results found. Generating response...', false);
+          
+          debugPrint('Jina search results: $searchResults');
+          
+          // Generate response with search results
+          const model = 'mistral';
+          final system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
+          
+          final formattedPrompt = '''
+Search Results:
+$searchResults
 
-      // Send the final response
-      onResponse(response, true);
+Based on these search results, please answer:
+$prompt
+''';
+
+          final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt);
+          final url = _buildUrl(trimmedPrompt, model, system);
+          
+          final response = await _dio.get(
+            url.toString(),
+            options: Options(
+              responseType: ResponseType.plain,
+              sendTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(seconds: 30),
+            ),
+          );
+
+          if (response.statusCode == 200) {
+            onResponse(response.data.toString(), true);
+          } else {
+            throw HttpException('Failed to generate text: ${response.statusCode}');
+          }
+          
+        } catch (e) {
+          debugPrint('Error during web search or response generation: $e');
+          rethrow;
+        }
+      } else {
+        // Non-web search flow
+        onResponse('Generating response...', false);
+        final response = await generateText(
+          prompt,
+          context: context.isNotEmpty ? context : null,
+          useWebSearch: false,
+          history: history,
+        );
+        onResponse(response, true);
+      }
     } catch (e) {
-      // onResponse('Error generating response: $e', true);
       onResponse(_getUserFriendlyError(e), true);
       throw Exception('Failed to get response: $e');
     }
@@ -159,14 +199,14 @@ $query $dateStr
   Future<String> generateText(
     String prompt, {
     List<String>? context,
-    bool useInternet = false,
+    bool useWebSearch = false,
     List<ChatMessage> history = const [],
   }) async {
     try {
       String searchResults = '';
-      if (useInternet) {
+      if (useWebSearch) {
         try {
-          // print(prompt);
+          debugPrint('prompt in generateText: $prompt');
           searchResults = await _searchWithJina(prompt);
           debugPrint('Jina search results: $searchResults');
         } catch (e) {
@@ -177,12 +217,12 @@ $query $dateStr
       }
 
       const model = 'mistral'; // Always use mistral for text generation
-      final system = useInternet
+      final system = useWebSearch
           ? 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.'
-          : 'You are Aura, a helpful AI assistant who answers concisely';
+          : 'You are Aura, a helpful AI assistant who answers concisely. Before answering, first understand that if previous conversations are required to answer the present question.';
 
       // Format prompt with search results if available
-      final formattedPrompt = useInternet
+      final formattedPrompt = useWebSearch
           ? '''
 Search Results:
 $searchResults
@@ -190,18 +230,25 @@ $searchResults
 Based on these search results, please answer:
 $prompt
 '''
-          : _formatPrompt(prompt, context, useInternet, history);
+          : _formatPrompt(prompt, context, useWebSearch, history);
 
       final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt);
       final url = _buildUrl(trimmedPrompt, model, system);
-
-      final response = await http.get(url).timeout(
-            const Duration(seconds: 30),
-            onTimeout: () => throw TimeoutException('Request timed out'),
-          );
+      debugPrint('url: $url');
+      final response = await _dio.get(
+        url.toString(),
+        options: Options(
+          responseType: ResponseType.plain,
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw TimeoutException('Request timed out'),
+      );
 
       if (response.statusCode == 200) {
-        return response.body;
+        return response.data.toString();
       } else {
         throw HttpException('Failed to generate text: ${response.statusCode}');
       }
@@ -219,5 +266,9 @@ $prompt
   Future<String> getJinaApiKey() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jina_api_key') ?? '';
+  }
+
+  void dispose() {
+    _dio.close();
   }
 }

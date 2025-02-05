@@ -25,6 +25,7 @@ import '../providers/chat_provider.dart';
 import '../providers/service_provider.dart';
 import '../providers/ui_state_provider.dart';
 import '../providers/offline_mode_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -322,17 +323,51 @@ class _HomePageState extends ConsumerState<HomePage>
     final uiState = ref.read(uiStateProvider);
     final offlineModeState = ref.read(offlineModeProvider);
     final aiService = ref.read(aiServiceProvider);
+    final textGenService = ref.read(textGenerationServiceProvider);
 
     _controller.clear();
     chatNotifier.startLoading();
 
-    // Add user message
-    chatNotifier.addMessage(ChatMessage(
-      content: message,
-      isUser: true,
-    ));
-
     try {
+      // Check for API key if internet mode is enabled
+      if (uiState.isInternetMode) {
+        final apiKey = await textGenService.getJinaApiKey();
+        if (apiKey.isEmpty) {
+          chatNotifier.stopLoading();
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('API Key Required'),
+                content: const Text(
+                  'Please set your Jina API key to use web search. You can set it by clicking the key icon in the top bar.'
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showApiKeyDialog(context);
+                    },
+                    child: const Text('Set API Key'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // Add user message
+      chatNotifier.addMessage(ChatMessage(
+        content: message,
+        isUser: true,
+      ));
+
       if (uiState.isImageMode) {
         // Add placeholder message
         final placeholderMessage = ChatMessage(
@@ -378,7 +413,7 @@ class _HomePageState extends ConsumerState<HomePage>
         chatNotifier.addMessage(placeholderMessage);
 
         // Check both offline mode and local model selection
-        final useInternet = !offlineModeState.isOfflineMode && 
+        final useWebSearch = !offlineModeState.isOfflineMode && 
                           !offlineModeState.useLocalModel && 
                           uiState.isInternetMode;
 
@@ -393,7 +428,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 _scrollToBottom();
               }
             },
-            useInternet: useInternet,
+            useWebSearch: useWebSearch,
             history: chatState.messages,
           );
         } catch (e) {
@@ -449,15 +484,11 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    // Watch the initialization state
-    final initState = ref.watch(offlineModelInitProvider);
-
-    return initState.when(
+    return ref.watch(offlineModelInitProvider).when(
       data: (_) {
-        final offlineModeState = ref.watch(offlineModeProvider);
         final chatState = ref.watch(chatProvider);
+        final offlineModeState = ref.watch(offlineModeProvider);
         final uiState = ref.watch(uiStateProvider);
-        // final aiService = ref.watch(aiServiceProvider);
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -475,55 +506,13 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   ),
                 ),
-                // if (offlineModeState.isOfflineMode && offlineModeState.availableModels.length > 1)
-                //   PopupMenuButton<String>(
-                //     tooltip: 'Switch Model',
-                //     icon: const Icon(Icons.swap_horiz),
-                //     itemBuilder: (context) => [
-                //       for (final model in offlineModeState.availableModels)
-                //         PopupMenuItem(
-                //           value: model.path,
-                //           child: Row(
-                //             children: [
-                //               Icon(
-                //                 model.path == offlineModeState.selectedModelPath
-                //                     ? Icons.check_circle
-                //                     : Icons.circle_outlined,
-                //                 size: 18,
-                //                 color: Theme.of(context).primaryColor,
-                //               ),
-                //               const SizedBox(width: 8),
-                //               Text(model.path.split('/').last.replaceAll('.gguf', '')),
-                //             ],
-                //           ),
-                //         ),
-                //     ],
-                //     onSelected: (modelPath) {
-                //       ref.read(offlineModeProvider.notifier).setSelectedModel(modelPath);
-                //     },
-                //   ),
+                IconButton(
+                  icon: const Icon(Icons.key),
+                  onPressed: () => _showApiKeyDialog(context),
+                ),
                 IconButton(
                   icon: const Icon(Icons.settings),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => SettingsDialog(
-                        hasMessages: chatState.messages.isNotEmpty,
-                        onSaveChat: _saveCurrentChat,
-                        onClearChat: _clearChat,
-                        onShowInfo: () {
-                          showDialog(
-                            context: context,
-                            barrierDismissible: true,
-                            builder: (BuildContext context) =>
-                                const IntroDrawer(),
-                            useSafeArea: true,
-                          );
-                        },
-                      ),
-                    );
-                  },
-                  tooltip: 'Settings',
+                  onPressed: () => _showSettingsDialog(context),
                 ),
               ],
             ),
@@ -663,5 +652,73 @@ class _HomePageState extends ConsumerState<HomePage>
         const SnackBar(content: Text('Chat deleted')),
       );
     }
+  }
+
+  Future<void> _showApiKeyDialog(BuildContext context) async {
+    final textGenService = ref.read(textGenerationServiceProvider);
+    final currentKey = await textGenService.getJinaApiKey();
+    
+    final controller = TextEditingController(text: currentKey);
+    
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Jina API Key'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter your Jina API key for web search:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Enter API key',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('jina_api_key', controller.text.trim());
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('API key saved')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showSettingsDialog(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (context) => SettingsDialog(
+        hasMessages: ref.read(chatProvider).messages.isNotEmpty,
+        onSaveChat: _saveCurrentChat,
+        onClearChat: _clearChat,
+        onShowInfo: () {
+          showDialog(
+            context: context,
+            barrierDismissible: true,
+            builder: (BuildContext context) =>
+                const IntroDrawer(),
+            useSafeArea: true,
+          );
+        },
+      ),
+    );
   }
 }

@@ -33,7 +33,7 @@ class AIService extends ChangeNotifier {
     String prompt,
     List<PDFMemory> pdfMemories,
     void Function(String, bool) onResponse, {
-    bool useInternet = false,
+    bool useWebSearch = false,
     List<ChatMessage> history = const [],
   }) async {
     if (_isGenerating) return;
@@ -54,7 +54,7 @@ class AIService extends ChangeNotifier {
       }
 
       // Prevent web URL processing in offline mode
-      if (_offlineService.isOfflineMode && useInternet) {
+      if (_offlineService.isOfflineMode && useWebSearch) {
         onResponse('Web search is not available in offline mode.', true);
         return;
       }
@@ -81,7 +81,7 @@ $prompt'''
           prompt,
           pdfMemories,
           onResponse,
-          useInternet: useInternet,
+          useWebSearch: useWebSearch,
           history: history,
         );
       }
@@ -99,7 +99,7 @@ $prompt'''
   Future<String> getResponse(
     String question,
     List<PDFMemory> selectedMemories, {
-    bool useInternet = false,
+    bool useWebSearch = false,
     List<ChatMessage> history = const [],
   }) async {
     final completer = Completer<String>();
@@ -110,7 +110,7 @@ $prompt'''
       (response, done) {
         if (done) completer.complete(response);
       },
-      useInternet: useInternet,
+      useWebSearch: useWebSearch,
       history: history,
     );
 
