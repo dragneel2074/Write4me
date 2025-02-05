@@ -151,7 +151,8 @@ $prompt'''.trim();
           searchResults,
           context,
           onResponse,
-          history,
+          // Disable history when web search is enabled
+          useWebSearch ? [] : history,
         );
       } else {
         debugPrint('Using online service for generation');
@@ -160,7 +161,8 @@ $prompt'''.trim();
           pdfMemories,
           onResponse,
           useWebSearch: useWebSearch,
-          history: history,
+          // Disable history when web search is enabled
+          history: useWebSearch ? [] : history,
         );
       }
     } catch (e) {

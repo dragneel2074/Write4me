@@ -16,7 +16,6 @@ class ModelDownloadDialog extends StatefulWidget {
 
 class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
   final _urlController = TextEditingController();
-  final _fileNameController = TextEditingController();
   bool _isCustomModel = false;
   bool _isDownloading = false;
   double _progress = 0;
@@ -25,30 +24,73 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
   @override
   void dispose() {
     _urlController.dispose();
-    _fileNameController.dispose();
     super.dispose();
   }
 
-  // String _getErrorMessage(dynamic error) {
-  //   // Log the actual error for debugging
-  //   debugPrint('Download error details: $error');
-    
-  //   // Return a simple message to the user
-  //   return 'Error downloading the model';
-  // }
+  String _extractModelNameFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final pathSegments = uri.pathSegments;
+
+      // Extract the file name from the URL
+      final fileName = pathSegments.last.replaceAll('.gguf', '');
+
+      // Split the file name by '-' and take the first two parts
+      final parts = fileName.split('-');
+      if (parts.length >= 2) {
+        // Check if the second part contains 'b' (e.g., 1.1b, 2-9b)
+        if (parts[1].toLowerCase().contains('b')) {
+          return '${parts[0]}-${parts[1]}';
+        } else {
+          return '${parts[0]}-${parts[1]}';
+        }
+      } else {
+        // If the file name doesn't follow the expected pattern, return the file name as is
+        return fileName;
+      }
+    } catch (e) {
+      debugPrint('Error extracting model name: $e');
+      return 'model';
+    }
+  }
+
+  bool _validateUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.host == 'huggingface.co' && uri.path.endsWith('.gguf');
+    } catch (e) {
+      return false;
+    }
+  }
 
   void _startDownload() async {
     String url;
     String fileName;
 
     if (_isCustomModel) {
-      if (_urlController.text.isEmpty || _fileNameController.text.isEmpty) return;
+      if (_urlController.text.isEmpty) return;
       url = _urlController.text;
-      fileName = _fileNameController.text;
+
+      if (!_validateUrl(url)) {
+        MessageUtils.showError(context, 'Invalid URL. Must be a Hugging Face GGUF file.');
+        return;
+      }
+
+      fileName = _extractModelNameFromUrl(url);
+      if (!fileName.toLowerCase().endsWith('.gguf')) {
+        fileName = '$fileName.gguf';
+      }
+
+      debugPrint('Starting custom model download:');
+      debugPrint('URL: $url');
+      debugPrint('Filename: $fileName');
     } else {
       if (_selectedModel == null) return;
       url = OfflineModelService.defaultModels[_selectedModel!]!;
       fileName = '${_selectedModel!.toLowerCase()}.gguf';
+      debugPrint('Starting default model download:');
+      debugPrint('Model: $_selectedModel');
+      debugPrint('URL: $url');
     }
 
     setState(() {
@@ -58,7 +100,7 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
 
     try {
       bool downloadCompleted = false;
-      
+
       await widget.onDownload(
         url,
         (progress) {
@@ -66,7 +108,6 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
             setState(() {
               _progress = progress;
             });
-            // Mark as completed only if we reach 100%
             if (progress >= 1.0) {
               downloadCompleted = true;
             }
@@ -75,7 +116,8 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
         fileName,
       );
 
-      // Only show success and close dialog if download actually completed
+      debugPrint('Download process finished. Completed: $downloadCompleted');
+
       if (mounted && downloadCompleted) {
         Navigator.pop(context);
         MessageUtils.showSuccess(context, 'Model downloaded successfully');
@@ -85,22 +127,22 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
           _progress = 0;
         });
         MessageUtils.showError(
-          context, 
+          context,
           'Error downloading the model',
           onRetry: _startDownload,
         );
       }
     } catch (e) {
-      MessageUtils.logError('Model download failed', e);
-      
+      debugPrint('Error in download process: $e');
+
       if (mounted) {
         setState(() {
           _isDownloading = false;
           _progress = 0;
         });
-        
+
         MessageUtils.showError(
-          context, 
+          context,
           'Error downloading the model',
           onRetry: _startDownload,
         );
@@ -136,7 +178,7 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
               },
             ),
             const SizedBox(height: 16),
-            
+
             // Predefined models dropdown or custom model input
             if (_isCustomModel) ...[
               TextField(
@@ -147,13 +189,6 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _fileNameController,
-                decoration: const InputDecoration(
-                  labelText: 'File Name',
-                  hintText: 'Enter the name for the model file',
-                ),
-              ),
             ] else ...[
               DropdownButtonFormField<String>(
                 value: _selectedModel,
@@ -173,7 +208,7 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
                 },
               ),
             ],
-            
+
             if (_isDownloading) ...[
               const SizedBox(height: 16),
               LinearProgressIndicator(value: _progress),
@@ -194,4 +229,4 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
       ],
     );
   }
-} 
+}

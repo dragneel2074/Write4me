@@ -408,7 +408,7 @@ class _HomePageState extends ConsumerState<HomePage>
       } else {
         // Add initial placeholder message
         final placeholderMessage = ChatMessage(
-          content: 'Initializing...',
+          content: 'Generating response...',
           isUser: false,
         );
         chatNotifier.addMessage(placeholderMessage);

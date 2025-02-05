@@ -16,10 +16,9 @@ class MessageUtils {
       duration: duration ?? const Duration(seconds: 2),
       behavior: SnackBarBehavior.floating,
       action: action,
-      margin: EdgeInsets.only(
-        bottom: MediaQuery.of(context).size.height - 100,
-        right: 20,
-        left: 20,
+      margin: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
       ),
     );
 

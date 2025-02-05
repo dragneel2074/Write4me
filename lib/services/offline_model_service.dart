@@ -84,18 +84,34 @@ class OfflineModelService extends ChangeNotifier {
 
   Future<void> _checkAvailableModels() async {
     try {
+      debugPrint('Checking available models...');
       final directory = await getApplicationDocumentsDirectory();
       final dir = Directory(directory.path);
+      
+      if (!await dir.exists()) {
+        debugPrint('Directory does not exist: ${directory.path}');
+        return;
+      }
+
       final List<FileSystemEntity> entities = await dir.list().toList();
+      debugPrint('Found ${entities.length} files in directory');
       
       _availableModels = entities
           .whereType<File>()
-          .where((file) => file.path.endsWith('.gguf'))
+          .where((file) {
+            final isGguf = file.path.toLowerCase().endsWith('.gguf');
+            debugPrint('File: ${file.path}, isGguf: $isGguf');
+            return isGguf;
+          })
           .toList();
       
+      debugPrint('Available models: ${_availableModels.length}');
+      
       if (_availableModels.isNotEmpty && _selectedModelPath.isEmpty) {
+        debugPrint('Setting first model as selected: ${_availableModels.first.path}');
         await setSelectedModel(_availableModels.first.path);
       }
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error checking for models: $e');
@@ -122,39 +138,28 @@ class OfflineModelService extends ChangeNotifier {
     void Function(double) onProgress,
     String fileName,
   ) async {
+    debugPrint('Starting model download: $fileName');
     if (_downloadedUrls.contains(url)) {
       throw Exception('Model already downloaded');
     }
 
-    if (!url.toLowerCase().endsWith('.gguf')) {
-      throw Exception('Invalid model file format. Only GGUF files are supported.');
+    // Ensure filename ends with .gguf
+    if (!fileName.toLowerCase().endsWith('.gguf')) {
+      fileName = '$fileName.gguf';
     }
 
     final directory = await getApplicationDocumentsDirectory();
     final file = File('${directory.path}/$fileName');
 
     try {
-      // Check internet connection first
-      try {
-        final result = await InternetAddress.lookup('google.com');
-        if (result.isEmpty || result[0].rawAddress.isEmpty) {
-          throw Exception('No internet connection');
-        }
-      } on SocketException catch (_) {
-        throw Exception('No internet connection');
-      }
-
-      // Configure Dio options
-      final options = Options(
-        responseType: ResponseType.bytes,
-        followRedirects: true,
-        validateStatus: (status) => status != null && status < 500,
-      );
-
-      // Start download
+      // Download and write file
       final response = await _dio.get(
         url,
-        options: options,
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+          validateStatus: (status) => status != null && status < 500,
+        ),
         onReceiveProgress: (received, total) {
           if (total != -1) {
             onProgress(received / total);
@@ -162,23 +167,39 @@ class OfflineModelService extends ChangeNotifier {
         },
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('Failed to connect to server (Status: ${response.statusCode})');
-      }
-
-      // Write file
       await file.writeAsBytes(response.data);
-      
+      debugPrint('Model file written successfully to: ${file.path}');
+
+      // Update state in a single batch
       _downloadedUrls.add(url);
-      await _saveDownloadedUrls();
-      
-      await _checkAvailableModels();
-      if (_selectedModelPath.isEmpty && _availableModels.isNotEmpty) {
-        await setSelectedModel(_availableModels.first.path);
+      await Future.wait([
+        _saveDownloadedUrls(),
+        _checkAvailableModels(),
+      ]);
+
+      // Set as selected model if available
+      if (_availableModels.isNotEmpty) {
+        final modelPath = file.path;
+        debugPrint('Setting newly downloaded model as selected: $modelPath');
+        
+        // Update all state at once
+        _selectedModelPath = modelPath;
+        _useLocalModel = true;
+        
+        // Save all preferences
+        final prefs = await SharedPreferences.getInstance();
+        await Future.wait([
+          prefs.setString(_selectedModelKey, _selectedModelPath),
+          prefs.setBool(_useLocalModelKey, true),
+          prefs.setStringList(_downloadedModelsKey, _downloadedUrls.toList()),
+        ]);
       }
 
+      // Notify listeners only once after all updates
+      notifyListeners();
+      
     } catch (e) {
-      debugPrint('Error downloading file: $e');
+      debugPrint('Error downloading model: $e');
       if (await file.exists()) {
         await file.delete();
       }
@@ -191,16 +212,33 @@ class OfflineModelService extends ChangeNotifier {
     void Function(double) onProgress,
     CancelToken cancelToken,
   ) async {
+    debugPrint('Starting custom model download from: $url');
     if (_downloadedUrls.contains(url)) {
       throw Exception('Model already downloaded');
     }
 
     try {
       final modelPath = await _downloadFile(url, onProgress, cancelToken);
+      debugPrint('Custom model downloaded to: $modelPath');
+      
       _downloadedUrls.add(url);
       await _saveDownloadedUrls();
-      await setSelectedModel(modelPath);
+      
+      // Force a refresh of available models
       await _checkAvailableModels();
+      
+      // Set the newly downloaded model as selected
+      if (_availableModels.isNotEmpty) {
+        debugPrint('Setting newly downloaded custom model as selected');
+        await setSelectedModel(modelPath);
+        _useLocalModel = true;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(_useLocalModelKey, true);
+      } else {
+        debugPrint('Warning: No models found after download');
+      }
+      
+      notifyListeners();
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
         throw CancelException();
@@ -215,6 +253,7 @@ class OfflineModelService extends ChangeNotifier {
     void Function(double) onProgress,
     CancelToken cancelToken,
   ) async {
+    debugPrint('_downloadFile called with URL: $url');
     if (!url.toLowerCase().endsWith('.gguf')) {
       throw Exception('Invalid model file. URL must end with .gguf');
     }
@@ -223,9 +262,11 @@ class OfflineModelService extends ChangeNotifier {
       final directory = await getApplicationDocumentsDirectory();
       final fileName = url.split('/').last;
       final modelPath = '${directory.path}/$fileName';
+      debugPrint('Will download to path: $modelPath');
 
       final file = File(modelPath);
       if (await file.exists()) {
+        debugPrint('File already exists at path: $modelPath');
         throw Exception('A model with this name already exists');
       }
 
@@ -235,6 +276,7 @@ class OfflineModelService extends ChangeNotifier {
         validateStatus: (status) => status != null && status < 500,
       );
 
+      debugPrint('Starting download...');
       final response = await _dio.get(
         url,
         options: options,
@@ -242,22 +284,28 @@ class OfflineModelService extends ChangeNotifier {
         onReceiveProgress: (received, total) {
           if (total != -1) {
             onProgress(received / total);
+            // debugPrint('Download progress: ${(received/total * 100).toStringAsFixed(1)}%');
           }
         },
       );
 
       if (response.statusCode != 200) {
+        debugPrint('Download failed with status: ${response.statusCode}');
         throw Exception('Failed to download model: ${response.statusCode}');
       }
 
+      debugPrint('Writing file to: $modelPath');
       await file.writeAsBytes(response.data);
-      return modelPath;
+      debugPrint('File written successfully');
 
-    } catch (e) {
-      if (e is DioException && e.type == DioExceptionType.cancel) {
-        throw CancelException();
+      if (!await file.exists()) {
+        debugPrint('Error: File not found after writing');
+        throw Exception('File not created successfully');
       }
-      debugPrint('Error downloading file: $e');
+
+      return modelPath;
+    } catch (e) {
+      debugPrint('Error in _downloadFile: $e');
       rethrow;
     }
   }
