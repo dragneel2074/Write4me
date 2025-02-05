@@ -1,10 +1,10 @@
 import 'dart:io';
-
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 class ImageGenerationService {
   static const String baseUrl = 'https://image.pollinations.ai/prompt/';
+  final Dio _dio = Dio();
 
   Future<Uint8List?> generateImage({
     required String prompt,
@@ -17,25 +17,30 @@ class ImageGenerationService {
       String noLogo = 'true';
       String enhance = 'true';
       String safe = 'false';
+      
       // URL encode the prompt
       final encodedPrompt = Uri.encodeComponent(prompt);
 
       // Build the URL with parameters
-      final url = Uri.parse(
-          '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed');
+      final url = '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed';
+      
       if (kDebugMode) {
         print(url);
       }
-      final response = await http.get(url);
+      
+      final response = await _dio.get(url, options: Options(responseType: ResponseType.bytes));
 
       if (response.statusCode == 200) {
-        return response.bodyBytes;
+        return response.data;
       } else {
         if (kDebugMode) {
-          print(response.body);
+          print(response.data);
         }
         throw HttpException('Server error: ${response.statusCode}');
       }
+    } on DioException catch (e) {
+      debugPrint('Request failed: ${e.message}');
+      throw NetworkException('Request failed: ${e.message}');
     } on SocketException catch (e) {
       debugPrint('No internet connection. ${e.toString()}');
       throw NetworkException('No internet connection.');
@@ -43,9 +48,8 @@ class ImageGenerationService {
       throw Exception('Failed to generate image: $e');
     }
   }
-  
 }
-      
+
 // Add custom exception classes
 class NetworkException implements Exception {
   final String message;

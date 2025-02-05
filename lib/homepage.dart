@@ -40,8 +40,7 @@ class _HomePageState extends ConsumerState<HomePage>
   late final ScrollController _scrollController;
 
   // Move these to a new StateNotifier
-  bool _isImageMode = false;
-  bool _isInternetMode = false;
+  // final bool _isImageMode = false;
 
   // Services that don't need state management
   final PDFService _pdfService = PDFService();
@@ -51,7 +50,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final ChatStorageService _chatStorage = ChatStorageService();
 
   // Move this to a StateNotifier
-  final List<SavedChat> _savedChats = [];
+  // final List<SavedChat> _savedChats = [];
 
   @override
   void initState() {
@@ -222,7 +221,6 @@ class _HomePageState extends ConsumerState<HomePage>
   void _addContent(PDFMemory memory) {
     setState(() {
       _pdfMemories.add(memory);
-      _isInternetMode = false;
     });
   }
 
@@ -459,7 +457,7 @@ class _HomePageState extends ConsumerState<HomePage>
         final offlineModeState = ref.watch(offlineModeProvider);
         final chatState = ref.watch(chatProvider);
         final uiState = ref.watch(uiStateProvider);
-        final aiService = ref.watch(aiServiceProvider);
+        // final aiService = ref.watch(aiServiceProvider);
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,

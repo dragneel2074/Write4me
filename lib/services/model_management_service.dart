@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher.dart';
 import '../providers/offline_mode_provider.dart';
 
 class ModelManagementService {
-  static Future<void> launchJinaWebsite(BuildContext context) async {
-    final Uri url = Uri.parse('https://jina.ai/#apiform');
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open website')),
-      );
-    }
-  }
+  // static Future<void> launchJinaWebsite(BuildContext context) async {
+  //   final Uri url = Uri.parse('https://jina.ai/#apiform');
+  //   if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Could not open website')),
+  //     );
+  //   }
+  // }
 
   static Future<bool?> showDownloadDialog(BuildContext context) {
     return showDialog<bool>(
@@ -85,9 +85,10 @@ class ModelManagementService {
     BuildContext context, 
     File model, 
     OfflineModeNotifier notifier,
+    OfflineModeState state,
   ) {
     final modelName = model.path.split('/').last.replaceAll('.gguf', '');
-    final isSelected = model.path == notifier.state.selectedModelPath;
+    final isSelected = model.path == state.selectedModelPath;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -103,7 +104,7 @@ class ModelManagementService {
         ),
         leading: Radio<String>(
           value: model.path,
-          groupValue: notifier.state.selectedModelPath,
+          groupValue: state.selectedModelPath,
           onChanged: (value) {
             if (value != null) notifier.setSelectedModel(value);
           },

@@ -82,6 +82,7 @@ class SettingsDialog extends ConsumerWidget {
                   context,
                   model,
                   ref.read(offlineModeProvider.notifier),
+                  offlineModeState,
                 ),
               ),
               TextButton.icon(

@@ -1,18 +1,11 @@
 import 'package:fllama/fllama.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-
 import 'package:write4me/models/chat_message.dart';
-
-class CancelToken {
-  bool _isCancelled = false;
-  bool get isCancelled => _isCancelled;
-  void cancel() => _isCancelled = true;
-}
 
 class CancelException implements Exception {
   final String message;
@@ -22,6 +15,8 @@ class CancelException implements Exception {
 }
 
 class OfflineModelService extends ChangeNotifier {
+  final _dio = Dio();
+
   static const String _selectedModelKey = 'selected_model';
   static const String _isOfflineModeKey = 'is_offline_mode';
   static const String _useLocalModelKey = 'use_local_model';
@@ -149,40 +144,39 @@ class OfflineModelService extends ChangeNotifier {
         throw Exception('No internet connection');
       }
 
+      // Configure Dio options
+      final options = Options(
+        responseType: ResponseType.bytes,
+        followRedirects: true,
+        validateStatus: (status) => status != null && status < 500,
+      );
+
       // Start download
-      final response = await http.Client().send(http.Request('GET', Uri.parse(url)));
-      
+      final response = await _dio.get(
+        url,
+        options: options,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            onProgress(received / total);
+          }
+        },
+      );
+
       if (response.statusCode != 200) {
         throw Exception('Failed to connect to server (Status: ${response.statusCode})');
       }
 
-      final totalBytes = response.contentLength ?? 0;
-      int receivedBytes = 0;
-
-      final sink = file.openWrite();
+      // Write file
+      await file.writeAsBytes(response.data);
       
-      try {
-        await response.stream.forEach((chunk) {
-          sink.add(chunk);
-          receivedBytes += chunk.length;
-          if (totalBytes > 0) {
-            onProgress(receivedBytes / totalBytes);
-          }
-        });
-        
-        await sink.close();
-        _downloadedUrls.add(url);
-        await _saveDownloadedUrls();
-        
-        await _checkAvailableModels();
-        if (_selectedModelPath.isEmpty && _availableModels.isNotEmpty) {
-          await setSelectedModel(_availableModels.first.path);
-        }
-      } catch (e) {
-        await sink.close();
-        await file.delete();
-        throw Exception('Download interrupted. Please try again.');
+      _downloadedUrls.add(url);
+      await _saveDownloadedUrls();
+      
+      await _checkAvailableModels();
+      if (_selectedModelPath.isEmpty && _availableModels.isNotEmpty) {
+        await setSelectedModel(_availableModels.first.path);
       }
+
     } catch (e) {
       debugPrint('Error downloading file: $e');
       if (await file.exists()) {
@@ -208,6 +202,9 @@ class OfflineModelService extends ChangeNotifier {
       await setSelectedModel(modelPath);
       await _checkAvailableModels();
     } catch (e) {
+      if (e is DioException && e.type == DioExceptionType.cancel) {
+        throw CancelException();
+      }
       debugPrint('Error downloading custom model: $e');
       rethrow;
     }
@@ -232,39 +229,34 @@ class OfflineModelService extends ChangeNotifier {
         throw Exception('A model with this name already exists');
       }
 
-      final response = await http.Client().send(
-        http.Request('GET', Uri.parse(url))
+      final options = Options(
+        responseType: ResponseType.bytes,
+        followRedirects: true,
+        validateStatus: (status) => status != null && status < 500,
       );
-      
+
+      final response = await _dio.get(
+        url,
+        options: options,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            onProgress(received / total);
+          }
+        },
+      );
+
       if (response.statusCode != 200) {
         throw Exception('Failed to download model: ${response.statusCode}');
       }
 
-      final contentLength = response.contentLength ?? 0;
-      final sink = file.openWrite();
-      int downloaded = 0;
+      await file.writeAsBytes(response.data);
+      return modelPath;
 
-      try {
-        await for (final chunk in response.stream) {
-          if (cancelToken.isCancelled) {
-            await sink.close();
-            await file.delete();
-            throw CancelException();
-          }
-          sink.add(chunk);
-          downloaded += chunk.length;
-          onProgress(downloaded / contentLength);
-        }
-        
-        await sink.flush();
-        await sink.close();
-        return modelPath;
-      } catch (e) {
-        await sink.close();
-        await file.delete();
-        rethrow;
-      }
     } catch (e) {
+      if (e is DioException && e.type == DioExceptionType.cancel) {
+        throw CancelException();
+      }
       debugPrint('Error downloading file: $e');
       rethrow;
     }
@@ -391,5 +383,11 @@ For images with text, refer to the extracted text to provide relevant informatio
     }
     
     return fileName;
+  }
+
+  @override
+  void dispose() {
+    _dio.close();
+    super.dispose();
   }
 } 

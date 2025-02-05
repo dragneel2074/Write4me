@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:timezone/data/latest.dart' as tz;
+// import 'package:timezone/data/latest.dart' as tz;
 import 'homepage.dart';
 import 'theme/theme_provider.dart';
 import '../providers/theme_provider.dart';
@@ -11,7 +11,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize timezone
-  tz.initializeTimeZones();
+  // tz.initializeTimeZones();
   await Hive.initFlutter();
 
   runApp(

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:html/parser.dart' show parse;
-import 'package:html/dom.dart' as html;
+// import 'package:html/parser.dart' show parse;
+// import 'package:html/dom.dart' as html;
 import '../models/pdf_memory.dart';
 
 class WebService {
@@ -22,7 +22,9 @@ class WebService {
         if (kDebugMode) {
           print('Successfully fetched content. Extracting text...');
         }
-        String extractedText = _extractTextFromHtml(response.data);
+        // String extractedText = _extractTextFromHtml(response.data);
+        String extractedText = response.data;
+
         if (kDebugMode) {
           print('Extracted text length: ${extractedText.length}');
         }
@@ -41,12 +43,12 @@ class WebService {
     }
   }
 
-  String _extractTextFromHtml(String htmlContent) {
-    html.Document document = parse(htmlContent);
-    document
-        .querySelectorAll('script, style')
-        .forEach((element) => element.remove());
-    String bodyText = document.body?.text ?? '';
-    return bodyText.replaceAll(RegExp(r'\s+'), ' ').trim();
-  }
+//   String _extractTextFromHtml(String htmlContent) {
+//     html.Document document = parse(htmlContent);
+//     document
+//         .querySelectorAll('script, style')
+//         .forEach((element) => element.remove());
+//     String bodyText = document.body?.text ?? '';
+//     return bodyText.replaceAll(RegExp(r'\s+'), ' ').trim();
+//   }
 }

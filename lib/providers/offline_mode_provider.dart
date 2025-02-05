@@ -121,7 +121,7 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
       _cleanupErrorMessages();
     }
 
-    _service.notifyListeners();
+    // _service.notifyListeners();
   }
 
   void _cleanupErrorMessages() {
@@ -142,13 +142,13 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
   void setUseLocalModel(bool value) {
     _service.setUseLocalModel(value);
     state = state.copyWith(useLocalModel: value);
-    _service.notifyListeners();
+    // _service.notifyListeners();
   }
 
   void setSelectedModel(String path) {
     _service.setSelectedModel(path);
     state = state.copyWith(selectedModelPath: path);
-    _service.notifyListeners();
+    // _service.notifyListeners();
   }
 
   Future<void> downloadModel(
@@ -167,7 +167,7 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
         isDownloading: false,
         useLocalModel: true,
       );
-      _service.notifyListeners();
+      // _service.notifyListeners();
     } catch (e) {
       state = state.copyWith(isDownloading: false);
       rethrow;
@@ -181,12 +181,12 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
       selectedModelPath: _service.selectedModelPath,
       useLocalModel: _service.availableModels.isNotEmpty ? state.useLocalModel : false,
     );
-    _service.notifyListeners();
+    // _service.notifyListeners();
   }
 
-  Future<void> _saveState() async {
-    // Implementation of _saveState method
-  }
+  // Future<void> _saveState() async {
+  //   // Implementation of _saveState method
+  // }
 }
 
 final offlineModeProvider = StateNotifierProvider<OfflineModeNotifier, OfflineModeState>((ref) {

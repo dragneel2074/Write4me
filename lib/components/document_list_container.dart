@@ -17,9 +17,9 @@ class DocumentListContainer extends StatelessWidget {
 
   Color _getChipColor(BuildContext context, bool isImage, bool isPDF) {
     final colorScheme = Theme.of(context).colorScheme;
-    if (isImage) return colorScheme.secondary.withOpacity(0.1);
-    if (isPDF) return colorScheme.tertiary.withOpacity(0.1);
-    return colorScheme.primary.withOpacity(0.1);
+    if (isImage) return colorScheme.secondary.withValues(alpha:0.1);
+    if (isPDF) return colorScheme.tertiary.withValues(alpha:0.1);
+    return colorScheme.primary.withValues(alpha:0.1);
   }
 
   Color _getSelectedChipColor(BuildContext context, bool isImage, bool isPDF) {
@@ -87,7 +87,7 @@ class DocumentListContainer extends StatelessWidget {
                       ? Theme.of(context).colorScheme.onPrimary
                       : null,
                   side: BorderSide(
-                    color: _getSelectedChipColor(context, isImage, isPDF).withOpacity(0.5),
+                    color: _getSelectedChipColor(context, isImage, isPDF).withValues(alpha:0.5),
                     width: 1,
                   ),
                 ),

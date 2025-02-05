@@ -4,9 +4,8 @@ import '../services/image_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_provider.dart';
 import '../providers/offline_mode_provider.dart';
-import '../theme/chat_theme.dart';
+// import '../theme/chat_theme.dart';
 import 'chat_bubble.dart';
-import 'dart:io';
 import '../utils/message_utils.dart';
 
 class ChatMessages extends ConsumerWidget {
@@ -18,14 +17,14 @@ class ChatMessages extends ConsumerWidget {
   });
 
   // Check internet connectivity
-  Future<bool> _checkInternetConnection() async {
-    try {
-      final result = await InternetAddress.lookup('google.com');
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } on SocketException catch (_) {
-      return false;
-    }
-  }
+  // Future<bool> _checkInternetConnection() async {
+  //   try {
+  //     final result = await InternetAddress.lookup('google.com');
+  //     return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+  //   } on SocketException catch (_) {
+  //     return false;
+  //   }
+  // }
 
   Future<void> _saveImage(BuildContext context, Uint8List imageData) async {
     try {
@@ -152,8 +151,8 @@ class ChatMessages extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chatState = ref.watch(chatProvider);
     final offlineModeState = ref.watch(offlineModeProvider);
-    final theme = Theme.of(context);
-    final chatTheme = theme.extension<ChatThemeExtension>()!;
+    // final theme = Theme.of(context);
+    // final chatTheme = theme.extension<ChatThemeExtension>()!;
     
     // Show messages if we're in offline mode with local models
     if (offlineModeState.isOfflineMode && offlineModeState.availableModels.isNotEmpty) {

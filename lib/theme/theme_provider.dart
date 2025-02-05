@@ -62,7 +62,7 @@ class AppTheme {
     scaffoldBackgroundColor: _lightBackground,
     cardColor: _lightBubble,  // Bot bubble color
     textSelectionTheme: TextSelectionThemeData(
-      selectionColor: _lightText.withOpacity(0.15),
+      selectionColor: _lightText.withValues(alpha:0.15),
       cursorColor: _lightText,
       selectionHandleColor: _lightText,
     ),
@@ -97,7 +97,7 @@ class AppTheme {
         userTextColor: Colors.white,
         botTextColor: Colors.black87,
         bubbleIconColor: Colors.blue,
-        bubbleIconBackgroundColor: Colors.blue.withOpacity(0.1),
+        bubbleIconBackgroundColor: Colors.blue.withValues(alpha:0.1),
       ),
     ],
   );
@@ -108,7 +108,7 @@ class AppTheme {
     scaffoldBackgroundColor: _darkBackground,
     cardColor: _darkBubble,
     textSelectionTheme: TextSelectionThemeData(
-      selectionColor: _darkText.withOpacity(0.2),
+      selectionColor: _darkText.withValues(alpha:0.2),
       cursorColor: _darkText,
       selectionHandleColor: _darkText,
     ),
@@ -139,7 +139,7 @@ class AppTheme {
         userTextColor: Colors.white,
         botTextColor: Colors.white,
         bubbleIconColor: Colors.blue,
-        bubbleIconBackgroundColor: Colors.blue.withOpacity(0.1),
+        bubbleIconBackgroundColor: Colors.blue.withValues(alpha:0.1),
       ),
     ],
   );

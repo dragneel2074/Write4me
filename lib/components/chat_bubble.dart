@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/chat_message.dart';
 import '../theme/chat_theme.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 
 class ChatBubble extends StatelessWidget {
@@ -110,7 +110,7 @@ class ChatBubble extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha:0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -164,8 +164,8 @@ class ChatBubble extends StatelessWidget {
                         ),
                         code: TextStyle(
                           backgroundColor: message.isUser 
-                              ? chatTheme.userBubbleColor.withOpacity(0.7)
-                              : chatTheme.botBubbleColor.withOpacity(0.7),
+                              ? chatTheme.userBubbleColor.withValues(alpha:0.7)
+                              : chatTheme.botBubbleColor.withValues(alpha:0.7),
                           color: message.isUser 
                               ? chatTheme.userTextColor
                               : chatTheme.botTextColor,
@@ -173,14 +173,14 @@ class ChatBubble extends StatelessWidget {
                         ),
                         codeblockDecoration: BoxDecoration(
                           color: message.isUser 
-                              ? chatTheme.userBubbleColor.withOpacity(0.7)
-                              : chatTheme.botBubbleColor.withOpacity(0.7),
+                              ? chatTheme.userBubbleColor.withValues(alpha:0.7)
+                              : chatTheme.botBubbleColor.withValues(alpha:0.7),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         blockquote: TextStyle(
                           color: message.isUser 
-                              ? chatTheme.userTextColor.withOpacity(0.9)
-                              : chatTheme.botTextColor.withOpacity(0.9),
+                              ? chatTheme.userTextColor.withValues(alpha:0.9)
+                              : chatTheme.botTextColor.withValues(alpha:0.9),
                           fontSize: 16,
                           fontStyle: FontStyle.italic,
                         ),
@@ -226,7 +226,7 @@ class ChatBubble extends StatelessWidget {
                       ),
                       onTapLink: (text, href, title) {
                         if (href != null) {
-                          launchUrl(Uri.parse(href));
+                          // launchUrl(Uri.parse(href));
                         }
                       },
                       selectable: true,

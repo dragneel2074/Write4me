@@ -29,13 +29,13 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
     super.dispose();
   }
 
-  String _getErrorMessage(dynamic error) {
-    // Log the actual error for debugging
-    debugPrint('Download error details: $error');
+  // String _getErrorMessage(dynamic error) {
+  //   // Log the actual error for debugging
+  //   debugPrint('Download error details: $error');
     
-    // Return a simple message to the user
-    return 'Error downloading the model';
-  }
+  //   // Return a simple message to the user
+  //   return 'Error downloading the model';
+  // }
 
   void _startDownload() async {
     String url;
