@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 class ChatInput extends StatelessWidget {
   final TextEditingController controller;
   final bool isImageMode;
-  final bool isInternetMode;
+  final bool isWebSearch;
   final VoidCallback onSubmit;
   final VoidCallback onAddContent;
-  final VoidCallback? onToggleInternet;
+  final VoidCallback? onToggleWebSearch;
   final VoidCallback? onToggleImage;
-  final bool isInternetDisabled;
+  final bool isWebSearchDisabled;
   final bool isGenerating;
   final VoidCallback onStop;
   final bool isOfflineMode;
@@ -18,12 +18,12 @@ class ChatInput extends StatelessWidget {
     super.key,
     required this.controller,
     required this.isImageMode,
-    required this.isInternetMode,
+    required this.isWebSearch,
     required this.onSubmit,
     required this.onAddContent,
-    this.onToggleInternet,
+    this.onToggleWebSearch,
     this.onToggleImage,
-    required this.isInternetDisabled,
+    required this.isWebSearchDisabled,
     required this.isGenerating,
     required this.onStop,
     this.isOfflineMode = false,
@@ -65,7 +65,7 @@ class ChatInput extends StatelessWidget {
                           ? 'Generating...'
                           : isImageMode 
                               ? 'Describe the image...'
-                              : isInternetMode
+                              : isWebSearch
                                   ? 'Search the internet...'
                                   : 'Message Write4Me',
                       hintStyle: TextStyle(
@@ -116,9 +116,11 @@ class ChatInput extends StatelessWidget {
                   label: 'Generate Image',
                 ),
                 _buildActionButton(
-                  icon: isInternetMode ? Icons.language : Icons.language_outlined,
-                  onPressed: isInternetDisabled || isOfflineMode ? null : onToggleInternet,
-                  isActive: isInternetMode,
+                  icon: isWebSearch ? Icons.language : Icons.language_outlined,
+                  onPressed: isWebSearchDisabled || isOfflineMode 
+                      ? null 
+                      : onToggleWebSearch,
+                  isActive: isWebSearch,
                   label: 'Search Web',
                 ),
               ],

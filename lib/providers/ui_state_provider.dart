@@ -3,23 +3,23 @@ import '../models/saved_chat.dart';
 
 class UIState {
   final bool isImageMode;
-  final bool isInternetMode;
+  final bool isWebSearch;
   final List<SavedChat> savedChats;
 
   const UIState({
     this.isImageMode = false,
-    this.isInternetMode = false,
+    this.isWebSearch = false,
     this.savedChats = const [],
   });
 
   UIState copyWith({
     bool? isImageMode,
-    bool? isInternetMode,
+    bool? isWebSearch,
     List<SavedChat>? savedChats,
   }) {
     return UIState(
       isImageMode: isImageMode ?? this.isImageMode,
-      isInternetMode: isInternetMode ?? this.isInternetMode,
+      isWebSearch: isWebSearch ?? this.isWebSearch,
       savedChats: savedChats ?? this.savedChats,
     );
   }
@@ -31,13 +31,13 @@ class UIStateNotifier extends StateNotifier<UIState> {
   void toggleImageMode() {
     state = state.copyWith(
       isImageMode: !state.isImageMode,
-      isInternetMode: false,
+      isWebSearch: false,
     );
   }
 
-  void toggleInternetMode() {
+  void toggleWebSearch() {
     state = state.copyWith(
-      isInternetMode: !state.isInternetMode,
+      isWebSearch: !state.isWebSearch,
       isImageMode: false,
     );
   }
@@ -49,7 +49,7 @@ class UIStateNotifier extends StateNotifier<UIState> {
   void resetModes() {
     state = state.copyWith(
       isImageMode: false,
-      isInternetMode: false,
+      isWebSearch: false,
     );
   }
 }

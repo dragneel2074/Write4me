@@ -29,6 +29,68 @@ class AIService extends ChangeNotifier {
 
   bool get isGenerating => _isGenerating;
 
+  Future<String?> _performWebSearch(
+    String prompt,
+    void Function(String, bool) onResponse,
+  ) async {
+    debugPrint('_performWebSearch called with prompt: $prompt');
+    try {
+      onResponse('Searching the web...', false);
+      final results = await _textGenService.searchWithJina(prompt);
+      debugPrint('Raw search results received: $results');
+      
+      if (results.isNotEmpty) {
+        onResponse('Search results found. Generating response...', false);
+        return results;
+      }
+      debugPrint('Search results were empty');
+      return null;
+    } catch (e) {
+      if (e.toString().contains('API key')) {
+        debugPrint('API key error detected');
+        onResponse('Web search failed: Please set your Jina API key first.', true);
+        _isGenerating = false;
+        notifyListeners();
+        return null;
+      }
+      debugPrint('Web search error: $e');
+      onResponse('Web search failed. Generating response without search...', false);
+      return null;
+    }
+  }
+
+  Future<void> _generateLocalResponse(
+    String prompt,
+    String? searchResults,
+    List<String> context,
+    void Function(String, bool) onResponse,
+    List<ChatMessage> history,
+  ) async {
+    debugPrint('_generateLocalResponse called with:');
+    debugPrint('- prompt: $prompt');
+    debugPrint('- searchResults: ${searchResults?.substring(0, searchResults.length.clamp(0, 100))}...');
+    debugPrint('- context length: ${context.length}');
+    
+    final fullPrompt = '''
+${searchResults != null ? 'Search Results:\n$searchResults\n\n' : ''}
+${context.isNotEmpty ? 'Context from documents:\n${context.join('\n\n')}\n\n' : ''}
+${searchResults != null ? 'Based on the search results' : ''}
+${context.isNotEmpty ? '${searchResults != null ? ' and' : 'Based on'} the context' : ''}
+${searchResults == null && context.isEmpty ? 'Please answer' : ', please answer'}:
+$prompt'''.trim();
+
+    debugPrint('Generated full prompt for local model:');
+    debugPrint('----------------------------------------');
+    debugPrint(fullPrompt);
+    debugPrint('----------------------------------------');
+
+    await _offlineService.generateStreamingResponse(
+      fullPrompt,
+      onResponse,
+      history: history,
+    );
+  }
+
   Future<void> getStreamingResponse(
     String prompt,
     List<PDFMemory> pdfMemories,
@@ -36,7 +98,15 @@ class AIService extends ChangeNotifier {
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
   }) async {
-    if (_isGenerating) return;
+    debugPrint('\ngetStreamingResponse called with:');
+    debugPrint('- prompt: $prompt');
+    debugPrint('- useWebSearch: $useWebSearch');
+    debugPrint('- isLocalModel: ${_offlineService.useLocalModel}');
+
+    if (_isGenerating) {
+      debugPrint('Already generating, returning early');
+      return;
+    }
 
     _isGenerating = true;
     notifyListeners();
@@ -52,31 +122,39 @@ class AIService extends ChangeNotifier {
           }
         }
       }
+      debugPrint('Context built with ${context.length} memories');
 
-      // Prevent web URL processing in offline mode
-      if (_offlineService.isOfflineMode && useWebSearch) {
-        onResponse('Web search is not available in offline mode.', true);
-        return;
+      // Step 1: Perform web search if enabled
+      String? searchResults;
+      if (useWebSearch) {
+        debugPrint('Starting web search process...');
+        searchResults = await _performWebSearch(prompt, onResponse);
+        debugPrint('Search completed. Results: ${searchResults != null ? 'found' : 'not found'}');
+        
+        if (searchResults == null) {
+          debugPrint('Search results null, checking _isGenerating: $_isGenerating');
+          if (!_isGenerating) {
+            debugPrint('Generation was cancelled, returning early');
+            return;
+          }
+        }
+      } else {
+        debugPrint('Web search not requested');
       }
 
-      if (_offlineService.isOfflineMode || _offlineService.useLocalModel) {
-        // Use offline model with context
-        final contextPrompt = context.isNotEmpty 
-            ? '''
-Context from documents:
-${context.join('\n\n')}
-
-Based on the above context, please answer:
-$prompt'''
-            : prompt;
-
-        await _offlineService.generateStreamingResponse(
-          contextPrompt,
+      // Step 2: Generate response based on model selection
+      if (_offlineService.useLocalModel) {
+        debugPrint('Using local model for generation');
+        debugPrint('Search results available: ${searchResults != null}');
+        await _generateLocalResponse(
+          prompt,
+          searchResults,
+          context,
           onResponse,
-          history: history,
+          history,
         );
       } else {
-        // Use online service
+        debugPrint('Using online service for generation');
         await _textGenService.generateStreamingResponse(
           prompt,
           pdfMemories,
@@ -85,7 +163,12 @@ $prompt'''
           history: history,
         );
       }
+    } catch (e) {
+      debugPrint('Error in getStreamingResponse: $e');
+      debugPrint(e.toString());
+      onResponse('Error: ${e.toString()}', true);
     } finally {
+      debugPrint('Generation completed, cleaning up');
       _isGenerating = false;
       notifyListeners();
     }

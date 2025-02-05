@@ -64,7 +64,7 @@ ${context.join('\n')}
     return formattedPrompt.toString();
   }
 
-  Future<String> _searchWithJina(String query) async {
+  Future<String> searchWithJina(String query) async {
     final apiKey = await getJinaApiKey();
     if (apiKey.isEmpty) {
       throw Exception('Jina API key not found');
@@ -124,7 +124,7 @@ ${context.join('\n')}
         
         try {
           debugPrint('prompt in generateText: $prompt');
-          final searchResults = await _searchWithJina(prompt);
+          final searchResults = await searchWithJina(prompt);
           
           // Show search complete status
           onResponse('Search results found. Generating response...', false);
@@ -207,7 +207,7 @@ $prompt
       if (useWebSearch) {
         try {
           debugPrint('prompt in generateText: $prompt');
-          searchResults = await _searchWithJina(prompt);
+          searchResults = await searchWithJina(prompt);
           debugPrint('Jina search results: $searchResults');
         } catch (e) {
           debugPrint('Error during Jina search: $e');

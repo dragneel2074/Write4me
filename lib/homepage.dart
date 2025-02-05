@@ -329,8 +329,8 @@ class _HomePageState extends ConsumerState<HomePage>
     chatNotifier.startLoading();
 
     try {
-      // Check for API key if internet mode is enabled
-      if (uiState.isInternetMode) {
+      // Check for API key if web search is enabled
+      if (uiState.isWebSearch) {
         final apiKey = await textGenService.getJinaApiKey();
         if (apiKey.isEmpty) {
           chatNotifier.stopLoading();
@@ -406,16 +406,21 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         }
       } else {
+        // Add initial placeholder message
         final placeholderMessage = ChatMessage(
-          content: 'Generating response...',
+          content: 'Initializing...',
           isUser: false,
         );
         chatNotifier.addMessage(placeholderMessage);
 
-        // Check both offline mode and local model selection
-        final useWebSearch = !offlineModeState.isOfflineMode && 
-                          !offlineModeState.useLocalModel && 
-                          uiState.isInternetMode;
+        // Determine if web search should be used
+        final useWebSearch = uiState.isWebSearch;
+
+        debugPrint('Submitting message with:');
+        debugPrint('- isWebSearch: ${uiState.isWebSearch}');
+        debugPrint('- isOfflineMode: ${offlineModeState.isOfflineMode}');
+        debugPrint('- useLocalModel: ${offlineModeState.useLocalModel}');
+        debugPrint('- useWebSearch: $useWebSearch');
 
         try {
           await aiService.getStreamingResponse(
@@ -438,7 +443,6 @@ class _HomePageState extends ConsumerState<HomePage>
               content: _getUserFriendlyError(e),
               isUser: false,
               isError: true,
-              // timestamp: DateTime.now().millisecondsSinceEpoch,
             ),
           );
         }
@@ -449,7 +453,6 @@ class _HomePageState extends ConsumerState<HomePage>
         content: errorMessage,
         isUser: false,
         isError: true,
-        // timestamp: DateTime.now().millisecondsSinceEpoch,
       ));
     } finally {
       if (mounted) {
@@ -506,10 +509,12 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.key),
-                  onPressed: () => _showApiKeyDialog(context),
-                ),
+                // Only show key icon when not in offline mode
+                if (!offlineModeState.isOfflineMode) 
+                  IconButton(
+                    icon: const Icon(Icons.key),
+                    onPressed: () => _showApiKeyDialog(context),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.settings),
                   onPressed: () => _showSettingsDialog(context),
@@ -588,19 +593,19 @@ class _HomePageState extends ConsumerState<HomePage>
                     ChatInput(
                       controller: _controller,
                       isImageMode: uiState.isImageMode,
-                      isInternetMode: uiState.isInternetMode,
+                      isWebSearch: uiState.isWebSearch,
                       isGenerating: chatState.isGenerating,
                       onSubmit: _submitMessage,
                       onStop: _stopGeneration,
                       onAddContent: _showAddOptions,
-                      onToggleInternet: offlineModeState.isOfflineMode
+                      onToggleWebSearch: offlineModeState.isOfflineMode
                           ? null
                           : () => ref
                               .read(uiStateProvider.notifier)
-                              .toggleInternetMode(),
+                              .toggleWebSearch(),
                       onToggleImage: () =>
                           ref.read(uiStateProvider.notifier).toggleImageMode(),
-                      isInternetDisabled: _pdfMemories.isNotEmpty ||
+                      isWebSearchDisabled: _pdfMemories.isNotEmpty ||
                           offlineModeState.isOfflineMode,
                       isOfflineMode: offlineModeState.isOfflineMode,
                     ),
