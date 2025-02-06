@@ -129,22 +129,21 @@ class OfflineModelService extends ChangeNotifier {
     await prefs.setStringList(_downloadedModelsKey, _downloadedUrls.toList());
   }
 
+  /// Common download logic for both default and custom models
   Future<void> downloadModel(
     String url,
     void Function(double) onProgress,
     String fileName,
   ) async {
-    debugPrint('Starting model download: $fileName');
-
-    // Ensure filename ends with .gguf
-    if (!fileName.toLowerCase().endsWith('.gguf')) {
-      fileName = '$fileName.gguf';
-    }
+    debugPrint('Starting model download:');
+    debugPrint('URL: $url');
+    debugPrint('Filename: $fileName');
 
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/$fileName';
     final file = File(filePath);
 
+    // Check if model is already downloaded
     if (_downloadedUrls.contains(url)) {
       if (!await file.exists()) {
         _downloadedUrls.remove(url);
@@ -155,8 +154,25 @@ class OfflineModelService extends ChangeNotifier {
     }
 
     try {
-      // Use http.Client for better memory management
-      final client = http.Client();
+      await _downloadFile(url, file, onProgress);
+      await _processDownloadedModel(url, file);
+    } catch (e) {
+      debugPrint('Error downloading model: $e');
+      if (await file.exists()) {
+        await file.delete();
+      }
+      rethrow;
+    }
+  }
+
+  /// Downloads file from URL with progress tracking
+  Future<void> _downloadFile(
+    String url, 
+    File file, 
+    void Function(double) onProgress,
+  ) async {
+    final client = http.Client();
+    try {
       final response = await client.send(http.Request('GET', Uri.parse(url)));
       
       if (response.statusCode != 200) {
@@ -167,50 +183,38 @@ class OfflineModelService extends ChangeNotifier {
       final sink = file.openWrite();
       int downloaded = 0;
 
-      try {
-        await for (final chunk in response.stream) {
-          sink.add(chunk);
-          downloaded += chunk.length;
-          if (contentLength > 0) {
-            onProgress(downloaded / contentLength);
-          }
+      await for (final chunk in response.stream) {
+        sink.add(chunk);
+        downloaded += chunk.length;
+        if (contentLength > 0) {
+          onProgress(downloaded / contentLength);
         }
-        
-        await sink.flush();
-        await sink.close();
-        client.close();
-
-        // Update state after successful download
-        _downloadedUrls.add(url);
-        await Future.wait([
-          _saveDownloadedUrls(),
-          _checkAvailableModels(),
-        ]);
-
-        if (_availableModels.isNotEmpty) {
-          final downloadedFile = _availableModels.lastWhere(
-            (file) => file.path.endsWith(fileName),
-            orElse: () => _availableModels.last,
-          );
-          await setSelectedModel(downloadedFile.path);
-          await setUseLocalModel(true);
-        }
-        notifyListeners();
-      } catch (e) {
-        await sink.close();
-        client.close();
-        if (await file.exists()) {
-          await file.delete();
-        }
-        rethrow;
       }
-    } catch (e) {
-      debugPrint('Error downloading model: $e');
-      if (await file.exists()) {
-        await file.delete();
-      }
-      rethrow;
+      
+      await sink.flush();
+      await sink.close();
+    } finally {
+      client.close();
     }
+  }
+
+  /// Process downloaded model file and update state
+  Future<void> _processDownloadedModel(String url, File file) async {
+    _downloadedUrls.add(url);
+    await Future.wait([
+      _saveDownloadedUrls(),
+      _checkAvailableModels(),
+    ]);
+
+    if (_availableModels.isNotEmpty) {
+      final downloadedFile = _availableModels.lastWhere(
+        (f) => f.path == file.path,
+        orElse: () => _availableModels.last,
+      );
+      await setSelectedModel(downloadedFile.path);
+      await setUseLocalModel(true);
+    }
+    notifyListeners();
   }
 
   Future<void> downloadCustomModel(

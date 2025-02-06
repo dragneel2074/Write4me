@@ -185,17 +185,10 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
       if (!fileName.toLowerCase().endsWith('.gguf')) {
         fileName = '$fileName.gguf';
       }
-
-      debugPrint('Starting custom model download:');
-      debugPrint('URL: $url');
-      debugPrint('Filename: $fileName');
     } else {
       if (_selectedModel == null) return;
       url = OfflineModelService.defaultModels[_selectedModel!]!;
-      fileName = '${_selectedModel!.toLowerCase()}.gguf';
-      debugPrint('Starting default model download:');
-      debugPrint('Model: $_selectedModel');
-      debugPrint('URL: $url');
+      fileName = url.split('/').last;
     }
 
     final modelSize = modelSizes[_selectedModel] ?? 0;
@@ -207,51 +200,26 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
     });
 
     try {
-      bool downloadCompleted = false;
+      await widget.onDownload(url, (progress) {
+        if (mounted) {
+          setState(() => _progress = progress);
+        }
+      }, fileName);
 
-      await widget.onDownload(
-        url,
-        (progress) {
-          if (mounted) {
-            setState(() {
-              _progress = progress;
-            });
-            if (progress >= 1.0) {
-              downloadCompleted = true;
-            }
-          }
-        },
-        fileName,
-      );
-
-      debugPrint('Download process finished. Completed: $downloadCompleted');
-
-      if (mounted && downloadCompleted) {
+      if (mounted) {
         Navigator.pop(context);
         MessageUtils.showSuccess(context, 'Model downloaded successfully');
-      } else if (mounted) {
-        setState(() {
-          _isDownloading = false;
-          _progress = 0;
-        });
-        MessageUtils.showError(
-          context,
-          'Error downloading the model',
-          onRetry: _startDownload,
-        );
       }
     } catch (e) {
       debugPrint('Error in download process: $e');
-
       if (mounted) {
         setState(() {
           _isDownloading = false;
           _progress = 0;
         });
-
         MessageUtils.showError(
           context,
-          'Error downloading the model',
+          'Error downloading model',
           onRetry: _startDownload,
         );
       }
