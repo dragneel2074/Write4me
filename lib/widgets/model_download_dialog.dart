@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/offline_model_service.dart';
 import '../utils/message_utils.dart';
+import 'package:disk_space_2/disk_space_2.dart';
 
 // Use HTTP Here DON"T USE DIO. FASTER DOWNLAOD WITH HTTP and OUT OF MEMORY ERRORS WITH DIO
 class ModelDownloadDialog extends StatefulWidget {
@@ -18,10 +19,31 @@ class ModelDownloadDialog extends StatefulWidget {
 
 class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
   final _urlController = TextEditingController();
+  final _diskSpacePlugin = DiskSpace();
   bool _isCustomModel = false;
   bool _isDownloading = false;
   double _progress = 0;
   String? _selectedModel;
+
+  // Model sizes in MB
+  final Map<String, double> modelSizes = {
+    'Qwen-R1 (1.8 GB)': 1800,
+    'Qwen-2.5-0.5 (650 MB)': 650,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _initDiskSpace();
+  }
+
+  Future<void> _initDiskSpace() async {
+    try {
+      await _diskSpacePlugin.getPlatformVersion();
+    } catch (e) {
+      debugPrint('Error initializing disk space plugin: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -65,6 +87,87 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
     }
   }
 
+  Future<bool> _checkStorageSpace(double requiredSpaceMB) async {
+    try {
+      // Initialize disk space values
+      final freeDiskSpace = await DiskSpace.getFreeDiskSpace;
+      final totalDiskSpace = await DiskSpace.getTotalDiskSpace;
+
+      if (freeDiskSpace == null || totalDiskSpace == null) {
+        debugPrint('Could not get disk space information');
+        return true; // Allow download if we can't check space
+      }
+      
+      // Convert MB to GB for display
+      final freeSpaceGB = freeDiskSpace / 1024;
+      final totalSpaceGB = totalDiskSpace / 1024;
+      final requiredSpaceGB = requiredSpaceMB / 1024;
+      
+      debugPrint('Storage check:');
+      debugPrint('- Free space: ${freeSpaceGB.toStringAsFixed(2)} GB');
+      debugPrint('- Total space: ${totalSpaceGB.toStringAsFixed(2)} GB');
+      debugPrint('- Required space: ${requiredSpaceGB.toStringAsFixed(2)} GB');
+
+      if (freeDiskSpace < requiredSpaceMB) {
+        if (!mounted) return false;
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Insufficient Storage'),
+            content: Text(
+              'This model requires ${requiredSpaceGB.toStringAsFixed(1)} GB of free space.\n\n'
+              'Available space: ${freeSpaceGB.toStringAsFixed(1)} GB\n'
+              'Total space: ${totalSpaceGB.toStringAsFixed(1)} GB\n\n'
+              'Please free up some space before downloading.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return false;
+      }
+
+      // Warn if free space is less than 2x the model size
+      if (freeDiskSpace < requiredSpaceMB * 2) {
+        if (!mounted) return false;
+        final shouldContinue = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Low Storage Warning'),
+            content: Text(
+              'You have ${freeSpaceGB.toStringAsFixed(1)} GB free space, which is less than '
+              'recommended for this ${requiredSpaceGB.toStringAsFixed(1)} GB model.\n\n'
+              'It\'s recommended to have at least ${(requiredSpaceGB * 2).toStringAsFixed(1)} GB '
+              'free space for optimal performance.\n\n'
+              'Do you want to continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Continue Anyway'),
+              ),
+            ],
+          ),
+        );
+        return shouldContinue ?? false;
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Error checking storage space: $e');
+      // If we can't check space, allow the download but log the error
+      return true;
+    }
+  }
+
   void _startDownload() async {
     String url;
     String fileName;
@@ -94,6 +197,9 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
       debugPrint('Model: $_selectedModel');
       debugPrint('URL: $url');
     }
+
+    final modelSize = modelSizes[_selectedModel] ?? 0;
+    if (!await _checkStorageSpace(modelSize)) return;
 
     setState(() {
       _isDownloading = true;

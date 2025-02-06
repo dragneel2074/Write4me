@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:write4me/providers/offline_mode_provider.dart';
 import 'package:write4me/utils/message_utils.dart';
 import 'package:write4me/widgets/model_download_dialog.dart';
-import '../features/offline_models/offline_model_selector.dart';
 
 class ModelSelector extends ConsumerStatefulWidget {
   final bool isOfflineMode;
