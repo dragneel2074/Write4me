@@ -670,7 +670,6 @@ class _HomePageState extends ConsumerState<HomePage>
     final currentKey = await textGenService.getJinaApiKey();
     
     final controller = TextEditingController(text: currentKey);
-    
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(

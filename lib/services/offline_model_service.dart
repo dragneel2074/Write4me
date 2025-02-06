@@ -333,11 +333,11 @@ For images with text, refer to the extracted text to provide relevant informatio
         messages: messages,
         numGpuLayers: 99,
         modelPath: _selectedModelPath,
-        frequencyPenalty: 0.0,
-        presencePenalty: 1.1,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.7,
         topP: 1.0,
-        contextSize: 2048,
-        temperature: 0.7,
+        contextSize: 1024,
+        temperature: 0.5,
         logger: (log) => debugPrint('[llama.cpp] $log'),
       );
 
