@@ -135,7 +135,9 @@ class SettingsDialog extends ConsumerWidget {
   Future<void> _showDownloadModelPrompt(BuildContext context, WidgetRef ref) async {
     final download = await ModelManagementService.showDownloadDialog(context);
     if (download == true) {
-      await _showModelDownloadDialog(context, ref);
+      if (context.mounted) {
+        await _showModelDownloadDialog(context, ref);
+      }
     }
   }
 

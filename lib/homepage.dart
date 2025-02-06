@@ -66,10 +66,17 @@ class _HomePageState extends ConsumerState<HomePage>
     await _chatStorage.init();
     _loadSavedChats();
 
-    // Only check service status after offline service is initialized
-    ref.read(offlineModelInitProvider.future).then((_) {
-      _checkServiceStatus();
-    });
+    // Initialize offline mode first
+    try {
+      final offlineModeNotifier = ref.read(offlineModeProvider.notifier);
+      await offlineModeNotifier.initialize();
+      debugPrint('Offline mode initialized');
+    } catch (e) {
+      debugPrint('Error initializing offline mode: $e');
+    }
+
+    // Then check service status
+    _checkServiceStatus();
   }
 
   void _loadSavedChats() {
@@ -490,10 +497,16 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    final offlineModeState = ref.watch(offlineModeProvider);
+    
+    // Add debug prints
+    debugPrint('HomePage build - isOfflineMode: ${offlineModeState.isOfflineMode}');
+    debugPrint('HomePage build - useLocalModel: ${offlineModeState.useLocalModel}');
+    debugPrint('HomePage build - availableModels: ${offlineModeState.availableModels.length}');
+
     return ref.watch(offlineModelInitProvider).when(
       data: (_) {
         final chatState = ref.watch(chatProvider);
-        final offlineModeState = ref.watch(offlineModeProvider);
         final uiState = ref.watch(uiStateProvider);
 
         return Scaffold(

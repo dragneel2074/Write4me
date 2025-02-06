@@ -188,13 +188,12 @@ class OfflineModelService extends ChangeNotifier {
         ]);
 
         if (_availableModels.isNotEmpty) {
-          _selectedModelPath = file.path;
-          _useLocalModel = true;
-          final prefs = await SharedPreferences.getInstance();
-          await Future.wait([
-            prefs.setString(_selectedModelKey, _selectedModelPath),
-            prefs.setBool(_useLocalModelKey, true),
-          ]);
+          final downloadedFile = _availableModels.lastWhere(
+            (file) => file.path.endsWith(fileName),
+            orElse: () => _availableModels.last,
+          );
+          await setSelectedModel(downloadedFile.path);
+          await setUseLocalModel(true);
         }
         notifyListeners();
       } catch (e) {
@@ -413,6 +412,34 @@ For images with text, refer to the extracted text to provide relevant informatio
       }
     }
     return fileName;
+  }
+
+  Future<List<File>> getAvailableModels() async {
+    try {
+      debugPrint('Checking available models...');
+      final directory = await getApplicationDocumentsDirectory();
+      final dir = Directory(directory.path);
+      
+      if (!await dir.exists()) {
+        debugPrint('Directory does not exist: ${directory.path}');
+        return [];
+      }
+
+      final List<FileSystemEntity> entities = await dir.list().toList();
+      debugPrint('Found ${entities.length} files in directory');
+      
+      _availableModels = entities.whereType<File>().where((file) {
+        final isGguf = file.path.toLowerCase().endsWith('.gguf');
+        debugPrint('File: ${file.path}, isGguf: $isGguf');
+        return isGguf;
+      }).toList();
+      
+      debugPrint('Available models: ${_availableModels.length}');
+      return _availableModels;
+    } catch (e) {
+      debugPrint('Error checking for models: $e');
+      return [];
+    }
   }
 
   @override

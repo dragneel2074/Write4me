@@ -51,11 +51,12 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
   }
 
   Future<void> _loadState() async {
+    final models = await _service.getAvailableModels();
     state = state.copyWith(
       isOfflineMode: _service.isOfflineMode,
       useLocalModel: _service.useLocalModel,
       selectedModelPath: _service.selectedModelPath,
-      availableModels: _service.availableModels,
+      availableModels: models,
     );
   }
 
@@ -161,16 +162,36 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     try {
       await _service.downloadModel(url, onProgress, fileName);
       
-      state = state.copyWith(
-        availableModels: _service.availableModels,
-        selectedModelPath: _service.selectedModelPath,
-        isDownloading: false,
-        useLocalModel: true,
-      );
-      // _service.notifyListeners();
+      // Refresh available models and state after download
+      await _refreshModels();
+      
+      debugPrint('Download complete:');
+      debugPrint('- Available models: ${state.availableModels.length}');
+      debugPrint('- Selected model: ${state.selectedModelPath}');
+      debugPrint('- Use local model: ${state.useLocalModel}');
     } catch (e) {
       state = state.copyWith(isDownloading: false);
       rethrow;
+    }
+  }
+
+  Future<void> _refreshModels() async {
+    final models = await _service.getAvailableModels();
+    
+    // If we have models, select the most recently added one
+    final newModelPath = models.isNotEmpty ? models.last.path : null;
+    
+    state = state.copyWith(
+      availableModels: models,
+      selectedModelPath: newModelPath,
+      isDownloading: false,
+      useLocalModel: models.isNotEmpty,
+    );
+
+    // Also update the service state
+    if (newModelPath != null) {
+      await _service.setSelectedModel(newModelPath);
+      await _service.setUseLocalModel(true);
     }
   }
 
@@ -184,21 +205,31 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     // _service.notifyListeners();
   }
 
+  Future<void> initialize() async {
+    try {
+      await _loadState();
+      await _refreshModels();
+      
+      debugPrint('Initialized OfflineModeNotifier:');
+      debugPrint('- Models available: ${state.availableModels.length}');
+      debugPrint('- Is offline mode: ${state.isOfflineMode}');
+      debugPrint('- Use local model: ${state.useLocalModel}');
+      debugPrint('- Selected model: ${state.selectedModelPath}');
+    } catch (e) {
+      debugPrint('Error initializing offline mode: $e');
+      state = state.copyWith(
+        availableModels: [],
+        useLocalModel: false,
+      );
+    }
+  }
+
   // Future<void> _saveState() async {
   //   // Implementation of _saveState method
   // }
 }
 
 final offlineModeProvider = StateNotifierProvider<OfflineModeNotifier, OfflineModeState>((ref) {
-  // Watch the initialization state first
-  final initState = ref.watch(offlineModelInitProvider);
-  
-  return initState.when(
-    data: (_) {
-      final service = ref.watch(offlineModelServiceProvider);
-      return OfflineModeNotifier(service, ref);
-    },
-    loading: () => throw Exception('OfflineModelService is still initializing'),
-    error: (error, _) => throw Exception('Failed to initialize OfflineModelService: $error'),
-  );
+  final service = ref.watch(offlineModelServiceProvider);
+  return OfflineModeNotifier(service, ref);
 }); 

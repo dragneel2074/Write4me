@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:timezone/data/latest.dart' as tz;
-import 'homepage.dart';
 import 'theme/theme_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/navigator_provider.dart';
+import 'components/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,7 @@ class MyApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      home: const HomePage(),
+      home: const SplashScreen(),
     );
   }
 }
