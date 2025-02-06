@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../services/offline_model_service.dart';
 import '../utils/message_utils.dart';
 
+// Use HTTP Here DON"T USE DIO. FASTER DOWNLAOD WITH HTTP and OUT OF MEMORY ERRORS WITH DIO
 class ModelDownloadDialog extends StatefulWidget {
   final Function(String url, void Function(double) onProgress, String fileName) onDownload;
+  final String noteMessage;
 
   const ModelDownloadDialog({
     super.key,
-    required this.onDownload,
+    required this.onDownload, required this.noteMessage,
   });
 
   @override
@@ -214,6 +216,7 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
               LinearProgressIndicator(value: _progress),
               Text('${(_progress * 100).toStringAsFixed(1)}%'),
             ],
+            Text(widget.noteMessage),
           ],
         ),
       ),

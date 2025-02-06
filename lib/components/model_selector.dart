@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:write4me/utils/message_utils.dart';
 import '../providers/offline_mode_provider.dart';
 import '../widgets/model_download_dialog.dart';
 
@@ -96,6 +97,12 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
       context: context,
       barrierDismissible: false, // Prevent dismissing during download
       builder: (context) => ModelDownloadDialog(
+        // Pass our note message to the dialog
+        noteMessage: 
+          'Note: It is recommended to start with tiny models like Qwen 0.5 before moving to larger ones. '
+          'Please check your free memory usage and download only 20% of the free memory. For instance, '
+          'if 3.6 GB is used out of 6 GB, free memory is 2.4 GB, so roughly 500 MB should be downloaded. '
+          'The app is not liable for any damage to your device.',
         onDownload: (url, onProgress, fileName) async {
           try {
             await ref.read(offlineModeProvider.notifier).downloadModel(
@@ -103,27 +110,15 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
               onProgress,
               fileName,
             );
-            if (mounted) {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Model downloaded successfully'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
+            if (!mounted) return;
+            
+            MessageUtils.showSuccess(context, 'Model downloaded successfully');
+            Navigator.of(context).pop();
           } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error downloading model: $e'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
+            MessageUtils.showError(context, 'Error downloading model: $e');
           }
         },
       ),
     );
   }
-} 
+}

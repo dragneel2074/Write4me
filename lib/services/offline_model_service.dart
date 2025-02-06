@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:write4me/models/chat_message.dart';
+import 'package:http/http.dart' as http;
 
 class CancelException implements Exception {
   final String message;
@@ -23,8 +24,8 @@ class OfflineModelService extends ChangeNotifier {
   static const String _downloadedModelsKey = 'downloaded_models';
   
   static const Map<String, String> defaultModels = {
-    'Qwen-R1': 'https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf',
-    'Qwen-2.5-0.5':'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf'
+    'Qwen-R1 (1.8 GB)': 'https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf',
+    'Qwen-2.5-0.5 (650 MB)': 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf'
   };
 
   bool _isOfflineMode = false;
@@ -96,14 +97,11 @@ class OfflineModelService extends ChangeNotifier {
       final List<FileSystemEntity> entities = await dir.list().toList();
       debugPrint('Found ${entities.length} files in directory');
       
-      _availableModels = entities
-          .whereType<File>()
-          .where((file) {
-            final isGguf = file.path.toLowerCase().endsWith('.gguf');
-            debugPrint('File: ${file.path}, isGguf: $isGguf');
-            return isGguf;
-          })
-          .toList();
+      _availableModels = entities.whereType<File>().where((file) {
+        final isGguf = file.path.toLowerCase().endsWith('.gguf');
+        debugPrint('File: ${file.path}, isGguf: $isGguf');
+        return isGguf;
+      }).toList();
       
       debugPrint('Available models: ${_availableModels.length}');
       
@@ -120,17 +118,15 @@ class OfflineModelService extends ChangeNotifier {
 
   Future<void> _loadDownloadedUrls() async {
     final prefs = await SharedPreferences.getInstance();
-    _downloadedUrls = Set<String>.from(
-      prefs.getStringList(_downloadedModelsKey) ?? []
-    );
+    final urls = prefs.getStringList(_downloadedModelsKey) ?? [];
+    _downloadedUrls = Set<String>.from(urls);
+    debugPrint('Loaded downloaded URLs: $_downloadedUrls');
   }
 
   Future<void> _saveDownloadedUrls() async {
+    debugPrint('Saving downloaded URLs: $_downloadedUrls');
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      _downloadedModelsKey, 
-      _downloadedUrls.toList()
-    );
+    await prefs.setStringList(_downloadedModelsKey, _downloadedUrls.toList());
   }
 
   Future<void> downloadModel(
@@ -139,9 +135,6 @@ class OfflineModelService extends ChangeNotifier {
     String fileName,
   ) async {
     debugPrint('Starting model download: $fileName');
-    if (_downloadedUrls.contains(url)) {
-      throw Exception('Model already downloaded');
-    }
 
     // Ensure filename ends with .gguf
     if (!fileName.toLowerCase().endsWith('.gguf')) {
@@ -149,55 +142,69 @@ class OfflineModelService extends ChangeNotifier {
     }
 
     final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/$fileName');
+    final filePath = '${directory.path}/$fileName';
+    final file = File(filePath);
+
+    if (_downloadedUrls.contains(url)) {
+      if (!await file.exists()) {
+        _downloadedUrls.remove(url);
+        await _saveDownloadedUrls();
+      } else {
+        throw Exception('Model already downloaded');
+      }
+    }
 
     try {
-      // Download and write file
-      final response = await _dio.get(
-        url,
-        options: Options(
-          responseType: ResponseType.bytes,
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
-        ),
-        onReceiveProgress: (received, total) {
-          if (total != -1) {
-            onProgress(received / total);
-          }
-        },
-      );
-
-      await file.writeAsBytes(response.data);
-      debugPrint('Model file written successfully to: ${file.path}');
-
-      // Update state in a single batch
-      _downloadedUrls.add(url);
-      await Future.wait([
-        _saveDownloadedUrls(),
-        _checkAvailableModels(),
-      ]);
-
-      // Set as selected model if available
-      if (_availableModels.isNotEmpty) {
-        final modelPath = file.path;
-        debugPrint('Setting newly downloaded model as selected: $modelPath');
-        
-        // Update all state at once
-        _selectedModelPath = modelPath;
-        _useLocalModel = true;
-        
-        // Save all preferences
-        final prefs = await SharedPreferences.getInstance();
-        await Future.wait([
-          prefs.setString(_selectedModelKey, _selectedModelPath),
-          prefs.setBool(_useLocalModelKey, true),
-          prefs.setStringList(_downloadedModelsKey, _downloadedUrls.toList()),
-        ]);
+      // Use http.Client for better memory management
+      final client = http.Client();
+      final response = await client.send(http.Request('GET', Uri.parse(url)));
+      
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download model: ${response.statusCode}');
       }
 
-      // Notify listeners only once after all updates
-      notifyListeners();
-      
+      final contentLength = response.contentLength ?? 0;
+      final sink = file.openWrite();
+      int downloaded = 0;
+
+      try {
+        await for (final chunk in response.stream) {
+          sink.add(chunk);
+          downloaded += chunk.length;
+          if (contentLength > 0) {
+            onProgress(downloaded / contentLength);
+          }
+        }
+        
+        await sink.flush();
+        await sink.close();
+        client.close();
+
+        // Update state after successful download
+        _downloadedUrls.add(url);
+        await Future.wait([
+          _saveDownloadedUrls(),
+          _checkAvailableModels(),
+        ]);
+
+        if (_availableModels.isNotEmpty) {
+          _selectedModelPath = file.path;
+          _useLocalModel = true;
+          final prefs = await SharedPreferences.getInstance();
+          await Future.wait([
+            prefs.setString(_selectedModelKey, _selectedModelPath),
+            prefs.setBool(_useLocalModelKey, true),
+          ]);
+        }
+        notifyListeners();
+      } catch (e) {
+        await sink.close();
+        client.close();
+        if (await file.exists()) {
+          await file.delete();
+        }
+        rethrow;
+      }
     } catch (e) {
       debugPrint('Error downloading model: $e');
       if (await file.exists()) {
@@ -213,99 +220,73 @@ class OfflineModelService extends ChangeNotifier {
     CancelToken cancelToken,
   ) async {
     debugPrint('Starting custom model download from: $url');
+
+    final directory = await getApplicationDocumentsDirectory();
+    final fileName = url.split('/').last;
+    final filePath = '${directory.path}/$fileName';
+    final file = File(filePath);
+
     if (_downloadedUrls.contains(url)) {
-      throw Exception('Model already downloaded');
-    }
-
-    try {
-      final modelPath = await _downloadFile(url, onProgress, cancelToken);
-      debugPrint('Custom model downloaded to: $modelPath');
-      
-      _downloadedUrls.add(url);
-      await _saveDownloadedUrls();
-      
-      // Force a refresh of available models
-      await _checkAvailableModels();
-      
-      // Set the newly downloaded model as selected
-      if (_availableModels.isNotEmpty) {
-        debugPrint('Setting newly downloaded custom model as selected');
-        await setSelectedModel(modelPath);
-        _useLocalModel = true;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool(_useLocalModelKey, true);
+      if (!await file.exists()) {
+        _downloadedUrls.remove(url);
+        await _saveDownloadedUrls();
       } else {
-        debugPrint('Warning: No models found after download');
+        throw Exception('Model already downloaded');
       }
-      
-      notifyListeners();
-    } catch (e) {
-      if (e is DioException && e.type == DioExceptionType.cancel) {
-        throw CancelException();
-      }
-      debugPrint('Error downloading custom model: $e');
-      rethrow;
-    }
-  }
-
-  Future<String> _downloadFile(
-    String url, 
-    void Function(double) onProgress,
-    CancelToken cancelToken,
-  ) async {
-    debugPrint('_downloadFile called with URL: $url');
-    if (!url.toLowerCase().endsWith('.gguf')) {
-      throw Exception('Invalid model file. URL must end with .gguf');
     }
 
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName = url.split('/').last;
-      final modelPath = '${directory.path}/$fileName';
-      debugPrint('Will download to path: $modelPath');
-
-      final file = File(modelPath);
-      if (await file.exists()) {
-        debugPrint('File already exists at path: $modelPath');
-        throw Exception('A model with this name already exists');
-      }
-
-      final options = Options(
-        responseType: ResponseType.bytes,
-        followRedirects: true,
-        validateStatus: (status) => status != null && status < 500,
-      );
-
-      debugPrint('Starting download...');
-      final response = await _dio.get(
-        url,
-        options: options,
-        cancelToken: cancelToken,
-        onReceiveProgress: (received, total) {
-          if (total != -1) {
-            onProgress(received / total);
-            // debugPrint('Download progress: ${(received/total * 100).toStringAsFixed(1)}%');
-          }
-        },
-      );
-
+      final client = http.Client();
+      final response = await client.send(http.Request('GET', Uri.parse(url)));
+      
       if (response.statusCode != 200) {
-        debugPrint('Download failed with status: ${response.statusCode}');
         throw Exception('Failed to download model: ${response.statusCode}');
       }
 
-      debugPrint('Writing file to: $modelPath');
-      await file.writeAsBytes(response.data);
-      debugPrint('File written successfully');
+      final contentLength = response.contentLength ?? 0;
+      final sink = file.openWrite();
+      int downloaded = 0;
 
-      if (!await file.exists()) {
-        debugPrint('Error: File not found after writing');
-        throw Exception('File not created successfully');
+      try {
+        await for (final chunk in response.stream) {
+          if (cancelToken.isCancelled) {
+            await sink.close();
+            client.close();
+            await file.delete();
+            throw CancelException();
+          }
+          sink.add(chunk);
+          downloaded += chunk.length;
+          if (contentLength > 0) {
+            onProgress(downloaded / contentLength);
+          }
+        }
+        
+        await sink.flush();
+        await sink.close();
+        client.close();
+
+        _downloadedUrls.add(url);
+        await _saveDownloadedUrls();
+        await _checkAvailableModels();
+        
+        if (_availableModels.isNotEmpty) {
+          await setSelectedModel(file.path);
+          _useLocalModel = true;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool(_useLocalModelKey, true);
+        }
+        notifyListeners();
+      } catch (e) {
+        await sink.close();
+        client.close();
+        if (await file.exists()) {
+          await file.delete();
+        }
+        rethrow;
       }
-
-      return modelPath;
     } catch (e) {
-      debugPrint('Error in _downloadFile: $e');
+      debugPrint('Error downloading custom model: $e');
       rethrow;
     }
   }
@@ -328,7 +309,6 @@ class OfflineModelService extends ChangeNotifier {
       bool firstResponse = true;
       final messages = <Message>[];
       
-      // Add system message with enhanced context handling
       messages.add(Message(
         Role.system, 
         '''You are a helpful assistant who answers concisely.
@@ -336,7 +316,6 @@ When provided with document context, analyze it carefully to provide accurate an
 For images with text, refer to the extracted text to provide relevant information.'''
       ));
 
-      // Add recent history (last 6 messages)
       final recentHistory = history.length > 6 
           ? history.sublist(history.length - 6) 
           : history;
@@ -347,8 +326,6 @@ For images with text, refer to the extracted text to provide relevant informatio
           msg.content,
         ));
       }
-
-      // Add current prompt
       messages.add(Message(Role.user, prompt));
 
       final request = OpenAiRequest(
@@ -367,7 +344,6 @@ For images with text, refer to the extracted text to provide relevant informatio
       await fllamaChat(
         request,
         (response, done) {
-          // Replace placeholder with first real response
           if (firstResponse && response.trim().isNotEmpty) {
             firstResponse = false;
           }
@@ -381,35 +357,29 @@ For images with text, refer to the extracted text to provide relevant informatio
   }
 
   Future<void> deleteModel(String modelPath) async {
+    debugPrint('Deleting model: $modelPath');
+    final file = File(modelPath);
+    
     try {
-      final file = File(modelPath);
       if (await file.exists()) {
         await file.delete();
-        
-        // Remove from available models first
-        _availableModels.removeWhere((f) => f.path == modelPath);
-        
-        // Remove the URL from downloaded list
-        final modelUrl = _downloadedUrls.firstWhere(
-          (url) => url.contains(file.uri.pathSegments.last),
-          orElse: () => '',
-        );
-        if (modelUrl.isNotEmpty) {
-          _downloadedUrls.remove(modelUrl);
+        debugPrint('Model file deleted');
+
+        final url = _getUrlForModel(modelPath);
+        if (url != null) {
+          _downloadedUrls.remove(url);
           await _saveDownloadedUrls();
+          debugPrint('Removed from downloaded URLs: $url');
         }
-        
-        // Update selected model if needed
+
         if (modelPath == _selectedModelPath) {
-          if (_availableModels.isNotEmpty) {
-            await setSelectedModel(_availableModels.first.path);
-          } else {
-            await setSelectedModel('');
-            await setOfflineMode(false);
-            await setUseLocalModel(false);
-          }
+          _selectedModelPath = '';
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_selectedModelKey, '');
+          debugPrint('Cleared selected model path');
         }
-        
+
+        await _checkAvailableModels();
         notifyListeners();
       }
     } catch (e) {
@@ -418,18 +388,30 @@ For images with text, refer to the extracted text to provide relevant informatio
     }
   }
 
-  // Add a method to format model name
+  String? _getUrlForModel(String modelPath) {
+    final fileName = modelPath.split('/').last.toLowerCase();
+    
+    for (var entry in defaultModels.entries) {
+      if (entry.value.split('/').last.toLowerCase() == fileName) {
+        return entry.value;
+      }
+    }
+    for (var url in _downloadedUrls) {
+      if (url.split('/').last.toLowerCase() == fileName) {
+        return url;
+      }
+    }
+    return null;
+  }
+
   String formatModelName(String path) {
     final fileName = path.split('/').last.replaceAll('.gguf', '');
-    
-    // Handle Qwen model naming specifically
     if (fileName.toLowerCase().contains('qwen')) {
       final match = RegExp(r'qwen[^b]*b').firstMatch(fileName.toLowerCase());
       if (match != null) {
         return match.group(0)!.replaceAll('-', ' ').toUpperCase();
       }
     }
-    
     return fileName;
   }
 
@@ -438,4 +420,4 @@ For images with text, refer to the extracted text to provide relevant informatio
     _dio.close();
     super.dispose();
   }
-} 
+}

@@ -16,7 +16,10 @@ class MessageUtils {
       duration: duration ?? const Duration(seconds: 2),
       behavior: SnackBarBehavior.floating,
       action: action,
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(
+        horizontal: 16.0,
+        vertical: 16.0,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),

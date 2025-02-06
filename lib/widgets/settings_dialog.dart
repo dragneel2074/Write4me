@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:write4me/utils/message_utils.dart';
 import 'package:write4me/widgets/model_download_dialog.dart';
 import '../providers/theme_provider.dart';
 import '../providers/offline_mode_provider.dart';
@@ -142,6 +143,10 @@ class SettingsDialog extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => ModelDownloadDialog(
+        noteMessage: 'Note: It is recommended to start with tiny models like Qwen 0.5 before moving to larger ones. '
+          'Please check your free memory usage and download only 20% of the free memory. For instance, '
+          'if 3.6 GB is used out of 6 GB, free memory is 2.4 GB, so roughly 500 MB should be downloaded. '
+          'The app is not liable for any damage to your device.',
         onDownload: (url, onProgress, fileName) async {
           try {
             await ref.read(offlineModeProvider.notifier).downloadModel(
@@ -151,15 +156,17 @@ class SettingsDialog extends ConsumerWidget {
             );
             if (context.mounted) {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Model downloaded successfully')),
-              );
+              MessageUtils.showSuccess(context, 'Model downloaded successfully');
+              // ScaffoldMessenger.of(context).showSnackBar(
+              //   const SnackBar(content: Text('Model downloaded successfully')),
+              // );
             }
           } catch (e) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error downloading model: $e')),
-              );
+              MessageUtils.showError(context, 'Error downloading model: $e');
+              // ScaffoldMessenger.of(context).showSnackBar(
+              //     SnackBar(content: Text('Error downloading model: $e')),
+              //   );
             }
           }
         },

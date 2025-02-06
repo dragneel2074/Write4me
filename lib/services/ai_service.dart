@@ -71,21 +71,31 @@ class AIService extends ChangeNotifier {
     debugPrint('- searchResults: ${searchResults?.substring(0, searchResults.length.clamp(0, 100))}...');
     debugPrint('- context length: ${context.length}');
     
-    final fullPrompt = '''
-${searchResults != null ? 'Search Results:\n$searchResults\n\n' : ''}
-${context.isNotEmpty ? 'Context from documents:\n${context.join('\n\n')}\n\n' : ''}
-${searchResults != null ? 'Based on the search results' : ''}
-${context.isNotEmpty ? '${searchResults != null ? ' and' : 'Based on'} the context' : ''}
-${searchResults == null && context.isEmpty ? 'Please answer' : ', please answer'}:
-$prompt'''.trim();
+//     final fullPrompt = '''
+// ${searchResults != null ? 'Search Results:\n$searchResults\n\n' : ''}
+// ${context.isNotEmpty ? 'Context from documents:\n${context.join('\n\n')}\n\n' : ''}
+// ${searchResults != null ? 'Based on the search results' : ''}
+// ${context.isNotEmpty ? '${searchResults != null ? ' and' : 'Based on'} the context' : ''}
+// ${searchResults == null && context.isEmpty ? 'Please answer' : ', please answer'}:
+// $prompt'''.trim();
+  final fullPrompt = StringBuffer();
+  
+  if (searchResults != null) {
+    fullPrompt.writeln('Web results: $searchResults');
+  }
+  if (context.isNotEmpty) {
+    fullPrompt.writeln('Document context: ${context.join('\n')}');
+  }
+  fullPrompt.writeln('Question: $prompt');
+  fullPrompt.writeln('Answer:');
 
     debugPrint('Generated full prompt for local model:');
     debugPrint('----------------------------------------');
-    debugPrint(fullPrompt);
+    debugPrint(fullPrompt.toString());
     debugPrint('----------------------------------------');
 
     await _offlineService.generateStreamingResponse(
-      fullPrompt,
+      fullPrompt.toString(),
       onResponse,
       history: history,
     );

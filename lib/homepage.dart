@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:write4me/utils/message_utils.dart';
 import 'components/chat_input.dart';
 import 'components/chat_messages.dart';
 import 'components/document_list_container.dart';
@@ -299,12 +301,13 @@ class _HomePageState extends ConsumerState<HomePage>
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Started new chat'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+        MessageUtils.showInfo(context, 'Started new chat');
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text('Started new chat'),
+      //     duration: Duration(seconds: 1),
+      //   ),
+      // );
     }
   }
 
@@ -632,9 +635,10 @@ class _HomePageState extends ConsumerState<HomePage>
   Future<void> _saveCurrentChat() async {
     final chatState = ref.read(chatProvider);
     if (chatState.messages.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No messages to save')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text('No messages to save')),
+      // );
+        MessageUtils.showInfo(context, 'No messages to save');
       return;
     }
 
@@ -642,9 +646,10 @@ class _HomePageState extends ConsumerState<HomePage>
     _loadSavedChats();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chat saved successfully')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text('Chat saved successfully')),
+      // );
+        MessageUtils.showInfo(context, 'Started new chat');
     }
   }
 
@@ -653,9 +658,10 @@ class _HomePageState extends ConsumerState<HomePage>
     _loadSavedChats();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chat deleted')),
-      );
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   const SnackBar(content: Text('Chat deleted')),
+          // );
+          MessageUtils.showSuccess(context, 'Chat deleted');
     }
   }
 
@@ -682,6 +688,23 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
               obscureText: true,
             ),
+            GestureDetector(
+  onTap: () async {
+    final Uri url = Uri.parse('https://jina.ai/#apiform');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Could not launch $url';
+    }
+  },
+  child: const Text(
+    'Get a free API key by going to Jina.ai',
+    style: TextStyle(
+      color: Colors.blue,
+      decoration: TextDecoration.underline,
+    ),
+  ),)
+
           ],
         ),
         actions: [
@@ -695,9 +718,10 @@ class _HomePageState extends ConsumerState<HomePage>
               await prefs.setString('jina_api_key', controller.text.trim());
               if (context.mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('API key saved')),
-                );
+                // ScaffoldMessenger.of(context).showSnackBar(
+                //   const SnackBar(content: Text('API key saved')),
+                // );
+                MessageUtils.showSuccess(context, 'API key saved');
               }
             },
             child: const Text('Save'),

@@ -133,7 +133,7 @@ ${context.join('\n')}
           
           // Generate response with search results
           const model = 'mistral';
-          final system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
+          const system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
           
           final formattedPrompt = '''
 Search Results:

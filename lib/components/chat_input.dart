@@ -5,13 +5,13 @@ class ChatInput extends StatelessWidget {
   final TextEditingController controller;
   final bool isImageMode;
   final bool isWebSearch;
+  final bool isGenerating;
   final VoidCallback onSubmit;
+  final VoidCallback onStop;
   final VoidCallback onAddContent;
   final VoidCallback? onToggleWebSearch;
-  final VoidCallback? onToggleImage;
+  final VoidCallback onToggleImage;
   final bool isWebSearchDisabled;
-  final bool isGenerating;
-  final VoidCallback onStop;
   final bool isOfflineMode;
 
   const ChatInput({
@@ -19,14 +19,14 @@ class ChatInput extends StatelessWidget {
     required this.controller,
     required this.isImageMode,
     required this.isWebSearch,
-    required this.onSubmit,
-    required this.onAddContent,
-    this.onToggleWebSearch,
-    this.onToggleImage,
-    required this.isWebSearchDisabled,
     required this.isGenerating,
+    required this.onSubmit,
     required this.onStop,
-    this.isOfflineMode = false,
+    required this.onAddContent,
+    required this.onToggleWebSearch,
+    required this.onToggleImage,
+    required this.isWebSearchDisabled,
+    required this.isOfflineMode,
   });
 
   @override

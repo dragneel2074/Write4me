@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:write4me/utils/message_utils.dart';
 import 'dart:io';
 // import 'package:url_launcher/url_launcher.dart';
 import '../providers/offline_mode_provider.dart';
@@ -67,15 +68,17 @@ class ModelManagementService {
       try {
         await notifier.deleteModel(model.path);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Model deleted successfully')),
-          );
+          MessageUtils.showSuccess(context, 'Model deleted successfully');
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   const SnackBar(content: Text('Model deleted successfully')),
+          // );
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting model: $e')),
-          );
+          MessageUtils.showError(context, 'Error deleting model: $e');
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   SnackBar(content: Text('Error deleting model: $e')),
+          // );
         }
       }
     }
