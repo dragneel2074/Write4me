@@ -92,15 +92,15 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
 
   Future<void> _showModelDownloadDialog(BuildContext context) async {
     if (!mounted) return;
-    
+      final modelSelectorContext = this.context;
     await showDialog(
       context: context,
       barrierDismissible: false, // Prevent dismissing during download
       builder: (context) => ModelDownloadDialog(
         // Pass our note message to the dialog
         noteMessage: 
-          'Note: It is recommended to start with tiny models like Qwen 0.5 before moving to larger ones. '
-          'Please check your free memory usage and download only 20% of the free memory. For instance, '
+          'Note: It is recommended to use Qwen series and start with tiny models like Qwen 0.5 before moving to larger ones. '
+          'Please check your memory usage and download only 20% of the free memory. For instance, '
           'if 3.6 GB is used out of 6 GB, free memory is 2.4 GB, so roughly 500 MB should be downloaded. '
           'The app is not liable for any damage to your device.',
         onDownload: (url, onProgress, fileName) async {
@@ -112,10 +112,10 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
             );
             if (!mounted) return;
             
-            MessageUtils.showSuccess(context, 'Model downloaded successfully');
-            Navigator.of(context).pop();
+            MessageUtils.showSuccess(modelSelectorContext, 'Model downloaded successfully');
+            // Navigator.of(context).pop();
           } catch (e) {
-            MessageUtils.showError(context, 'Error downloading model: $e');
+            MessageUtils.showError(modelSelectorContext, 'Error downloading model: $e');
           }
         },
       ),
