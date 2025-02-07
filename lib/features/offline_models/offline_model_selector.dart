@@ -85,7 +85,7 @@ class OfflineModelSelector extends ConsumerWidget {
                 'Download failed: ${_getErrorReason(e)}'
               );
             }
-            throw e; // Preserve original error for debugging
+            rethrow; // Preserve original error for debugging
           }
         },
       ),

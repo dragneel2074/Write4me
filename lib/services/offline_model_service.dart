@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:write4me/models/chat_message.dart';
 import 'package:http/http.dart' as http;
+import 'package:write4me/utils/exceptions.dart';
 
 class CancelException implements Exception {
   final String message;
@@ -83,26 +84,24 @@ class OfflineModelService extends ChangeNotifier {
 
   bool get canUseLocalModel => _availableModels.isNotEmpty;
 
+  Future<List<File>> _getModelFiles() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final dir = Directory(directory.path);
+    
+    if (!await dir.exists()) {
+      debugPrint('Models directory missing');
+      return [];
+    }
+    
+    return dir.list()
+      .where((e) => e is File && e.path.toLowerCase().endsWith('.gguf'))
+      .map((e) => e as File)
+      .toList();
+  }
+
   Future<void> _checkAvailableModels() async {
     try {
-      debugPrint('Checking available models...');
-      final directory = await getApplicationDocumentsDirectory();
-      final dir = Directory(directory.path);
-      
-      if (!await dir.exists()) {
-        debugPrint('Directory does not exist: ${directory.path}');
-        return;
-      }
-
-      final List<FileSystemEntity> entities = await dir.list().toList();
-      debugPrint('Found ${entities.length} files in directory');
-      
-      _availableModels = entities.whereType<File>().where((file) {
-        final isGguf = file.path.toLowerCase().endsWith('.gguf');
-        debugPrint('File: ${file.path}, isGguf: $isGguf');
-        return isGguf;
-      }).toList();
-      
+      _availableModels = await _getModelFiles();
       debugPrint('Available models: ${_availableModels.length}');
       
       if (_availableModels.isNotEmpty && _selectedModelPath.isEmpty) {
@@ -112,7 +111,7 @@ class OfflineModelService extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      debugPrint('Error checking for models: $e');
+      debugPrint('Error checking models: $e');
     }
   }
 
@@ -176,7 +175,9 @@ class OfflineModelService extends ChangeNotifier {
       final response = await client.send(http.Request('GET', Uri.parse(url)));
       
       if (response.statusCode != 200) {
-        throw Exception('Failed to download model: ${response.statusCode}');
+        throw DownloadException(
+          'Download failed: HTTP ${response.statusCode}',
+        );
       }
 
       final contentLength = response.contentLength ?? 0;
@@ -243,7 +244,11 @@ class OfflineModelService extends ChangeNotifier {
       final response = await client.send(http.Request('GET', Uri.parse(url)));
       
       if (response.statusCode != 200) {
-        throw Exception('Failed to download model: ${response.statusCode}');
+        throw DownloadException(
+          'Model download failed',
+          statusCode: response.statusCode,
+          uri: Uri.parse(url),
+        );
       }
 
       final contentLength = response.contentLength ?? 0;
@@ -419,36 +424,26 @@ For images with text, refer to the extracted text to provide relevant informatio
   }
 
   Future<List<File>> getAvailableModels() async {
-    try {
-      debugPrint('Checking available models...');
-      final directory = await getApplicationDocumentsDirectory();
-      final dir = Directory(directory.path);
-      
-      if (!await dir.exists()) {
-        debugPrint('Directory does not exist: ${directory.path}');
-        return [];
-      }
-
-      final List<FileSystemEntity> entities = await dir.list().toList();
-      debugPrint('Found ${entities.length} files in directory');
-      
-      _availableModels = entities.whereType<File>().where((file) {
-        final isGguf = file.path.toLowerCase().endsWith('.gguf');
-        debugPrint('File: ${file.path}, isGguf: $isGguf');
-        return isGguf;
-      }).toList();
-      
-      debugPrint('Available models: ${_availableModels.length}');
-      return _availableModels;
-    } catch (e) {
-      debugPrint('Error checking for models: $e');
-      return [];
-    }
+    return _getModelFiles();
   }
 
   @override
   void dispose() {
     _dio.close();
     super.dispose();
+  }
+}
+
+extension DownloadErrorX on Exception {
+  String get downloadError {
+    if (this is SocketException) return 'No internet connection';
+    if (this is DownloadException) {
+      final e = this as DownloadException;
+      return e.statusCode != null 
+          ? 'Download error (HTTP ${e.statusCode})'
+          : 'Download failed';
+    }
+    if (toString().contains('host lookup')) return 'Invalid URL';
+    return 'Download failed';
   }
 }

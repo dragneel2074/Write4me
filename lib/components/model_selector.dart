@@ -76,14 +76,13 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final offlineModeState = ref.watch(offlineModeProvider);
+    final isOfflineMode = ref.watch(
+      offlineModeProvider.select((s) => s.isOfflineMode)
+    );
+    final models = ref.watch(
+      offlineModeProvider.select((s) => s.availableModels)
+    );
     
-    debugPrint('ModelSelector rebuild:');
-    debugPrint('- Offline mode: ${widget.isOfflineMode}');
-    debugPrint('- Use local model: ${offlineModeState.useLocalModel}');
-    debugPrint('- Available models: ${offlineModeState.availableModels.length}');
-    debugPrint('- Selected model: ${offlineModeState.selectedModelPath}');
-
     return Container(
       height: 40,
       margin: const EdgeInsets.only(bottom: 8),
@@ -95,7 +94,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
               label: const Text('Cloud'),
-              selected: !offlineModeState.useLocalModel,
+              selected: !ref.watch(offlineModeProvider.select((s) => s.useLocalModel)),
               onSelected: (selected) {
                 if (selected) {
                   ref.read(offlineModeProvider.notifier).setUseLocalModel(false);
@@ -105,11 +104,11 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
           ),
 
           // Show offline models if available
-          if (offlineModeState.availableModels.isNotEmpty)
-            ...offlineModeState.availableModels.map((model) {
+          if (models.isNotEmpty)
+            ...models.map((model) {
               final modelName = model.path.split('/').last.replaceAll('.gguf', '');
-              final isSelected = offlineModeState.useLocalModel && 
-                               model.path == offlineModeState.selectedModelPath;
+              final isSelected = ref.watch(offlineModeProvider.select((s) => s.useLocalModel)) && 
+                               model.path == ref.watch(offlineModeProvider.select((s) => s.selectedModelPath));
               
               return Padding(
                 key: ValueKey(model.path),
@@ -129,7 +128,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
             }),
 
           // Show download button if in offline mode and no models available
-          if (widget.isOfflineMode && offlineModeState.availableModels.isEmpty)
+          if (isOfflineMode && models.isEmpty)
             TextButton.icon(
               icon: const Icon(Icons.download),
               label: const Text('Download Model'),
@@ -137,7 +136,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
             ),
 
           // Show add model button if in offline mode and models exist
-          if (widget.isOfflineMode && offlineModeState.availableModels.isNotEmpty)
+          if (isOfflineMode && models.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ActionChip(

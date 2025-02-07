@@ -70,60 +70,59 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     }
   }
 
-  Future<void> setOfflineMode(bool value) async {
-    // If trying to switch to online mode, check internet first
-    if (!value) {  // switching to online mode
-      final hasInternet = await _checkInternetConnection();
-      if (!hasInternet) {
-        // Show dialog to confirm mode switch
-        final context = ref.read(navigatorKeyProvider).currentContext;
-        if (context == null) return;
+  Future<bool> _handleOnlineSwitch() async {
+    final hasInternet = await _checkInternetConnection();
+    if (!hasInternet) {
+      final context = ref.read(navigatorKeyProvider).currentContext;
+      if (context == null) return false;
 
-        final shouldSwitch = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('No Internet Connection'),
-              content: const Text(
-                'Would you like to stay in offline mode?'
+      final shouldSwitch = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('No Internet Connection'),
+            content: const Text(
+              'Would you like to stay in offline mode?'
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Continue Online'),
+                onPressed: () => Navigator.of(context).pop(false),
               ),
-              actions: [
-                TextButton(
-                  child: const Text('Continue Online'),
-                  onPressed: () => Navigator.of(context).pop(false),
-                ),
-                ElevatedButton(
-                  child: const Text('Stay Offline'),
-                  onPressed: () => Navigator.of(context).pop(true),
-                ),
-              ],
-            );
-          },
-        );
+              ElevatedButton(
+                child: const Text('Stay Offline'),
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ],
+          );
+        },
+      );
 
-        if (shouldSwitch == true) {
-          return; // Keep offline mode if user chooses to stay offline
-        }
-      }
+      return shouldSwitch ?? false;
     }
+    return false;
+  }
 
-    _service.setOfflineMode(value);
+  Future<void> _safeSetOfflineMode(bool value) async {
+    if (value == state.isOfflineMode) return;
+    
+    if (!value) {
+      final shouldStayOffline = await _handleOnlineSwitch();
+      if (shouldStayOffline) return;
+    }
+    
+    await _service.setOfflineMode(value);
     state = state.copyWith(
       isOfflineMode: value,
       useLocalModel: value ? true : state.useLocalModel,
     );
-
-    // Clear any existing errors when switching modes
+    
     ref.read(chatProvider.notifier).clearError();
-
-    // If switching to offline mode, clean up error messages
-    if (value) {
-      _cleanupErrorMessages();
-    }
-
-    // _service.notifyListeners();
+    if (value) _cleanupErrorMessages();
   }
+
+  Future<void> setOfflineMode(bool value) => _safeSetOfflineMode(value);
 
   void _cleanupErrorMessages() {
     final chatNotifier = ref.read(chatProvider.notifier);

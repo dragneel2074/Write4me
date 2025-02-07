@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../services/offline_model_service.dart';
 import '../utils/message_utils.dart';
 import 'package:disk_space_2/disk_space_2.dart';
-import 'package:flutter/foundation.dart';
 
 // Use HTTP Here DON"T USE DIO. FASTER DOWNLAOD WITH HTTP and OUT OF MEMORY ERRORS WITH DIO
 class ModelDownloadDialog extends StatefulWidget {
