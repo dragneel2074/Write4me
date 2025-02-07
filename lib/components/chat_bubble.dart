@@ -6,6 +6,8 @@ import '../models/chat_message.dart';
 import '../theme/chat_theme.dart';
 // import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../utils/message_utils.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
@@ -20,6 +22,16 @@ class ChatBubble extends StatelessWidget {
     this.onCopyText,
     this.onSaveImage,
   });
+
+//   class _DialogState {
+//   String selectedReason;
+//   String additionalComments;
+
+//   _DialogState({
+//     required this.selectedReason,
+//     required this.additionalComments,
+//   });
+// } 
 
   String _sanitizeText(String text) {
     try {
@@ -75,6 +87,134 @@ class ChatBubble extends StatelessWidget {
     } catch (e) {
       debugPrint('Error cleaning markdown: $e');
       return text;
+    }
+  }
+
+  Future<void> _reportMessage(BuildContext context, String message) async {
+    String selectedReason = 'Spam';
+    String additionalComments = '';
+
+    // Show report dialog first
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report Message'),
+        content: StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Message to Report:'),
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    message.length > 100 
+                        ? '${message.substring(0, 100)}...' 
+                        : message,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Reason:'),
+                Row(
+                  children: [
+                    Radio<String>(
+                      value: 'Spam',
+                      groupValue: selectedReason,
+                      onChanged: (value) => setState(() => selectedReason = value!),
+                    ),
+                    const Text('Spam'),
+                    Radio<String>(
+                      value: 'Offensive',
+                      groupValue: selectedReason,
+                      onChanged: (value) => setState(() => selectedReason = value!),
+                    ),
+                    const Text('Offensive'),
+                    Radio<String>(
+                      value: 'Other',
+                      groupValue: selectedReason,
+                      onChanged: (value) => setState(() => selectedReason = value!),
+                    ),
+                    const Text('Other'),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text('Additional Comments (Optional):'),
+                TextField(
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter any additional details...',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) => setState(() => additionalComments = value),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, {
+              'reason': selectedReason,
+              'comments': additionalComments,
+            }),
+            child: const Text('Submit Report'),
+          ),
+        ],
+      ),
+    );
+
+    // If dialog was cancelled or closed
+    if (result == null) return;
+
+    try {
+      // First API call to submit report
+      final response = await http.post(
+        Uri.parse('https://dragneel-loca-misc.hf.space/gradio_api/call/submit_report'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'data': [
+            message,
+            result['reason'],
+            result['comments'],
+          ]
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to submit report');
+      }
+
+      final data = jsonDecode(response.body);
+      final eventId = data['event_id'];
+
+      // Second API call to confirm report
+      final confirmResponse = await http.get(
+        Uri.parse('https://dragneel-loca-misc.hf.space/gradio_api/call/submit_report/$eventId'),
+      );
+
+      if (confirmResponse.statusCode != 200) {
+        throw Exception('Failed to confirm report');
+      }
+
+      if (context.mounted) {
+        MessageUtils.showSuccess(context, 'Message reported successfully');
+      }
+    } catch (e) {
+      debugPrint('Error reporting message: $e');
+      if (context.mounted) {
+        MessageUtils.showError(context, 'Failed to report message');
+      }
     }
   }
 
@@ -256,10 +396,27 @@ class ChatBubble extends StatelessWidget {
                   ),
                 ),
               ],
+              // Report flag for assistant messages
+              if (!message.isUser)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, bottom: 4),
+                  child: GestureDetector(
+                    onTap: () => _reportMessage(context, message.content),
+                    child: Text(
+                      'Report',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
   }
-} 
+}
+
+// Add this class at the top of the file

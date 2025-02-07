@@ -6,6 +6,42 @@ class ImageGenerationService {
   static const String baseUrl = 'https://image.pollinations.ai/prompt/';
   final Dio _dio = Dio();
 
+  // List of adult or inappropriate words to filter out
+  final List<String> _inappropriateWords = [
+    'naked',
+    'nude',
+    'sexy',
+    'porn',
+    'sex',
+    'adult',
+    'explicit',
+    'nsfw',
+    'nudity',
+    'erotic',
+    'erotica',
+    'ass',
+    'asshole',
+    'breasts',
+    'butt',
+    'buttocks',
+    'crotch',
+    'genitals',
+    'nipples',
+    'pubic',
+    'pubic hair',
+    'vagina',
+    'penis',
+    // Add more words as needed
+  ];
+
+  // Function to filter out inappropriate words from the prompt
+  String _filterPrompt(String prompt) {
+    for (var word in _inappropriateWords) {
+      prompt = prompt.replaceAll(RegExp(word, caseSensitive: false), '');
+    }
+    return prompt;
+  }
+
   Future<Uint8List?> generateImage({
     required String prompt,
     int width = 1024,
@@ -16,10 +52,13 @@ class ImageGenerationService {
       int? seed = 42;
       String noLogo = 'true';
       String enhance = 'true';
-      String safe = 'false';
+      String safe = 'true';
       
-      // URL encode the prompt
-      final encodedPrompt = Uri.encodeComponent(prompt);
+      // Filter the prompt to remove any inappropriate words
+      final filteredPrompt = _filterPrompt(prompt);
+
+      // URL encode the filtered prompt
+      final encodedPrompt = Uri.encodeComponent(filteredPrompt);
 
       // Build the URL with parameters
       final url = '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed';
