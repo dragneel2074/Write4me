@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:write4me/providers/offline_mode_provider.dart';
@@ -47,15 +49,29 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
               onProgress,
               fileName,
             );
-            if (!context.mounted) return;
+            
+            if (!dialogContext.mounted) return;
             MessageUtils.showSuccess(dialogContext, 'Model downloaded successfully');
             Navigator.of(dialogContext).pop();
           } catch (e) {
-            MessageUtils.showError(dialogContext, 'Error downloading model: $e');
+            if (!dialogContext.mounted) return;
+            MessageUtils.showError(dialogContext, _getDownloadError(e));
+            rethrow; // Keep the error visible in logs
           }
         },
       ),
     );
+  }
+
+  String _getDownloadError(dynamic error) {
+    if (error is SocketException) {
+      return 'Download failed. Check your internet connection';
+    } else if (error is HttpException) {
+      return 'Server error. Please try again later';
+    } else if (error.toString().contains('host lookup')) {
+      return 'Connection failed. Check your network';
+    }
+    return 'Failed to download model. Please try again';
   }
 
   @override

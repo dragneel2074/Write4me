@@ -60,7 +60,6 @@ class OfflineModelSelector extends ConsumerWidget {
   Future<void> _showModelDownloadDialog(BuildContext context, WidgetRef ref) async {
     await showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (dialogContext) => ModelDownloadDialog(
         noteMessage: 
           'Note: It is recommended to use Qwen series and start with tiny models like Qwen 0.5 before moving to larger ones. '
@@ -74,14 +73,30 @@ class OfflineModelSelector extends ConsumerWidget {
               onProgress,
               fileName,
             );
-            if (!context.mounted) return;
-            MessageUtils.showSuccess(dialogContext, 'Model downloaded successfully');
-            Navigator.of(dialogContext).pop();
+            
+            if (dialogContext.mounted) {
+              MessageUtils.showSuccess(dialogContext, 'Download completed');
+              Navigator.pop(dialogContext);
+            }
           } catch (e) {
-            MessageUtils.showError(dialogContext, 'Error downloading model: $e');
+            if (dialogContext.mounted) {
+              MessageUtils.showError(
+                dialogContext, 
+                'Download failed: ${_getErrorReason(e)}'
+              );
+            }
+            throw e; // Preserve original error for debugging
           }
         },
       ),
     );
+  }
+
+  String _getErrorReason(dynamic error) {
+    final msg = error.toString().toLowerCase();
+    if (msg.contains('connection')) return 'Check your internet connection';
+    if (msg.contains('404')) return 'File not found on server';
+    if (msg.contains('storage')) return 'Not enough storage space';
+    return 'Please try again later';
   }
 } 

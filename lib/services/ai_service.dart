@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../models/pdf_memory.dart';
 import '../models/chat_message.dart';
 import 'text_generation_service.dart';
@@ -178,12 +180,27 @@ class AIService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error in getStreamingResponse: $e');
       debugPrint(e.toString());
-      onResponse('Error: ${e.toString()}', true);
+      onResponse(_getUserFriendlyError(e), true);
     } finally {
       debugPrint('Generation completed, cleaning up');
       _isGenerating = false;
       notifyListeners();
     }
+  }
+
+  String _getUserFriendlyError(dynamic error) {
+    if (error is SocketException) {
+      return 'No internet connection. Please check your network and try again.';
+    } else if (error is TimeoutException) {
+      return 'Request took too long. Please try again.';
+    } else if (error is HttpException) {
+      return 'Temporary service issue. Please try again in a moment.';
+    } else if (error.toString().contains('API key')) {
+      return 'API key missing. Please add your API key in settings.';
+    } else if (error.toString().contains('local model')) {
+      return 'Local model error. Please check the model file.';
+    }
+    return 'Oops! Something went wrong. Please try again.';
   }
 
   void stopGeneration() {

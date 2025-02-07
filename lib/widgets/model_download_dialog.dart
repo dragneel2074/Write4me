@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../services/offline_model_service.dart';
 import '../utils/message_utils.dart';
 import 'package:disk_space_2/disk_space_2.dart';
+import 'package:flutter/foundation.dart';
 
 // Use HTTP Here DON"T USE DIO. FASTER DOWNLAOD WITH HTTP and OUT OF MEMORY ERRORS WITH DIO
 class ModelDownloadDialog extends StatefulWidget {
@@ -162,9 +165,10 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
 
       return true;
     } catch (e) {
-      debugPrint('Error checking storage space: $e');
-      // If we can't check space, allow the download but log the error
-      return true;
+      debugPrint('Storage check error: $e');
+      if (!mounted) return false;
+      MessageUtils.showError(context, 'Could not verify storage space');
+      return false;
     }
   }
 
@@ -191,39 +195,57 @@ class _ModelDownloadDialogState extends State<ModelDownloadDialog> {
       fileName = url.split('/').last;
     }
 
-    final modelSize = modelSizes[_selectedModel] ?? 0;
-    if (!await _checkStorageSpace(modelSize)) return;
-
-    setState(() {
-      _isDownloading = true;
-      _progress = 0;
-    });
-
     try {
+      // Add network check before proceeding
+      final hasConnection = await InternetAddress.lookup('huggingface.co').then(
+        (value) => value.isNotEmpty,
+        onError: (e) => false,
+      );
+      
+      if (!hasConnection) {
+        MessageUtils.showError(context, 'No internet connection');
+        return;
+      }
+
+      final modelSize = modelSizes[_selectedModel] ?? 0;
+      if (!await _checkStorageSpace(modelSize)) return;
+
+      setState(() => _isDownloading = true);
+
       await widget.onDownload(url, (progress) {
-        if (mounted) {
-          setState(() => _progress = progress);
-        }
+        if (mounted) setState(() => _progress = progress);
       }, fileName);
 
       if (mounted) {
         Navigator.pop(context);
-        MessageUtils.showSuccess(context, 'Model downloaded successfully');
+        MessageUtils.showSuccess(context, 'Download completed');
       }
     } catch (e) {
-      debugPrint('Error in download process: $e');
+      debugPrint('Download error: $e');
       if (mounted) {
-        setState(() {
-          _isDownloading = false;
-          _progress = 0;
-        });
+        setState(() => _isDownloading = false);
         MessageUtils.showError(
           context,
-          'Error downloading model',
+          _getDownloadErrorMessage(e),
           onRetry: _startDownload,
         );
       }
     }
+  }
+
+  String _getDownloadErrorMessage(dynamic error) {
+    final message = error.toString().toLowerCase();
+    
+    if (error is SocketException || message.contains('connection')) {
+      return 'Internet connection lost during download';
+    } else if (error is HttpException || message.contains('404')) {
+      return 'Model file not found on server';
+    } else if (message.contains('storage') || message.contains('space')) {
+      return 'Insufficient storage space';
+    } else if (message.contains('cancel')) {
+      return 'Download cancelled';
+    }
+    return 'Download failed. Please try again';
   }
 
   @override
