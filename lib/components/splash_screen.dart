@@ -53,7 +53,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             Image.asset(
               'assets/images/playstore.png',
               height: ScreenSize.height * 0.25,
-              width: ScreenSize.width * 0.56,
+              width: ScreenSize.width * 0.30,
             ),
             const SizedBox(height: 20),
             const CircularProgressIndicator(),

@@ -34,6 +34,11 @@ dependencies:
     git:
       url: https://github.com/Telosnex/fllama.git
       ref: main
+  fonnx:
+    git:
+      url: https://github.com/Telosnex/fonnx.git
+      ref: main
+
   flutter_riverpod: ^2.6.1
 
   # The following adds the Cupertino Icons font to your application.
@@ -68,6 +73,8 @@ dependencies:
   url_launcher: ^6.3.1  
   http: 
   disk_space_2: ^1.0.8
+  langchain_chroma: ^0.2.1+5
+  langchain: ^0.7.7+2
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -97,6 +104,7 @@ flutter:
     -  .env.production
     #- assets/images/image.png
     - assets/images/playstore.png
+    - assets/models/miniLmL6V2.onnx
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

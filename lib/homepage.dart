@@ -28,6 +28,8 @@ import '../providers/service_provider.dart';
 import '../providers/ui_state_provider.dart';
 import '../providers/offline_mode_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'file_processing/file_processor.dart';
+import 'embedding_generator.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -41,6 +43,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final List<PDFMemory> _pdfMemories = [];
   final TextEditingController _controller = TextEditingController();
   late final ScrollController _scrollController;
+  bool _isProcessingPDF = false;
 
   // Move these to a new StateNotifier
   // final bool _isImageMode = false;
@@ -51,6 +54,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final WebService _webService = WebService();
   final ImageService _imageService = ImageService();
   final ChatStorageService _chatStorage = ChatStorageService();
+  final FileProcessor _fileProcessor = FileProcessor();
 
   // Move this to a StateNotifier
   // final List<SavedChat> _savedChats = [];
@@ -206,26 +210,45 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _pickPDFAndCreateRAG() async {
-    try {
-      PDFMemory? newMemory = await _pdfService.pickAndProcessPDF();
-      if (newMemory != null) {
-        _addContent(newMemory);
-        if (mounted) {
-          NotificationService.showTopNotification(
-            context,
-            message: 'PDF processed: ${newMemory.name}',
-          );
-        }
-      }
-    } catch (e) {
+    debugPrint("[RAG] Starting PDF processing workflow");
+    setState(() => _isProcessingPDF = true);
+    final pdfMemory = await _pdfService.pickAndProcessPDF();
+    if (pdfMemory != null) {
+      debugPrint("[RAG] PDF picked: ${pdfMemory.name}");
+      _addContent(pdfMemory);
       if (mounted) {
         NotificationService.showTopNotification(
           context,
-          message: 'Error processing PDF: ${e.toString()}',
-          isError: true,
+          message: 'PDF processed: ${pdfMemory.name}',
+        );
+      }
+      
+      // Process the PDF content for RAG
+      try {
+        debugPrint("[RAG] Starting text processing for PDF: ${pdfMemory.name}");
+        debugPrint("[RAG] Extracted text length: ${pdfMemory.extractedText.length}");
+        
+        await _fileProcessor.processText(
+          pdfMemory.extractedText,
+          pdfMemory.name
+        );
+        debugPrint("Embedding file exists: ${File(await EmbeddingGenerator.getModelPath()).existsSync()}");
+        debugPrint("[RAG] Successfully processed PDF through RAG pipeline");
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF processed successfully!'))
+        );
+      } catch (e) {
+        debugPrint("[RAG ERROR] Failed to process PDF: ${e.toString()}");
+        debugPrint(e.toString());
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to process PDF: ${e.toString()}'))
         );
       }
     }
+    debugPrint("[RAG] PDF processing workflow completed");
+    setState(() => _isProcessingPDF = false);
   }
 
   void _addContent(PDFMemory memory) {
