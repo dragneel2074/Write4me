@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/pdf_memory.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/selected_documents_provider.dart';
 
-class DocumentListContainer extends StatelessWidget {
+class DocumentListContainer extends ConsumerWidget {
   final List<PDFMemory> documents;
   final VoidCallback onSelectionChanged;
   final Function(PDFMemory) onLongPress;
@@ -36,7 +38,7 @@ class DocumentListContainer extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (documents.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
@@ -78,6 +80,18 @@ class DocumentListContainer extends StatelessWidget {
                   onPressed: () {
                     doc.isSelected = !doc.isSelected;
                     onSelectionChanged();
+                    
+                    // Update the selectedDocumentsProvider
+                    final provider = ref.read(selectedDocumentsProvider.notifier);
+                    if (doc.isSelected) {
+                      // Add to provider if selected
+                      provider.state = [...provider.state, doc];
+                      debugPrint("Document selected: ${doc.name}");
+                    } else {
+                      // Remove from provider if deselected
+                      provider.state = provider.state.where((m) => m.name != doc.name).toList();
+                      debugPrint("Document deselected: ${doc.name}");
+                    }
                   },
                   onDeleted: () => onRemove(doc),
                   backgroundColor: doc.isSelected 

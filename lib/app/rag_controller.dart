@@ -30,7 +30,9 @@ class RAGController {
     print("RAGController: Retrieved ${documents.length} documents from file processor.");
 
     // Build context as a list of document texts.
-    List<String> contextList = documents.map((doc) => doc.pageContent).toList();
+    List<String> contextList = documents.map((doc) => 
+      "[From ${doc.metadata['file']}, chunk ${doc.metadata['chunkIndex']}]:\n${doc.pageContent}"
+    ).toList();
     print("RAGController: Built context list with ${contextList.length} items.");
 
     // Call the text generation service with the original query and the file context.

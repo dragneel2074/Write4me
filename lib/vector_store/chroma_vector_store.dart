@@ -19,14 +19,20 @@ class ChromaVectorStore {
     double scoreThreshold = 0.4,
     Map<String, dynamic>? where,
   }) async {
-    return await _vectorStore.similaritySearch(
-      query: query,
-      config: VectorStoreSimilaritySearch(
-        k: k,
-        scoreThreshold: scoreThreshold,
-        filter: where,
-      ),
-    );
+    try {
+      return await _vectorStore.similaritySearch(
+        query: query,
+        config: VectorStoreSimilaritySearch(
+          k: k,
+          scoreThreshold: scoreThreshold,
+          filter: where,
+        ),
+      );
+    } catch (e) {
+      print("ChromaVectorStore: Error during similarity search: $e");
+      // Return empty list as fallback instead of crashing
+      return [];
+    }
   }
 
   Future<void> clearStore() async {

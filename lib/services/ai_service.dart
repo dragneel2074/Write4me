@@ -7,6 +7,7 @@ import '../utils/text_utils.dart';
 import 'offline_model_service.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../file_processing/file_processor.dart';
 
 class AIService extends ChangeNotifier {
   final TextGenerationService _textGenService;
@@ -73,23 +74,30 @@ class AIService extends ChangeNotifier {
     debugPrint('- searchResults: ${searchResults?.substring(0, searchResults.length.clamp(0, 100))}...');
     debugPrint('- context length: ${context.length}');
     
-//     final fullPrompt = '''
-// ${searchResults != null ? 'Search Results:\n$searchResults\n\n' : ''}
-// ${context.isNotEmpty ? 'Context from documents:\n${context.join('\n\n')}\n\n' : ''}
-// ${searchResults != null ? 'Based on the search results' : ''}
-// ${context.isNotEmpty ? '${searchResults != null ? ' and' : 'Based on'} the context' : ''}
-// ${searchResults == null && context.isEmpty ? 'Please answer' : ', please answer'}:
-// $prompt'''.trim();
-  final fullPrompt = StringBuffer();
-  
-  if (searchResults != null) {
-    fullPrompt.writeln('Web results: $searchResults');
-  }
-  if (context.isNotEmpty) {
-    fullPrompt.writeln('Document context: ${context.join('\n')}');
-  }
-  fullPrompt.writeln('Question: $prompt');
-  fullPrompt.writeln('Answer:');
+    final fullPrompt = StringBuffer();
+    
+    fullPrompt.writeln('You are a helpful assistant answering questions based on specific information.');
+    
+    if (searchResults != null) {
+      fullPrompt.writeln('\nWEB SEARCH RESULTS:');
+      fullPrompt.writeln(searchResults);
+    }
+    
+    if (context.isNotEmpty) {
+      fullPrompt.writeln('\nDOCUMENT CONTEXT:');
+      for (int i = 0; i < context.length; i++) {
+        fullPrompt.writeln('---');
+        fullPrompt.writeln(context[i]);
+      }
+      fullPrompt.writeln('---');
+    }
+    
+    fullPrompt.writeln('\nQUESTION: $prompt');
+    fullPrompt.writeln('\nINSTRUCTIONS:');
+    fullPrompt.writeln('1. Answer based ONLY on the provided context above');
+    fullPrompt.writeln('2. If the answer is not in the context, say "I don\'t have enough information"');
+    fullPrompt.writeln('3. Include references to the source documents in your answer');
+    fullPrompt.writeln('\nANSWER:');
 
     debugPrint('Generated full prompt for local model:');
     debugPrint('----------------------------------------');
@@ -124,18 +132,46 @@ class AIService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Build context from selected memories
+      // Build context from selected memories using vector similarity search
       List<String> context = [];
       if (pdfMemories.isNotEmpty) {
-        for (var memory in pdfMemories) {
-          if (memory.isSelected) {
-            final trimmedText = TextUtils.trimToWordLimit(memory.extractedText);
-            context.add(trimmedText);
+        // Get list of selected file names
+        List<String> selectedFiles = pdfMemories
+            .where((memory) => memory.isSelected)
+            .map((memory) => memory.name)
+            .toList();
+        
+        if (selectedFiles.isNotEmpty) {
+          // Use the FileProcessor to perform vector similarity search
+          final fileProcessor = FileProcessor();
+          try {
+            // This performs semantic search to find relevant chunks
+            final relevantDocs = await fileProcessor.queryFile(
+              prompt,
+              selectedFiles: selectedFiles,
+            );
+            
+            debugPrint('Retrieved ${relevantDocs.length} relevant chunks via vector search');
+            
+            // Format the retrieved chunks with source information
+            for (var doc in relevantDocs) {
+              final source = doc.metadata!['file'] ?? 'Unknown';
+              final chunkIndex = doc.metadata!['chunkIndex'] ?? '';
+              context.add("From: $source (chunk $chunkIndex)\n${doc.pageContent}");
+            }
+          } catch (e) {
+            debugPrint('Error in vector similarity search: $e');
+            // Fallback to the old method if vector search fails
+            for (var memory in pdfMemories) {
+              if (memory.isSelected) {
+                final trimmedText = TextUtils.trimToWordLimit(memory.extractedText);
+                context.add("From: ${memory.name}\n$trimmedText");
+              }
+            }
           }
         }
       }
-      debugPrint('Context built with ${context.length} memories');
-
+      
       // Step 1: Perform web search if enabled
       String? searchResults;
       if (useWebSearch) {

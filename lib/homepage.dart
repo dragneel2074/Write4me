@@ -30,6 +30,7 @@ import '../providers/offline_mode_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'file_processing/file_processor.dart';
 import 'embedding_generator.dart';
+import '../providers/selected_documents_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -216,6 +217,12 @@ class _HomePageState extends ConsumerState<HomePage>
     if (pdfMemory != null) {
       debugPrint("[RAG] PDF picked: ${pdfMemory.name}");
       _addContent(pdfMemory);
+      
+      // Add to selectedDocumentsProvider to ensure RAG uses it
+      final currentDocs = ref.read(selectedDocumentsProvider);
+      ref.read(selectedDocumentsProvider.notifier).state = [...currentDocs, pdfMemory];
+      debugPrint("[RAG] Added PDF to selectedDocumentsProvider: ${currentDocs.length + 1} documents");
+      
       if (mounted) {
         NotificationService.showTopNotification(
           context,
