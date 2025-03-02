@@ -1,6 +1,6 @@
 # Write4Me
 
-![Write4Me Logo](assets/images/logo.png)
+![Write4Me Logo](assets\images\playstore.png)
 
 A powerful Flutter-based writing assistant that leverages advanced language models for text generation, document analysis, and image creation - available both online and offline.
 
@@ -129,4 +129,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Langchain.dart](https://github.com/davidmigloz/langchain_dart) for RAG functionality
 - [FONNX](https://github.com/fonnx/flutter) for ONNX runtime integration
 - The Flutter community for their incredible tools and support
-
