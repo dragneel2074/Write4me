@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:langchain/langchain.dart';
 import 'package:path/path.dart' as path;
 import '../vector_store/chroma_vector_store.dart';
+import '../embeddings/fonnx_embeddings.dart';
 
 /// Processes files by reading content, chunking, generating embeddings,
 /// and adding them to the vector store.
@@ -14,13 +15,22 @@ class FileProcessor {
     final List<String> chunks = _chunkText(content, 1000);
     print("FileProcessor: Split content into ${chunks.length} chunks");
 
+    // Compute offline embeddings for each chunk
+    final fonnxEmbeddings = FonnxEmbeddings();
+    final embeddingFutures = chunks.map((chunk) => fonnxEmbeddings.embedQuery(chunk)).toList();
+    final embeddings = await Future.wait(embeddingFutures);
+
     List<Document> documents = [];
     for (int i = 0; i < chunks.length; i++) {
       String docId = "$fileName-$i";
       documents.add(Document(
         id: docId,
         pageContent: chunks[i],
-        metadata: {'file': fileName, 'chunkIndex': i},
+        metadata: {
+          'file': fileName,
+          'chunkIndex': i,
+          'embedding': embeddings[i]
+        },
       ));
       print("FileProcessor: Created document for $fileName chunk $i");
     }
@@ -41,14 +51,23 @@ class FileProcessor {
     print("FileProcessor: Read file content of length: ${content.length}");
     final List<String> chunks = _chunkText(content, 1000); // Chunk size can be adjusted.
     print("FileProcessor: Splitted content into ${chunks.length} chunks");
-    
+
+    // Compute offline embeddings for each chunk
+    final fonnxEmbeddings = FonnxEmbeddings();
+    final embeddingFutures = chunks.map((chunk) => fonnxEmbeddings.embedQuery(chunk)).toList();
+    final embeddings = await Future.wait(embeddingFutures);
+
     List<Document> documents = [];
     for (int i = 0; i < chunks.length; i++) {
       String docId = "${path.basename(filePath)}-$i";
       documents.add(Document(
         id: docId,
         pageContent: chunks[i],
-        metadata: {'file': path.basename(filePath), 'chunkIndex': i},
+        metadata: {
+          'file': path.basename(filePath),
+          'chunkIndex': i,
+          'embedding': embeddings[i]
+        },
       ));
       print("FileProcessor: Created document with id: $docId");
     }
