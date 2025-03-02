@@ -1,6 +1,6 @@
 # Write4Me
 
-![Write4Me Logo](assets\images\playstore.png)
+![Write4Me Logo](assets/images/playstore.png)
 
 A powerful Flutter-based writing assistant that leverages advanced language models for text generation, document analysis, and image creation - available both online and offline.
 
