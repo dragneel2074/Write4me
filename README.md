@@ -8,12 +8,12 @@ A powerful Flutter-based writing assistant that leverages advanced language mode
 
 ### Text Generation
 - **Free Cloud API**: Powered by OpenAI's 4o mini model through Pollinations API
-- **Document-Enhanced Responses**: Uses Retrieval Augmented Generation (RAG) to provide context-aware answers based on your documents
 - **Web Search Integration**: Optional web search capability using Jina API for up-to-date information
 - **Conversation History**: Maintains chat history for contextual follow-up questions
+- - **Document-Enhanced Responses**: Uses Retrieval Augmented Generation (RAG) to provide context-aware answers based on your documents (Future Update)
 
 ### Image Generation
-- **AI Image Creation**: Generate images using Flux model
+- **AI Image Creation**: Generate images using Flux model (NSFW Filter is Turned On)
 
 ### Offline Capabilities
 - **Fully Offline Mode**: Use the app without an internet connection
@@ -24,8 +24,9 @@ A powerful Flutter-based writing assistant that leverages advanced language mode
 
 ### Document Analysis
 - **PDF Support**: Upload and analyze PDF documents
-- **Semantic Search**: Find relevant information across your documents using vector similarity
-- **Document Memory**: Save and manage document references for future use
+- **Image OCR Support**: Upload and extract text from documents
+- **Semantic Search**: Find relevant information across your documents using vector similarity (Future Update)
+- **Document Memory**: Save and manage document references for future use (Future Update)
 
 ## Architecture
 
@@ -33,26 +34,11 @@ The application follows a modular architecture designed for flexibility and exte
 
 ### Core Components:
 
-1. **File Processing**
-   - `FileProcessor`: Handles document chunking, embedding generation, and vector store integration
-   - Uses semantic chunking techniques to preserve context
 
-2. **Vector Store**
-   - `ChromaVectorStore`: Manages document embeddings for similarity search
-   - Enables efficient retrieval of relevant document chunks
-
-3. **Embeddings**
-   - `FonnxEmbeddings`: Generates embeddings using the MiniLM-L6-V2 model
-   - Works offline through ONNX runtime integration
-
-4. **AI Services**
+1. **AI Services**
    - `TextGenerationService`: Handles cloud-based text generation
    - `OfflineModelService`: Manages local model inference
    - `AIService`: Coordinates between online and offline modes
-
-5. **RAG Controller**
-   - Ties together file processing, document retrieval, and text generation
-   - Augments prompts with relevant document contexts
 
 ## Installation
 
@@ -81,7 +67,11 @@ The application follows a modular architecture designed for flexibility and exte
    ```
    flutter run
    ```
+5. Build APK for Android
 
+ ```
+   flutter build apk --release
+```
 ### API Keys
 For web search functionality, you'll need:
 - Jina API key (configure in app settings)
@@ -113,7 +103,8 @@ For web search functionality, you'll need:
 ### Offline Models
 - Qwen 2.5b (0.5 quantized)
 - Deepseek R1 1.5b
-- MiniLM-L6-V2 (for embeddings)
+- Download Others As You Like
+
 
 ## Contributing
 
