@@ -56,7 +56,7 @@ For Android APK:
 flutter build apk
 ```
 
-For iOS:
+For iOS: (The app is not currently availabe for IOS)
 ```
 flutter build ios
 ```
