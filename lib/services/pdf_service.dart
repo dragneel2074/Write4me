@@ -142,7 +142,9 @@ class PDFService {
     cleaned = cleaned.trim();
     
     if (kDebugMode && cleaned.length != text.length) {
-      print('PDFService: Text cleaning changed length from ${text.length} to ${cleaned.length}');
+      if (kDebugMode) {
+        print('PDFService: Text cleaning changed length from ${text.length} to ${cleaned.length}');
+      }
     }
     
     return cleaned;

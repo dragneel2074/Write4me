@@ -587,9 +587,13 @@ policymakers are advocating for targeted deregulation to bolster competitiveness
         print('Metadata:');
         doc.metadata.forEach((key, value) {
           if (key != 'embedding') { // Skip embedding vector which is too long
-            print('  $key: $value');
+            if (kDebugMode) {
+              print('  $key: $value');
+            }
           } else {
-            print('  embedding: [vector with ${(value as List?)?.length ?? 0} dimensions]');
+            if (kDebugMode) {
+              print('  embedding: [vector with ${(value as List?)?.length ?? 0} dimensions]');
+            }
           }
         });
         
