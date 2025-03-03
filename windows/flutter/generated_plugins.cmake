@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   fonnx
   gal
   permission_handler_windows
+  share_plus
   url_launcher_windows
 )
 

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ai_service.dart';
 import '../services/text_generation_service.dart';
 import '../services/offline_model_service.dart';
+import 'file_processor_provider.dart';
 
 // Initialize OfflineModelService first
 final offlineModelServiceProvider = Provider<OfflineModelService>((ref) {
@@ -34,7 +35,8 @@ final textGenerationServiceProvider = Provider<TextGenerationService>((ref) {
 final aiServiceProvider = Provider<AIService>((ref) {
   final textGenService = ref.watch(textGenerationServiceProvider);
   final offlineService = ref.watch(offlineModelServiceProvider);
-  return AIService(textGenService, offlineService);
+  final fileProcessor = ref.watch(fileProcessorProvider);
+  return AIService(textGenService, offlineService, fileProcessor);
 });
 
 // final notificationServiceProvider = Provider<NotificationService>((ref) {

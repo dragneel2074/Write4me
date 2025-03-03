@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/text_utils.dart';
 import '../models/chat_message.dart';
 import '../models/pdf_memory.dart';
+import '../file_processing/file_processor.dart';
 
 class TextGenerationService {
   static const String baseUrl = 'https://text.pollinations.ai/';
@@ -52,13 +53,24 @@ class TextGenerationService {
           ? 'Search the internet and provide accurate information about: $prompt'
           : prompt);
     } else {
+      // Enhanced formatting for multiple context chunks
+      if (kDebugMode) {
+        print('Formatting ${context.length} context chunks for API request');
+      }
+      
       formattedPrompt.write('''
 Query: ${useWebSearch ? 'Search the internet and answer based on both the context and current information about' : 'Answer based on the context about'}: 
 $prompt
 
-Context:
-${context.join('\n')}
+Context (${context.length} relevant passages):
 ''');
+
+      // Add each context chunk with clear separators
+      for (int i = 0; i < context.length; i++) {
+        formattedPrompt.writeln('----- PASSAGE ${i+1}/${context.length} -----');
+        formattedPrompt.writeln(context[i]);
+        formattedPrompt.writeln('-----------------------------');
+      }
     }
 
     return formattedPrompt.toString();
@@ -132,7 +144,7 @@ ${context.join('\n')}
           debugPrint('Jina search results: $searchResults');
           
           // Generate response with search results
-          const model = 'mistral';
+          const model = 'openai-large';
           const system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
           
           final formattedPrompt = '''
@@ -216,10 +228,10 @@ $prompt
         }
       }
 
-      const model = 'mistral'; // Always use mistral for text generation
+      const model = 'openai-large'; // Using openai-large for text generation
       final system = useWebSearch
           ? 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.'
-          : 'You are Aura, a helpful AI assistant who answers concisely. Before answering, first understand that if previous conversations are required to answer the present question.';
+          : 'You are Aura, a helpful AI assistant who answers concisely based on the provided context documents. Be sure to consider ALL provided context passages before answering.';
 
       // Format prompt with search results if available
       final formattedPrompt = useWebSearch
@@ -232,7 +244,20 @@ $prompt
 '''
           : _formatPrompt(prompt, context, useWebSearch, history);
 
-      final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt);
+      // If we have multiple context chunks, increase the word limit to ensure we don't lose content
+      final wordLimit = (context != null && context.length > 1) ? 4000 : 2000;
+      
+      if (kDebugMode) {
+        print("Using word limit of $wordLimit for ${context?.length ?? 0} context chunks");
+        print("Original prompt length: ${formattedPrompt.length} characters");
+      }
+      
+      final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt, limit: wordLimit);
+      
+      if (kDebugMode && trimmedPrompt.length != formattedPrompt.length) {
+        print("Prompt was trimmed from ${formattedPrompt.length} to ${trimmedPrompt.length} characters");
+      }
+      
       final url = _buildUrl(trimmedPrompt, model, system);
       debugPrint('url: $url');
       final response = await _dio.get(
@@ -259,8 +284,73 @@ $prompt
   }
 
   Uri _buildUrl(String prompt, String model, String system) {
-    final encodedPrompt = Uri.encodeComponent(prompt);
-    return Uri.parse('$baseUrl$encodedPrompt?model=$model&system=$system');
+    // Clean prompt before encoding to remove problematic characters
+    if (kDebugMode) {
+      print('\n========== URL GENERATION DETAILS ==========');
+      print('Original prompt length: ${prompt.length}');
+      // Show a preview of the prompt
+      final previewLength = prompt.length > 50 ? 50 : prompt.length;
+      print('Original prompt preview: ${prompt.substring(0, previewLength)}...');
+    }
+    
+    final cleanedPrompt = _sanitizeTextForUrl(prompt);
+    final encodedPrompt = Uri.encodeComponent(cleanedPrompt);
+    final url = Uri.parse('$baseUrl$encodedPrompt?model=$model&system=$system');
+    
+    if (kDebugMode) {
+      print('Final URL length: ${url.toString().length}');
+      print('URL preview: ${url.toString().substring(0, url.toString().length > 100 ? 100 : url.toString().length)}...');
+      print('===========================================\n');
+    }
+    
+    return url;
+  }
+  
+  // Private method to sanitize text before URL encoding
+  String _sanitizeTextForUrl(String text) {
+    if (text.isEmpty) return text;
+    
+    if (kDebugMode) {
+      print('TextGenerationService: Sanitizing prompt text of length ${text.length} for API request');
+      // Print a small sample of the text before cleaning
+      final previewLength = text.length > 100 ? 100 : text.length;
+      print('TextGenerationService: First $previewLength chars before cleaning: ${text.substring(0, previewLength)}');
+    }
+    
+    // Import the cleaning function if not already imported
+    try {
+      // Try to use the FileProcessor's method if available
+      final cleanedText = FileProcessor.cleanTextForApiSubmission(text);
+      
+      if (kDebugMode) {
+        print('TextGenerationService: Text cleaned for API submission, new length: ${cleanedText.length}');
+        if (cleanedText.length != text.length) {
+          print('TextGenerationService: Text length changed during cleaning (${text.length} -> ${cleanedText.length})');
+        }
+      }
+      
+      return cleanedText;
+    } catch (e) {
+      // Fallback implementation if the FileProcessor method is not available
+      if (kDebugMode) {
+        print('TextGenerationService: Using fallback text cleaning method: $e');
+      }
+      
+      // Remove problematic sequences like $1, $2, etc.
+      String cleaned = text.replaceAll(RegExp(r'\$\d+'), '');
+      
+      // Strip non-printable ASCII characters
+      cleaned = cleaned.replaceAll(RegExp(r'[^\x20-\x7E\n\r]'), '');
+      
+      // Normalize whitespace
+      cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+      
+      if (kDebugMode && cleaned.length != text.length) {
+        print('TextGenerationService: Text length changed during fallback cleaning (${text.length} -> ${cleaned.length})');
+      }
+      
+      return cleaned;
+    }
   }
 
   Future<String> getJinaApiKey() async {

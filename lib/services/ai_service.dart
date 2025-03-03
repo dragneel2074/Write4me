@@ -12,9 +12,10 @@ import '../file_processing/file_processor.dart';
 class AIService extends ChangeNotifier {
   final TextGenerationService _textGenService;
   final OfflineModelService _offlineService;
+  final FileProcessor _fileProcessor;
   bool _isGenerating = false;
 
-  AIService(this._textGenService, this._offlineService) {
+  AIService(this._textGenService, this._offlineService, this._fileProcessor) {
     // Listen to offline service changes
     _offlineService.addListener(_onOfflineServiceChanged);
   }
@@ -84,7 +85,7 @@ class AIService extends ChangeNotifier {
     }
     
     if (context.isNotEmpty) {
-      fullPrompt.writeln('\nDOCUMENT CONTEXT:');
+      fullPrompt.writeln('\nDOCUMENT CONTEXT (retrieved using local offline embeddings):');
       for (int i = 0; i < context.length; i++) {
         fullPrompt.writeln('---');
         fullPrompt.writeln(context[i]);
@@ -142,23 +143,94 @@ class AIService extends ChangeNotifier {
             .toList();
         
         if (selectedFiles.isNotEmpty) {
-          // Use the FileProcessor to perform vector similarity search
-          final fileProcessor = FileProcessor();
+          // Use the injected FileProcessor to perform vector similarity search
           try {
             // This performs semantic search to find relevant chunks
-            final relevantDocs = await fileProcessor.queryFile(
+            debugPrint('Performing vector similarity search with ${selectedFiles.length} selected files');
+            
+            // Retrieve more results for better coverage
+            final relevantDocs = await _fileProcessor.queryFile(
               prompt,
               selectedFiles: selectedFiles,
+              limit: 2, // Increased from default
             );
             
             debugPrint('Retrieved ${relevantDocs.length} relevant chunks via vector search');
             
+            // DEBUG: Print document chunks content for debugging
+            if (kDebugMode) {
+              print('\n==================== VECTOR SEARCH RESULTS ====================');
+              print('Query: "$prompt"');
+              print('Number of chunks found: ${relevantDocs.length}');
+              
+              for (int i = 0; i < relevantDocs.length; i++) {
+                final doc = relevantDocs[i];
+                final source = doc.metadata['file'] as String? ?? 'Unknown';
+                final score = doc.metadata['score'] != null ? 
+                    '${(doc.metadata['score'] as double).toStringAsFixed(4)}' : 'N/A';
+                
+                print('\n--- CHUNK ${i+1}/${relevantDocs.length} (Source: $source, Score: $score) ---');
+                print('First 200 chars: ${doc.pageContent.length > 200 ? doc.pageContent.substring(0, 200) + "..." : doc.pageContent}');
+                
+                // Log full content length to verify complete chunks are being used
+                print('Full content length: ${doc.pageContent.length} characters');
+                
+                // Check for problematic sequences
+                final problematicSeqCount = '\$1'.allMatches(doc.pageContent).length;
+                if (problematicSeqCount > 0) {
+                  print('WARNING: Contains $problematicSeqCount "\$1" sequences that may cause API issues');
+                }
+              }
+              print('================================================================\n');
+            }
+            
+            // Check if we have enough context from across the document
+            final Map<String, int> fileChunkCounts = {};
+            for (var doc in relevantDocs) {
+              final file = doc.metadata['file'] as String;
+              fileChunkCounts[file] = (fileChunkCounts[file] ?? 0) + 1;
+            }
+            
+            debugPrint('File distribution in results: $fileChunkCounts');
+            
             // Format the retrieved chunks with source information
             for (var doc in relevantDocs) {
-              final source = doc.metadata!['file'] ?? 'Unknown';
-              final chunkIndex = doc.metadata!['chunkIndex'] ?? '';
-              context.add("From: $source (chunk $chunkIndex)\n${doc.pageContent}");
+              final source = doc.metadata['file'] ?? 'Unknown';
+              final chunkIndex = doc.metadata['chunkIndex'] ?? '';
+              final totalChunks = doc.metadata['totalChunks'] ?? '';
+              context.add("From: $source (chunk $chunkIndex of $totalChunks)\n${doc.pageContent}");
             }
+            
+            // Clean the context text before sending to API
+            for (int i = 0; i < context.length; i++) {
+              if (kDebugMode) {
+                print('\n----------- CLEANING CONTEXT CHUNK ${i+1}/${context.length} -----------');
+                print('Before cleaning (first 100 chars): ${context[i].length > 100 ? context[i].substring(0, 100) + "..." : context[i]}');
+                
+                // Look for problematic patterns before cleaning
+                final dollarDigitCount = RegExp(r'\$\d+').allMatches(context[i]).length;
+                final nonAsciiCount = RegExp(r'[^\x20-\x7E\n\r]').allMatches(context[i]).length;
+                
+                if (dollarDigitCount > 0 || nonAsciiCount > 0) {
+                  print('Found: $dollarDigitCount \$digit sequences, $nonAsciiCount non-ASCII characters');
+                }
+              }
+              
+              final originalLength = context[i].length;
+              context[i] = FileProcessor.cleanTextForApiSubmission(context[i]);
+              
+              if (kDebugMode) {
+                final newLength = context[i].length;
+                final lengthDiff = originalLength - newLength;
+                print('After cleaning (first 100 chars): ${context[i].length > 100 ? context[i].substring(0, 100) + "..." : context[i]}');
+                print('Length change: $originalLength → $newLength (${lengthDiff > 0 ? "-$lengthDiff" : "+${-lengthDiff}"} chars)');
+                print('----------------------------------------------------------\n');
+              }
+            }
+            
+            // Diagnostic output about vector store
+            final stats = await _fileProcessor.getVectorStoreStats();
+            debugPrint('Vector store stats: $stats');
           } catch (e) {
             debugPrint('Error in vector similarity search: $e');
             // Fallback to the old method if vector search fails
@@ -166,6 +238,7 @@ class AIService extends ChangeNotifier {
               if (memory.isSelected) {
                 final trimmedText = TextUtils.trimToWordLimit(memory.extractedText);
                 context.add("From: ${memory.name}\n$trimmedText");
+                debugPrint('Using fallback method for ${memory.name}');
               }
             }
           }

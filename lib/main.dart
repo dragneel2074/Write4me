@@ -6,6 +6,7 @@ import 'theme/theme_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/navigator_provider.dart';
 import 'components/splash_screen.dart';
+import 'pages/diagnostic_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,9 @@ class MyApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       home: const SplashScreen(),
+      routes: {
+        '/diagnostics': (context) => const DiagnosticPage(),
+      },
     );
   }
 }

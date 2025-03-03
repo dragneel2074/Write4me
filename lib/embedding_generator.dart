@@ -11,23 +11,31 @@ class EmbeddingGenerator {
   ///
   /// Returns a [Future] that resolves to a list of doubles representing the embedding.
   static Future<List<double>> generateEmbedding(String text) async {
-    print("EmbeddingGenerator: Generating embedding for text: $text");
+    if (kDebugMode) {
+      print("EmbeddingGenerator: Generating embedding for text: $text");
+    }
     
     // Get the model file path, ensuring it's copied locally from assets if necessary.
     final modelPath = await getModelPath();
-    print("EmbeddingGenerator: Model loaded from: $modelPath");
+    if (kDebugMode) {
+      print("EmbeddingGenerator: Model loaded from: $modelPath");
+    }
     
     // Load the MiniLmL6V2 model.
     final model = MiniLmL6V2.load(modelPath);
     
     // Tokenize the input text.
     final tokens = MiniLmL6V2.tokenizer.tokenize(text).first.tokens;
-    print("EmbeddingGenerator: Tokenized text into ${tokens.length} tokens");
+    if (kDebugMode) {
+      print("EmbeddingGenerator: Tokenized text into ${tokens.length} tokens");
+    }
     
     // Obtain the embedding as a vector.
     final embeddingVector = await model.getEmbeddingAsVector(tokens);
     final embedding = embeddingVector.toList();
-    print("EmbeddingGenerator: Embedding generated with length: ${embedding.length}");
+    if (kDebugMode) {
+      print("EmbeddingGenerator: Embedding generated with length: ${embedding.length}");
+    }
     
     return embedding;
   }
@@ -44,7 +52,7 @@ class EmbeddingGenerator {
     final int fileLength = fileExists ? await file.length() : 0;
 
     // The asset path should match your folder structure.
-    final assetPath = 'assets/models/miniLmL6V2.onnx';
+    const assetPath = 'assets/models/miniLmL6V2.onnx';
     final assetByteData = await rootBundle.load(assetPath);
     final int assetLength = assetByteData.lengthInBytes;
     final bool fileSameSize = fileExists && fileLength == assetLength;
@@ -58,7 +66,9 @@ class EmbeddingGenerator {
         assetByteData.lengthInBytes,
       );
       await file.writeAsBytes(bytes, flush: true);
-      debugPrint("EmbeddingGenerator: Model copied to: $modelPath");
+      if (kDebugMode) {
+        debugPrint("EmbeddingGenerator: Model copied to: $modelPath");
+      }
     }
     return modelPath;
   }

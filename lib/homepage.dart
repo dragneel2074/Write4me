@@ -13,7 +13,6 @@ import 'models/pdf_memory.dart';
 import 'services/image_generation_service.dart';
 import 'services/image_service.dart';
 import 'services/notification_service.dart';
-import 'services/pdf_service.dart';
 import 'services/web_service.dart';
 import 'utils/dialog_manager.dart';
 import 'widgets/intro_drawer.dart';
@@ -28,9 +27,8 @@ import '../providers/service_provider.dart';
 import '../providers/ui_state_provider.dart';
 import '../providers/offline_mode_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'file_processing/file_processor.dart';
-import 'embedding_generator.dart';
 import '../providers/selected_documents_provider.dart';
+import 'providers/service_providers.dart' as new_providers;
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -44,18 +42,15 @@ class _HomePageState extends ConsumerState<HomePage>
   final List<PDFMemory> _pdfMemories = [];
   final TextEditingController _controller = TextEditingController();
   late final ScrollController _scrollController;
-  bool _isProcessingPDF = false;
 
   // Move these to a new StateNotifier
   // final bool _isImageMode = false;
 
-  // Services that don't need state management
-  final PDFService _pdfService = PDFService();
+  // Services are now accessed through providers
   final ImageGenerationService _imageGenService = ImageGenerationService();
   final WebService _webService = WebService();
   final ImageService _imageService = ImageService();
   final ChatStorageService _chatStorage = ChatStorageService();
-  final FileProcessor _fileProcessor = FileProcessor();
 
   // Move this to a StateNotifier
   // final List<SavedChat> _savedChats = [];
@@ -96,7 +91,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Future<void> _checkServiceStatus() async {
     final chatNotifier = ref.read(chatProvider.notifier);
-    final textGenService = ref.read(textGenerationServiceProvider);
+    final textGenService = ref.read(new_providers.textGenerationServiceProvider);
 
     chatNotifier.addMessage(
       ChatMessage(
@@ -212,8 +207,11 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Future<void> _pickPDFAndCreateRAG() async {
     debugPrint("[RAG] Starting PDF processing workflow");
-    setState(() => _isProcessingPDF = true);
-    final pdfMemory = await _pdfService.pickAndProcessPDF();
+    
+    // Use the PDFService through the provider
+    final pdfService = ref.read(new_providers.pdfServiceProvider);
+    final pdfMemory = await pdfService.pickAndProcessPDF();
+    
     if (pdfMemory != null) {
       debugPrint("[RAG] PDF picked: ${pdfMemory.name}");
       _addContent(pdfMemory);
@@ -230,32 +228,16 @@ class _HomePageState extends ConsumerState<HomePage>
         );
       }
       
-      // Process the PDF content for RAG
-      try {
-        debugPrint("[RAG] Starting text processing for PDF: ${pdfMemory.name}");
-        debugPrint("[RAG] Extracted text length: ${pdfMemory.extractedText.length}");
-        
-        await _fileProcessor.processText(
-          pdfMemory.extractedText,
-          pdfMemory.name
-        );
-        debugPrint("Embedding file exists: ${File(await EmbeddingGenerator.getModelPath()).existsSync()}");
-        debugPrint("[RAG] Successfully processed PDF through RAG pipeline");
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF processed successfully!'))
-        );
-      } catch (e) {
-        debugPrint("[RAG ERROR] Failed to process PDF: ${e.toString()}");
-        debugPrint(e.toString());
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to process PDF: ${e.toString()}'))
-        );
+      // The PDF has already been processed by the PDFService
+      // which has the FileProcessor injected into it
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PDF processed successfully!'))
+      );
+    } else {
+      if (mounted) {
       }
     }
-    debugPrint("[RAG] PDF processing workflow completed");
-    setState(() => _isProcessingPDF = false);
   }
 
   void _addContent(PDFMemory memory) {
@@ -325,7 +307,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _clearChat() async {
-    final aiService = ref.read(aiServiceProvider);
+    final aiService = ref.read(new_providers.aiServiceProvider);
     aiService.stopGeneration();
 
     final chatNotifier = ref.read(chatProvider.notifier);
@@ -349,7 +331,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _stopGeneration() async {
-    final aiService = ref.read(aiServiceProvider);
+    final aiService = ref.read(new_providers.aiServiceProvider);
     aiService.stopGeneration();
     ref.read(chatProvider.notifier).setGenerating(false);
   }
@@ -362,8 +344,8 @@ class _HomePageState extends ConsumerState<HomePage>
     final chatState = ref.read(chatProvider);
     final uiState = ref.read(uiStateProvider);
     final offlineModeState = ref.read(offlineModeProvider);
-    final aiService = ref.read(aiServiceProvider);
-    final textGenService = ref.read(textGenerationServiceProvider);
+    final aiService = ref.read(new_providers.aiServiceProvider);
+    final textGenService = ref.read(new_providers.textGenerationServiceProvider);
 
     _controller.clear();
     chatNotifier.startLoading();
@@ -709,7 +691,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _showApiKeyDialog(BuildContext context) async {
-    final textGenService = ref.read(textGenerationServiceProvider);
+    final textGenService = ref.read(new_providers.textGenerationServiceProvider);
     final currentKey = await textGenService.getJinaApiKey();
     
     final controller = TextEditingController(text: currentKey);
