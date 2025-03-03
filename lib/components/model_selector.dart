@@ -51,7 +51,10 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
             );
             
             if (!dialogContext.mounted) return;
-            MessageUtils.showSuccess(dialogContext, 'Model downloaded successfully');
+            MessageUtils.showSuccess(
+              dialogContext, 
+              'Model downloaded successfully. Tap on the model name to select it for use.'
+            );
             Navigator.of(dialogContext).pop();
           } catch (e) {
             if (!dialogContext.mounted) return;
@@ -89,19 +92,20 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          // Cloud model option
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: const Text('Cloud'),
-              selected: !ref.watch(offlineModeProvider.select((s) => s.useLocalModel)),
-              onSelected: (selected) {
-                if (selected) {
-                  ref.read(offlineModeProvider.notifier).setUseLocalModel(false);
-                }
-              },
+          // Cloud model option - only show when not in offline mode
+          if (!isOfflineMode)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: const Text('Cloud'),
+                selected: !ref.watch(offlineModeProvider.select((s) => s.useLocalModel)),
+                onSelected: (selected) {
+                  if (selected) {
+                    ref.read(offlineModeProvider.notifier).setUseLocalModel(false);
+                  }
+                },
+              ),
             ),
-          ),
 
           // Show offline models if available
           if (models.isNotEmpty)

@@ -253,6 +253,7 @@ class AIService extends ChangeNotifier {
     debugPrint('- prompt: $prompt');
     debugPrint('- useWebSearch: $useWebSearch');
     debugPrint('- isLocalModel: ${_offlineService.useLocalModel}');
+    debugPrint('- isOfflineMode: ${_offlineService.isOfflineMode}');
     debugPrint('- history length: ${history.length}');
 
     if (_isGenerating) {
@@ -264,6 +265,22 @@ class AIService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // If in offline mode, force local model and disable web search
+      final bool isOfflineMode = _offlineService.isOfflineMode;
+      
+      // When in offline mode, we must use local model and cannot use web search
+      if (isOfflineMode) {
+        if (!_offlineService.useLocalModel) {
+          debugPrint('In offline mode but local model not active - forcing local model');
+          await _offlineService.setUseLocalModel(true);
+        }
+        // Override web search setting when in offline mode
+        if (useWebSearch) {
+          debugPrint('Web search requested but in offline mode - disabling web search');
+          useWebSearch = false;
+        }
+      }
+      
       // Filter out service check messages from history
       final filteredHistory = _filterServiceCheckMessages(history);
       debugPrint('- filtered history length: ${filteredHistory.length}');
@@ -380,9 +397,9 @@ class AIService extends ChangeNotifier {
         }
       }
       
-      // Step 1: Perform web search if enabled
+      // Step 1: Perform web search if enabled and not in offline mode
       String? searchResults;
-      if (useWebSearch) {
+      if (useWebSearch && !isOfflineMode) {
         debugPrint('Starting web search process...');
         searchResults = await _performWebSearch(prompt, onResponse);
         debugPrint('Search completed. Results: ${searchResults != null ? 'found' : 'not found'}');
@@ -395,11 +412,11 @@ class AIService extends ChangeNotifier {
           }
         }
       } else {
-        debugPrint('Web search not requested');
+        debugPrint('Web search not requested or offline mode enabled');
       }
 
       // Step 2: Generate response based on model selection
-      if (_offlineService.useLocalModel) {
+      if (_offlineService.useLocalModel || isOfflineMode) {
         debugPrint('Using local model for generation');
         debugPrint('Search results available: ${searchResults != null}');
         await _generateLocalResponse(

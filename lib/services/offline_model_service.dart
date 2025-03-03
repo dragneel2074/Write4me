@@ -16,8 +16,37 @@ class CancelException implements Exception {
   String toString() => message;
 }
 
+/// Class to manage cancellable operations
+class CancelableCompleter {
+  final Completer<void> _completer = Completer<void>();
+  final CancelToken token = CancelToken();
+  
+  bool get isCancelled => token.isCancelled;
+  
+  Future<void> get future => _completer.future;
+  
+  void complete() {
+    if (!_completer.isCompleted) {
+      _completer.complete();
+    }
+  }
+  
+  void completeError(Object error, [StackTrace? stackTrace]) {
+    if (!_completer.isCompleted) {
+      _completer.completeError(error, stackTrace);
+    }
+  }
+  
+  void cancel() {
+    if (!token.isCancelled) {
+      token.cancel();
+    }
+  }
+}
+
 class OfflineModelService extends ChangeNotifier {
   final _dio = Dio();
+  CancelableCompleter? _downloadCancel;
 
   static const String _selectedModelKey = 'selected_model';
   static const String _isOfflineModeKey = 'is_offline_mode';
@@ -104,10 +133,11 @@ class OfflineModelService extends ChangeNotifier {
       _availableModels = await _getModelFiles();
       debugPrint('Available models: ${_availableModels.length}');
       
-      if (_availableModels.isNotEmpty && _selectedModelPath.isEmpty) {
-        debugPrint('Setting first model as selected: ${_availableModels.first.path}');
-        await setSelectedModel(_availableModels.first.path);
-      }
+      // Don't automatically set first model when initializing
+      // if (_availableModels.isNotEmpty && _selectedModelPath.isEmpty) {
+      //   debugPrint('Setting first model as selected: ${_availableModels.first.path}');
+      //   await setSelectedModel(_availableModels.first.path);
+      // }
 
       notifyListeners();
     } catch (e) {
@@ -134,42 +164,55 @@ class OfflineModelService extends ChangeNotifier {
     void Function(double) onProgress,
     String fileName,
   ) async {
-    debugPrint('Starting model download:');
-    debugPrint('URL: $url');
-    debugPrint('Filename: $fileName');
-
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/$fileName';
-    final file = File(filePath);
-
-    // Check if model is already downloaded
-    if (_downloadedUrls.contains(url)) {
-      if (!await file.exists()) {
-        _downloadedUrls.remove(url);
-        await _saveDownloadedUrls();
-      } else {
-        throw Exception('Model already downloaded');
-      }
-    }
-
     try {
-      await _downloadFile(url, file, onProgress);
-      await _processDownloadedModel(url, file);
-    } catch (e) {
-      debugPrint('Error downloading model: $e');
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/$fileName');
+      
       if (await file.exists()) {
-        await file.delete();
+        throw Exception('Model already exists');
       }
+
+      if (_downloadCancel != null) {
+        throw Exception('Another download is in progress');
+      }
+
+      _downloadCancel = CancelableCompleter();
+      
+      await _downloadWithProgress(
+        url,
+        file,
+        onProgress,
+        _downloadCancel!.token,
+      );
+      
+      _downloadCancel = null;
+      await _checkAvailableModels();
+      
+      // Don't automatically set selected model or enable local model
+      _downloadedUrls.add(url);
+      await _saveDownloadedUrls();
+      
+      // Log that model was downloaded without auto-switching
+      debugPrint('Model downloaded successfully: ${file.path}');
+      debugPrint('Available models: ${_availableModels.length}');
+      
+      notifyListeners();
+    } catch (e) {
+      _downloadCancel = null;
+      debugPrint('Error downloading model: $e');
       rethrow;
     }
   }
 
-  /// Downloads file from URL with progress tracking
-  Future<void> _downloadFile(
-    String url, 
-    File file, 
+  /// Downloads a file with progress tracking and cancellation support
+  Future<void> _downloadWithProgress(
+    String url,
+    File file,
     void Function(double) onProgress,
+    CancelToken cancelToken,
   ) async {
+    debugPrint('Downloading with progress from: $url');
+    
     final client = http.Client();
     try {
       final response = await client.send(http.Request('GET', Uri.parse(url)));
@@ -177,6 +220,8 @@ class OfflineModelService extends ChangeNotifier {
       if (response.statusCode != 200) {
         throw DownloadException(
           'Download failed: HTTP ${response.statusCode}',
+          statusCode: response.statusCode,
+          uri: Uri.parse(url),
         );
       }
 
@@ -184,16 +229,35 @@ class OfflineModelService extends ChangeNotifier {
       final sink = file.openWrite();
       int downloaded = 0;
 
-      await for (final chunk in response.stream) {
-        sink.add(chunk);
-        downloaded += chunk.length;
-        if (contentLength > 0) {
-          onProgress(downloaded / contentLength);
+      try {
+        await for (final chunk in response.stream) {
+          if (cancelToken.isCancelled) {
+            await sink.close();
+            client.close();
+            await file.delete();
+            throw CancelException();
+          }
+          
+          sink.add(chunk);
+          downloaded += chunk.length;
+          if (contentLength > 0) {
+            onProgress(downloaded / contentLength);
+          }
         }
+        
+        await sink.flush();
+        await sink.close();
+        client.close();
+        
+        debugPrint('Download completed successfully: ${file.path}');
+      } catch (e) {
+        await sink.close();
+        client.close();
+        if (await file.exists()) {
+          await file.delete();
+        }
+        rethrow;
       }
-      
-      await sink.flush();
-      await sink.close();
     } finally {
       client.close();
     }
@@ -207,14 +271,20 @@ class OfflineModelService extends ChangeNotifier {
       _checkAvailableModels(),
     ]);
 
-    if (_availableModels.isNotEmpty) {
-      final downloadedFile = _availableModels.lastWhere(
-        (f) => f.path == file.path,
-        orElse: () => _availableModels.last,
-      );
-      await setSelectedModel(downloadedFile.path);
-      await setUseLocalModel(true);
-    }
+    // Don't automatically switch to the downloaded model
+    // if (_availableModels.isNotEmpty) {
+    //   final downloadedFile = _availableModels.lastWhere(
+    //     (f) => f.path == file.path,
+    //     orElse: () => _availableModels.last,
+    //   );
+    //   await setSelectedModel(downloadedFile.path);
+    //   await setUseLocalModel(true);
+    // }
+    
+    // Just log the download completion
+    debugPrint('Model processed: ${file.path}');
+    debugPrint('Available models: ${_availableModels.length}');
+    
     notifyListeners();
   }
 
@@ -278,12 +348,18 @@ class OfflineModelService extends ChangeNotifier {
         await _saveDownloadedUrls();
         await _checkAvailableModels();
         
-        if (_availableModels.isNotEmpty) {
-          await setSelectedModel(file.path);
-          _useLocalModel = true;
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool(_useLocalModelKey, true);
-        }
+        // Don't automatically switch to downloaded model
+        // if (_availableModels.isNotEmpty) {
+        //   await setSelectedModel(file.path);
+        //   _useLocalModel = true;
+        //   final prefs = await SharedPreferences.getInstance();
+        //   await prefs.setBool(_useLocalModelKey, true);
+        // }
+        
+        // Just log that the model was downloaded
+        debugPrint('Custom model downloaded: ${file.path}');
+        debugPrint('Available models: ${_availableModels.length}');
+        
         notifyListeners();
       } catch (e) {
         await sink.close();

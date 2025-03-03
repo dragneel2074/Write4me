@@ -116,10 +116,31 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     }
     
     await _service.setOfflineMode(value);
-    state = state.copyWith(
-      isOfflineMode: value,
-      useLocalModel: value ? true : state.useLocalModel,
-    );
+    
+    // When switching to offline mode
+    if (value) {
+      // Ensure we have at least one offline model
+      if (state.availableModels.isEmpty) {
+        // Don't allow switching to offline mode if no models are available
+        debugPrint('Cannot switch to offline mode: no models available');
+        return;
+      }
+      
+      // Force use of local model when in offline mode
+      await _service.setUseLocalModel(true);
+      
+      debugPrint('Switched to offline mode - enforcing local model usage');
+      state = state.copyWith(
+        isOfflineMode: value,
+        useLocalModel: true,
+      );
+    } else {
+      // When switching back to online mode, keep settings as is
+      state = state.copyWith(
+        isOfflineMode: value,
+      );
+      debugPrint('Switched back to online mode');
+    }
     
     ref.read(chatProvider.notifier).clearError();
     if (value) _cleanupErrorMessages();
@@ -143,9 +164,16 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
   }
 
   void setUseLocalModel(bool value) {
+    // Don't allow disabling local model when in offline mode
+    if (state.isOfflineMode && !value) {
+      debugPrint('Cannot disable local model in offline mode');
+      return;
+    }
+    
     _service.setUseLocalModel(value);
     state = state.copyWith(useLocalModel: value);
-    // _service.notifyListeners();
+    // Debug output for offline mode changes
+    debugPrint('Local model usage set to: $value (offline mode: ${state.isOfflineMode})');
   }
 
   void setSelectedModel(String path) {
@@ -180,21 +208,27 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
   Future<void> _refreshModels() async {
     final models = await _service.getAvailableModels();
     
-    // If we have models, select the most recently added one
-    final newModelPath = models.isNotEmpty ? models.last.path : null;
-    
+    // Just update the available models list without auto-selecting or enabling
     state = state.copyWith(
       availableModels: models,
-      selectedModelPath: newModelPath,
       isDownloading: false,
-      useLocalModel: models.isNotEmpty,
+      // Don't auto-switch to the new model
+      // selectedModelPath: newModelPath,
+      // Don't auto-enable local model
+      // useLocalModel: models.isNotEmpty,
     );
 
-    // Also update the service state
-    if (newModelPath != null) {
-      await _service.setSelectedModel(newModelPath);
-      await _service.setUseLocalModel(true);
-    }
+    // Debug info only - no automatic switching
+    debugPrint('Models refreshed:');
+    debugPrint('- Available models: ${models.length}');
+    debugPrint('- Current selected model: ${state.selectedModelPath}');
+    debugPrint('- Current local model usage: ${state.useLocalModel}');
+    
+    // Don't automatically update the service state
+    // if (newModelPath != null) {
+    //   await _service.setSelectedModel(newModelPath);
+    //   await _service.setUseLocalModel(true);
+    // }
   }
 
   Future<void> deleteModel(String path) async {

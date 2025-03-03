@@ -10,7 +10,7 @@ A powerful Flutter-based writing assistant that leverages advanced language mode
 - **Free Cloud API**: Powered by OpenAI's 4o mini model through Pollinations API
 - **Web Search Integration**: Optional web search capability using Jina API for up-to-date information
 - **Conversation History**: Maintains chat history for contextual follow-up questions
-- - **Document-Enhanced Responses**: Uses Retrieval Augmented Generation (RAG) to provide context-aware answers based on your documents (Future Update)
+- - **Document-Enhanced Responses**: Uses Retrieval Augmented Generation (RAG) to provide context-aware answers based on your documents 
 
 ### Image Generation
 - **AI Image Creation**: Generate images using Flux model (NSFW Filter is Turned On)
@@ -25,7 +25,7 @@ A powerful Flutter-based writing assistant that leverages advanced language mode
 ### Document Analysis
 - **PDF Support**: Upload and analyze PDF documents
 - **Image OCR Support**: Upload and extract text from documents
-- **Semantic Search**: Find relevant information across your documents using vector similarity (Future Update)
+- **Semantic Search**: Find relevant information across your documents using vector similarity
 - **Document Memory**: Save and manage document references for future use (Future Update)
 
 ## Architecture
