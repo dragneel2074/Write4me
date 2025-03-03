@@ -685,7 +685,9 @@ The document should be retrievable using related queries about diagnostic tests.
     cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
     
     if (kDebugMode && text.length != cleaned.length) {
-      print("FileProcessor: Text length changed: ${text.length} → ${cleaned.length} (${text.length - cleaned.length} chars removed)");
+      if (kDebugMode) {
+        print("FileProcessor: Text length changed: ${text.length} → ${cleaned.length} (${text.length - cleaned.length} chars removed)");
+      }
     }
     
     return cleaned;

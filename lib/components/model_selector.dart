@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:write4me/providers/offline_mode_provider.dart';
+import 'package:write4me/providers/service_providers.dart';
 import 'package:write4me/utils/message_utils.dart';
 import 'package:write4me/widgets/model_download_dialog.dart';
 
@@ -106,7 +106,8 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
           // Show offline models if available
           if (models.isNotEmpty)
             ...models.map((model) {
-              final modelName = model.path.split('/').last.replaceAll('.gguf', '');
+              final offlineModelService = ref.read(offlineModeProvider.notifier).offlineModelService;
+              final modelName = offlineModelService.formatModelName(model.path);
               final isSelected = ref.watch(offlineModeProvider.select((s) => s.useLocalModel)) && 
                                model.path == ref.watch(offlineModeProvider.select((s) => s.selectedModelPath));
               

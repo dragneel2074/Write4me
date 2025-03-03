@@ -414,13 +414,39 @@ For images with text, refer to the extracted text to provide relevant informatio
 
   String formatModelName(String path) {
     final fileName = path.split('/').last.replaceAll('.gguf', '');
-    if (fileName.toLowerCase().contains('qwen')) {
-      final match = RegExp(r'qwen[^b]*b').firstMatch(fileName.toLowerCase());
-      if (match != null) {
-        return match.group(0)!.replaceAll('-', ' ').toUpperCase();
-      }
+    
+    // Check for sizes (like 0.5b, 7b, etc.) and cut at the "b"
+    final sizeMatch = RegExp(r'.*?(\d+(\.\d+)?b)', caseSensitive: false).firstMatch(fileName);
+    if (sizeMatch != null) {
+      // Get everything up to and including the "b"
+      final result = fileName.substring(0, sizeMatch.end);
+      return _capitalizeModelName(result);
     }
-    return fileName;
+    
+    // If no size found, take first two words separated by dash or underscore
+    final parts = fileName.split(RegExp(r'[-_]'));
+    if (parts.length >= 2) {
+      final result = '${parts[0]} ${parts[1]}';
+      return _capitalizeModelName(result);
+    }
+    
+    // Fallback to full name if no pattern matches
+    return _capitalizeModelName(fileName);
+  }
+  
+  String _capitalizeModelName(String name) {
+    // Split by spaces, dashes, or underscores
+    final parts = name.split(RegExp(r'[ _-]'));
+    final capitalizedParts = parts.map((part) {
+      if (part.isEmpty) return '';
+      // Don't capitalize size indicators like '7b', '0.5b'
+      if (RegExp(r'^\d+(\.\d+)?b$', caseSensitive: false).hasMatch(part)) {
+        return part.toLowerCase();
+      }
+      // Capitalize first letter of each part
+      return part[0].toUpperCase() + (part.length > 1 ? part.substring(1).toLowerCase() : '');
+    });
+    return capitalizedParts.join(' ');
   }
 
   Future<List<File>> getAvailableModels() async {

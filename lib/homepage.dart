@@ -23,12 +23,10 @@ import 'widgets/settings_dialog.dart';
 import 'components/model_selector.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_provider.dart';
-import '../providers/service_provider.dart';
 import '../providers/ui_state_provider.dart';
-import '../providers/offline_mode_provider.dart';
+import 'providers/service_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/selected_documents_provider.dart';
-import 'providers/service_providers.dart' as new_providers;
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -91,7 +89,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Future<void> _checkServiceStatus() async {
     final chatNotifier = ref.read(chatProvider.notifier);
-    final textGenService = ref.read(new_providers.textGenerationServiceProvider);
+    final textGenService = ref.read(textGenerationServiceProvider);
 
     chatNotifier.addMessage(
       ChatMessage(
@@ -209,7 +207,7 @@ class _HomePageState extends ConsumerState<HomePage>
     debugPrint("[RAG] Starting PDF processing workflow");
     
     // Use the PDFService through the provider
-    final pdfService = ref.read(new_providers.pdfServiceProvider);
+    final pdfService = ref.read(pdfServiceProvider);
     final pdfMemory = await pdfService.pickAndProcessPDF();
     
     if (pdfMemory != null) {
@@ -307,7 +305,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _clearChat() async {
-    final aiService = ref.read(new_providers.aiServiceProvider);
+    final aiService = ref.read(aiServiceProvider);
     aiService.stopGeneration();
 
     final chatNotifier = ref.read(chatProvider.notifier);
@@ -331,7 +329,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _stopGeneration() async {
-    final aiService = ref.read(new_providers.aiServiceProvider);
+    final aiService = ref.read(aiServiceProvider);
     aiService.stopGeneration();
     ref.read(chatProvider.notifier).setGenerating(false);
   }
@@ -344,8 +342,8 @@ class _HomePageState extends ConsumerState<HomePage>
     final chatState = ref.read(chatProvider);
     final uiState = ref.read(uiStateProvider);
     final offlineModeState = ref.read(offlineModeProvider);
-    final aiService = ref.read(new_providers.aiServiceProvider);
-    final textGenService = ref.read(new_providers.textGenerationServiceProvider);
+    final aiService = ref.read(aiServiceProvider);
+    final textGenService = ref.read(textGenerationServiceProvider);
 
     _controller.clear();
     chatNotifier.startLoading();
@@ -691,7 +689,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _showApiKeyDialog(BuildContext context) async {
-    final textGenService = ref.read(new_providers.textGenerationServiceProvider);
+    final textGenService = ref.read(textGenerationServiceProvider);
     final currentKey = await textGenService.getJinaApiKey();
     
     final controller = TextEditingController(text: currentKey);

@@ -50,6 +50,9 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     _loadState();
   }
 
+  // Expose the service
+  OfflineModelService get offlineModelService => _service;
+
   Future<void> _loadState() async {
     final models = await _service.getAvailableModels();
     state = state.copyWith(

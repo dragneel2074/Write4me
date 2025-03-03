@@ -20,7 +20,8 @@ class OfflineModelSelector extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         children: [
           ...offlineModeState.availableModels.map((model) {
-            final modelName = model.path.split('/').last.replaceAll('.gguf', '');
+            final offlineModelService = ref.read(offlineModeProvider.notifier).offlineModelService;
+            final modelName = offlineModelService.formatModelName(model.path);
             final isSelected = offlineModeState.useLocalModel && 
                              model.path == offlineModeState.selectedModelPath;
             
