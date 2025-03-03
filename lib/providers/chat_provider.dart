@@ -29,6 +29,34 @@ class ChatState {
       error: error ?? this.error,
     );
   }
+  
+  /// Returns meaningful chat history, excluding service check messages
+  List<ChatMessage> getMeaningfulHistory() {
+    // No messages, return empty list
+    if (messages.isEmpty) return [];
+    
+    // Find the first user message - everything before that is likely system initialization
+    int startIndex = 0;
+    
+    for (int i = 0; i < messages.length; i++) {
+      if (messages[i].isUser) {
+        startIndex = i;
+        break;
+      }
+    }
+    
+    // Get messages starting from first user message
+    final meaningfulMessages = messages.sublist(startIndex);
+    
+    if (kDebugMode) {
+      print("Getting meaningful history: ${messages.length} → ${meaningfulMessages.length} messages");
+      if (meaningfulMessages.isNotEmpty) {
+        print("First meaningful message: '${meaningfulMessages.first.content.substring(0, meaningfulMessages.first.content.length.clamp(0, 30))}...'");
+      }
+    }
+    
+    return meaningfulMessages;
+  }
 }
 
 class ChatNotifier extends StateNotifier<ChatState> {

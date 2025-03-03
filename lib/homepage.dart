@@ -229,9 +229,9 @@ class _HomePageState extends ConsumerState<HomePage>
       // The PDF has already been processed by the PDFService
       // which has the FileProcessor injected into it
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF processed successfully!'))
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text('PDF processed successfully!'))
+      // );
     } else {
       if (mounted) {
       }
@@ -441,6 +441,15 @@ class _HomePageState extends ConsumerState<HomePage>
         debugPrint('- isOfflineMode: ${offlineModeState.isOfflineMode}');
         debugPrint('- useLocalModel: ${offlineModeState.useLocalModel}');
         debugPrint('- useWebSearch: $useWebSearch');
+        
+        // DEBUG: Show history before filtering service messages
+        if (kDebugMode) {
+          print('Chat history before filtering:');
+          for (int i = 0; i < chatState.messages.length; i++) {
+            final msg = chatState.messages[i];
+            print('[$i] ${msg.isUser ? "USER" : "AI"}: ${msg.content.substring(0, msg.content.length.clamp(0, 50))}...');
+          }
+        }
 
         try {
           await aiService.getStreamingResponse(
@@ -454,7 +463,8 @@ class _HomePageState extends ConsumerState<HomePage>
               }
             },
             useWebSearch: useWebSearch,
-            history: chatState.messages,
+            // Use getMeaningfulHistory() instead of all messages to exclude service check messages
+            history: chatState.getMeaningfulHistory(),
           );
         } catch (e) {
           chatNotifier.replaceMessage(

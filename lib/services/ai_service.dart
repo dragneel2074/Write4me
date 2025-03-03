@@ -1,13 +1,13 @@
 import 'dart:io';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import '../file_processing/file_processor.dart';
 
 import '../models/pdf_memory.dart';
 import '../models/chat_message.dart';
 import 'text_generation_service.dart';
 import '../utils/text_utils.dart';
 import 'offline_model_service.dart';
-import 'dart:async';
-import 'package:flutter/foundation.dart';
-import '../file_processing/file_processor.dart';
 
 class AIService extends ChangeNotifier {
   final TextGenerationService _textGenService;
@@ -63,6 +63,48 @@ class AIService extends ChangeNotifier {
     }
   }
 
+  /// Filters out service check messages from chat history
+  List<ChatMessage> _filterServiceCheckMessages(List<ChatMessage> history) {
+    // Skip the first system messages that are service checks
+    if (history.isEmpty) return history;
+    
+    // Define patterns that identify service check messages
+    final serviceCheckPatterns = [
+      'Checking if services are online',
+      'Service is Online',
+      'Service is Offline',
+      'Chat Service is Online',
+      'Image Service is Online',
+      'Chat Service is currently Offline',
+      'Image Service is Offline',
+      'Checking service status',
+      'Services are',
+      'Hey!',
+      'Ask Me Anything'
+    ];
+    
+    final filtered = history.where((message) {
+      // Keep all user messages
+      if (message.isUser) return true;
+      
+      // Filter out system messages that match service check patterns
+      for (final pattern in serviceCheckPatterns) {
+        if (message.content.contains(pattern)) {
+          return false;
+        }
+      }
+      
+      return true;
+    }).toList();
+    
+    // Debug print to show filtering effect
+    if (kDebugMode) {
+      print("Filtered chat history: ${history.length} → ${filtered.length} messages");
+    }
+    
+    return filtered;
+  }
+
   Future<void> _generateLocalResponse(
     String prompt,
     String? searchResults,
@@ -72,44 +114,132 @@ class AIService extends ChangeNotifier {
   ) async {
     debugPrint('_generateLocalResponse called with:');
     debugPrint('- prompt: $prompt');
-    debugPrint('- searchResults: ${searchResults?.substring(0, searchResults.length.clamp(0, 100))}...');
+    debugPrint('- searchResults: ${searchResults?.substring(0, searchResults?.length.clamp(0, 100) ?? 0)}...');
     debugPrint('- context length: ${context.length}');
+    
+    // Limit context size for faster inference
+    final limitedContext = _limitContextSize(context);
+    debugPrint('- limited context length: ${limitedContext.length}');
     
     final fullPrompt = StringBuffer();
     
-    fullPrompt.writeln('You are a helpful assistant answering questions based on specific information.');
+    // Determine which mode we're in
+    final bool hasDocuments = limitedContext.isNotEmpty;
+    final bool hasWebSearch = searchResults != null;
     
-    if (searchResults != null) {
-      fullPrompt.writeln('\nWEB SEARCH RESULTS:');
-      fullPrompt.writeln(searchResults);
+    if (kDebugMode) {
+      print('Generating prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : "Simple"}');
     }
     
-    if (context.isNotEmpty) {
-      fullPrompt.writeln('\nDOCUMENT CONTEXT (retrieved using local offline embeddings):');
-      for (int i = 0; i < context.length; i++) {
-        fullPrompt.writeln('---');
-        fullPrompt.writeln(context[i]);
-      }
-      fullPrompt.writeln('---');
+    // Choose appropriate prompt based on mode
+    if (hasWebSearch) {
+      _buildWebSearchPrompt(fullPrompt, prompt, searchResults, limitedContext);
+    } else if (hasDocuments) {
+      _buildDocumentPrompt(fullPrompt, prompt, limitedContext);
+    } else {
+      _buildSimplePrompt(fullPrompt, prompt);
     }
-    
-    fullPrompt.writeln('\nQUESTION: $prompt');
-    fullPrompt.writeln('\nINSTRUCTIONS:');
-    fullPrompt.writeln('1. Answer based ONLY on the provided context above');
-    fullPrompt.writeln('2. If the answer is not in the context, say "I don\'t have enough information"');
-    fullPrompt.writeln('3. Include references to the source documents in your answer');
-    fullPrompt.writeln('\nANSWER:');
 
     debugPrint('Generated full prompt for local model:');
     debugPrint('----------------------------------------');
     debugPrint(fullPrompt.toString());
     debugPrint('----------------------------------------');
 
+    // Start timing the generation
+    final stopwatch = Stopwatch()..start();
+    
     await _offlineService.generateStreamingResponse(
       fullPrompt.toString(),
       onResponse,
       history: history,
     );
+    
+    // Print performance statistics
+    stopwatch.stop();
+    final elapsedSeconds = stopwatch.elapsedMilliseconds / 1000;
+    debugPrint('Response generation took ${elapsedSeconds.toStringAsFixed(2)} seconds');
+  }
+  
+  /// Builds a prompt for simple QA mode (no documents, no web search)
+  void _buildSimplePrompt(StringBuffer buffer, String prompt) {
+    buffer.writeln('You are a helpful assistant answering questions based on your knowledge.');
+    buffer.writeln('\nQUESTION: $prompt');
+    // buffer.writeln('\nINSTRUCTIONS:');
+    // buffer.writeln('1. Answer the question directly and concisely');
+    // buffer.writeln('2. If you don\'t know the answer, acknowledge that');
+    // buffer.writeln('3. Keep explanations brief and to the point');
+    buffer.writeln('\nANSWER:');
+  }
+  
+  /// Builds a prompt for document QA mode
+  void _buildDocumentPrompt(StringBuffer buffer, String prompt, List<String> context) {
+    buffer.writeln('You are a document assistant analyzing and answering questions based on specific information.');
+    
+    // Add document context
+    buffer.writeln('\nDOCUMENT CONTEXT:');
+    for (int i = 0; i < context.length; i++) {
+      buffer.writeln('---');
+      buffer.writeln(context[i]);
+    }
+    buffer.writeln('---');
+    
+    buffer.writeln('\nQUESTION: $prompt');
+    buffer.writeln('\nINSTRUCTIONS:');
+    buffer.writeln('1. Answer based ONLY on the provided document context above');
+    // buffer.writeln('2. If the answer is not in the context, say "I don\'t have enough information"');
+    // buffer.writeln('3. Include references to the source documents in your answer');
+    buffer.writeln('4. Be concise but thorough in your response');
+    buffer.writeln('\nANSWER:');
+  }
+  
+  /// Builds a prompt for web search QA mode
+  void _buildWebSearchPrompt(StringBuffer buffer, String prompt, String searchResults, List<String> context) {
+    buffer.writeln('You are a research assistant helping with questions using web search results.');
+    
+    // Add web search results
+    buffer.writeln('\nWEB SEARCH RESULTS:');
+    buffer.writeln(searchResults);
+    
+    // Add document context if available
+    if (context.isNotEmpty) {
+      buffer.writeln('\nADDITIONAL DOCUMENT CONTEXT:');
+      for (int i = 0; i < context.length; i++) {
+        buffer.writeln('---');
+        buffer.writeln(context[i]);
+      }
+      buffer.writeln('---');
+    }
+    
+    buffer.writeln('\nQUESTION: $prompt');
+    buffer.writeln('\nINSTRUCTIONS:');
+    buffer.writeln('1. Use the web search results to provide an up-to-date answer');
+    buffer.writeln('2. Synthesize information from multiple sources when possible');
+    // buffer.writeln('3. Cite sources from the search results in your answer');
+    buffer.writeln('4. If search results don\'t contain the answer, acknowledge the limitations');
+    buffer.writeln('\nANSWER:');
+  }
+  
+  /// Limits context size to optimize inference speed
+  List<String> _limitContextSize(List<String> context, {int maxTokens = 1500}) {
+    if (context.isEmpty) return context;
+    
+    // Simple heuristic: ~4 chars per token
+    int totalChars = 0;
+    final reducedContext = <String>[];
+    
+    // Take most relevant chunks first (assumed to be ordered by relevance)
+    for (final chunk in context) {
+      totalChars += chunk.length;
+      if (totalChars > maxTokens * 4) break;
+      reducedContext.add(chunk);
+    }
+    
+    if (kDebugMode) {
+      print("Reduced context from ${context.length} to ${reducedContext.length} chunks");
+      print("Approximate tokens: ~${(totalChars / 4).round()} (limit: $maxTokens)");
+    }
+    
+    return reducedContext;
   }
 
   Future<void> getStreamingResponse(
@@ -123,6 +253,7 @@ class AIService extends ChangeNotifier {
     debugPrint('- prompt: $prompt');
     debugPrint('- useWebSearch: $useWebSearch');
     debugPrint('- isLocalModel: ${_offlineService.useLocalModel}');
+    debugPrint('- history length: ${history.length}');
 
     if (_isGenerating) {
       debugPrint('Already generating, returning early');
@@ -133,6 +264,10 @@ class AIService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Filter out service check messages from history
+      final filteredHistory = _filterServiceCheckMessages(history);
+      debugPrint('- filtered history length: ${filteredHistory.length}');
+      
       // Build context from selected memories using vector similarity search
       List<String> context = [];
       if (pdfMemories.isNotEmpty) {
@@ -167,10 +302,10 @@ class AIService extends ChangeNotifier {
                 final doc = relevantDocs[i];
                 final source = doc.metadata['file'] as String? ?? 'Unknown';
                 final score = doc.metadata['score'] != null ? 
-                    '${(doc.metadata['score'] as double).toStringAsFixed(4)}' : 'N/A';
+                    (doc.metadata['score'] as double).toStringAsFixed(4) : 'N/A';
                 
                 print('\n--- CHUNK ${i+1}/${relevantDocs.length} (Source: $source, Score: $score) ---');
-                print('First 200 chars: ${doc.pageContent.length > 200 ? doc.pageContent.substring(0, 200) + "..." : doc.pageContent}');
+                print('First 200 chars: ${doc.pageContent.length > 200 ? "${doc.pageContent.substring(0, 200)}..." : doc.pageContent}');
                 
                 // Log full content length to verify complete chunks are being used
                 print('Full content length: ${doc.pageContent.length} characters');
@@ -272,8 +407,8 @@ class AIService extends ChangeNotifier {
           searchResults,
           context,
           onResponse,
-          // Disable history when web search is enabled
-          useWebSearch ? [] : history,
+          // Use filtered history when web search is not enabled
+          useWebSearch ? [] : filteredHistory,
         );
       } else {
         debugPrint('Using online service for generation');
@@ -282,8 +417,8 @@ class AIService extends ChangeNotifier {
           pdfMemories,
           onResponse,
           useWebSearch: useWebSearch,
-          // Disable history when web search is enabled
-          history: useWebSearch ? [] : history,
+          // Use filtered history when web search is not enabled
+          history: useWebSearch ? [] : filteredHistory,
         );
       }
     } catch (e) {

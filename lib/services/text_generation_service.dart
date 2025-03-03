@@ -30,50 +30,86 @@ class TextGenerationService {
       return text.replaceAll(unwanted1, '').replaceAll(unwanted2, '').trim();
     }
 
-    // Add conversation history
-    if (context == null || context.isEmpty) {
-      if (history.isNotEmpty) {
-        formattedPrompt.writeln('Previous conversation:');
-        if (!useWebSearch) {
-          for (var message in history.take(6)) {
-            final cleanedContent = cleanText(message.content);
-            if (kDebugMode) {
-              print(cleanedContent);
-            }
-            formattedPrompt.writeln('${message.role}: $cleanedContent');
-          }
-          formattedPrompt.writeln();
-        }
-      }
+    // Determine which mode we're in
+    final bool hasDocuments = context != null && context.isNotEmpty;
+    final bool hasWebSearch = useWebSearch;
+    
+    if (kDebugMode) {
+      print('TextGenerationService: Formatting prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : "Simple"}');
     }
 
-    // Add current query
-    if (context == null || context.isEmpty) {
-      formattedPrompt.write(useWebSearch
-          ? 'Search the internet and provide accurate information about: $prompt'
-          : prompt);
+    // Choose appropriate prompt based on mode
+    if (hasWebSearch) {
+      _buildWebSearchPrompt(formattedPrompt, prompt, history, cleanText);
+    } else if (hasDocuments) {
+      _buildDocumentPrompt(formattedPrompt, prompt, context!, history, cleanText);
     } else {
-      // Enhanced formatting for multiple context chunks
-      if (kDebugMode) {
-        print('Formatting ${context.length} context chunks for API request');
+      _buildSimplePrompt(formattedPrompt, prompt, history, cleanText);
+    }
+
+    return formattedPrompt.toString();
+  }
+  
+  /// Builds a prompt for simple QA mode (no documents, no web search)
+  void _buildSimplePrompt(StringBuffer buffer, String prompt, List<ChatMessage> history, Function cleanText) {
+    // Add conversation history for simple queries
+    if (history.isNotEmpty) {
+      buffer.writeln('Previous conversation:');
+      for (var message in history.take(6)) {
+        final cleanedContent = cleanText(message.content);
+        if (kDebugMode) {
+          print(cleanedContent);
+        }
+        buffer.writeln('${message.role}: $cleanedContent');
       }
-      
-      formattedPrompt.write('''
-Query: ${useWebSearch ? 'Search the internet and answer based on both the context and current information about' : 'Answer based on the context about'}: 
+      buffer.writeln();
+    }
+
+    // Add the current query
+    buffer.write(prompt);
+  }
+  
+  /// Builds a prompt for document QA mode
+  void _buildDocumentPrompt(StringBuffer buffer, String prompt, List<String> context, List<ChatMessage> history, Function cleanText) {
+    // For documents, we focus more on the context than conversation history
+    
+    // Enhanced formatting for multiple context chunks
+    if (kDebugMode) {
+      print('Formatting ${context.length} context chunks for API request');
+    }
+    
+    buffer.write('''
+Query: Answer based on the context about: 
 $prompt
 
 Context (${context.length} relevant passages):
 ''');
 
-      // Add each context chunk with clear separators
-      for (int i = 0; i < context.length; i++) {
-        formattedPrompt.writeln('----- PASSAGE ${i+1}/${context.length} -----');
-        formattedPrompt.writeln(context[i]);
-        formattedPrompt.writeln('-----------------------------');
+    // Add each context chunk with clear separators
+    for (int i = 0; i < context.length; i++) {
+      buffer.writeln('----- PASSAGE ${i+1}/${context.length} -----');
+      buffer.writeln(context[i]);
+      buffer.writeln('-----------------------------');
+    }
+    
+    // Add limited history for document queries if available
+    if (history.isNotEmpty) {
+      buffer.writeln('\nPrevious relevant conversation:');
+      for (var message in history.take(3)) {
+        final cleanedContent = cleanText(message.content);
+        buffer.writeln('${message.role}: $cleanedContent');
       }
     }
-
-    return formattedPrompt.toString();
+  }
+  
+  /// Builds a prompt for web search QA mode
+  void _buildWebSearchPrompt(StringBuffer buffer, String prompt, List<ChatMessage> history, Function cleanText) {
+    // For web search, we focus entirely on the current query
+    // History is typically not included for web search to keep the prompt clean
+    
+    buffer.write('Search the internet and provide accurate information about: $prompt');
+    
+    // We could add limited history here if needed in the future
   }
 
   Future<String> searchWithJina(String query) async {
@@ -229,9 +265,16 @@ $prompt
       }
 
       const model = 'openai-large'; // Using openai-large for text generation
-      final system = useWebSearch
-          ? 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.'
-          : 'You are Aura, a helpful AI assistant who answers concisely based on the provided context documents. Be sure to consider ALL provided context passages before answering.';
+      
+      // Customize system prompts based on the mode
+      final String system;
+      if (useWebSearch) {
+        system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
+      } else if (context != null && context.isNotEmpty) {
+        system = 'You are Aura, a helpful AI assistant who answers concisely based on the provided context documents. Be sure to consider ALL provided context passages before answering.';
+      } else {
+        system = 'You are Aura, a helpful AI assistant who answers questions based on knowledge and provided conversation history. Be concise but thorough in your responses.';
+      }
 
       // Format prompt with search results if available
       final formattedPrompt = useWebSearch
