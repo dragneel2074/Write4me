@@ -149,22 +149,14 @@ Context (${context.length} relevant passages):
 
   Future<void> generateStreamingResponse(
     String prompt,
-    List<PDFMemory> selectedMemories,
+    List<String> context, // Changed from List<PDFMemory> selectedMemories
     void Function(String, bool) onResponse, {
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
   }) async {
     try {
-      // Build context from selected memories
-      List<String> context = [];
-      if (selectedMemories.isNotEmpty) {
-        for (var memory in selectedMemories) {
-          if (memory.isSelected) {
-            final trimmedText = TextUtils.trimToWordLimit(memory.extractedText);
-            context.add(trimmedText);
-          }
-        }
-      }
+      // Removed redundant context extraction from selectedMemories
+      // The context is now directly passed from AIService
 
       if (useWebSearch) {
         // Show searching status
@@ -218,7 +210,7 @@ $prompt
         onResponse('Generating response...', false);
         final response = await generateText(
           prompt,
-          context: context.isNotEmpty ? context : null,
+          context: context, // Pass the provided context
           useWebSearch: false,
           history: history,
         );
@@ -246,7 +238,7 @@ $prompt
 
   Future<String> generateText(
     String prompt, {
-    List<String>? context,
+    List<String> context = const [], // Changed to non-nullable with default
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
   }) async {
@@ -270,7 +262,7 @@ $prompt
       final String system;
       if (useWebSearch) {
         system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
-      } else if (context != null && context.isNotEmpty) {
+      } else if (context.isNotEmpty) { // Changed condition to check context.isNotEmpty
         system = 'You are Aura, a helpful AI assistant who answers concisely based on the provided context documents. Be sure to consider ALL provided context passages before answering.';
       } else {
         system = 'You are Aura, a helpful AI assistant who answers questions based on knowledge and provided conversation history. Be concise but thorough in your responses.';
@@ -285,13 +277,13 @@ $searchResults
 Based on these search results, please answer:
 $prompt
 '''
-          : _formatPrompt(prompt, context, useWebSearch, history);
+          : _formatPrompt(prompt, context, useWebSearch, history); // Pass context directly
 
       // If we have multiple context chunks, increase the word limit to ensure we don't lose content
-      final wordLimit = (context != null && context.length > 1) ? 4000 : 2000;
+      final wordLimit = (context.length > 1) ? 4000 : 2000; // Changed condition
       
       if (kDebugMode) {
-        print("Using word limit of $wordLimit for ${context?.length ?? 0} context chunks");
+        print("Using word limit of $wordLimit for ${context.length} context chunks"); // Changed context?.length to context.length
         print("Original prompt length: ${formattedPrompt.length} characters");
       }
       

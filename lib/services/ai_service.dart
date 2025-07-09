@@ -150,11 +150,11 @@ class AIService extends ChangeNotifier {
     final stopwatch = Stopwatch()..start();
     
     await _offlineService.generateStreamingResponse(
-      fullPrompt.toString(),
-      onResponse,
-      history: history,
-      selectedMemories: pdfMemories, // Pass pdfMemories
-    );
+          fullPrompt.toString(),
+          onResponse,
+          history: history,
+          context: limitedContext, // Pass the limited context
+        );
     
     // Print performance statistics
     stopwatch.stop();
@@ -306,7 +306,7 @@ class AIService extends ChangeNotifier {
             final relevantDocs = await _fileProcessor.queryFile(
               prompt,
               selectedFiles: selectedFiles,
-              limit: 2, // Increased from default
+              limit: 10, // Increased for better RAG context
             );
             
             debugPrint('Retrieved ${relevantDocs.length} relevant chunks via vector search');
@@ -434,7 +434,7 @@ class AIService extends ChangeNotifier {
         debugPrint('Using online service for generation');
         await _textGenService.generateStreamingResponse(
           prompt,
-          pdfMemories,
+          context, // Pass the context
           onResponse,
           useWebSearch: useWebSearch,
           // Use filtered history when web search is not enabled

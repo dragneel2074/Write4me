@@ -380,7 +380,7 @@ class OfflineModelService extends ChangeNotifier {
     String prompt,
     void Function(String, bool) onResponse, {
     List<ChatMessage> history = const [],
-    List<PDFMemory> selectedMemories = const [], // Added selectedMemories
+    List<String> context = const [], // Changed from List<PDFMemory> selectedMemories
   }) async {
     if (_selectedModelPath.isEmpty) {
       throw Exception('No model selected');
@@ -397,15 +397,8 @@ class OfflineModelService extends ChangeNotifier {
       
       // final messages = <Message>[];
 
-      // Build context from selected memories
-      final List<String> context = [];
-      if (selectedMemories.isNotEmpty) {
-        for (var memory in selectedMemories) {
-          if (memory.isSelected) {
-            context.add(memory.extractedText);
-          }
-        }
-      }
+      // Removed redundant context extraction from selectedMemories
+      // The context is now directly passed from AIService
 
       messages.add(Message(
         Role.system, 

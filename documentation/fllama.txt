@@ -1,0 +1,253 @@
+
+Owner avatar
+fonnx
+Public
+
+Telosnex/fonnx
+t
+Name	Last commit message
+	Last commit date
+jpohhhh
+jpohhhh
+fix: specify flutter version on CI
+f79261f
+ · 
+Jun 7, 2025
+.fvm
+	
+CI: have Codemagic use cocoapods 1.16.2
+	
+Nov 2, 2024
+.vscode
+	
+Add profile target to launch.json
+	
+Oct 1, 2024
+android
+	
+fix: Android crash with Minish Lab embeddings
+	
+May 28, 2025
+docs
+	
+WASM: embedding models working
+	
+Aug 25, 2024
+example
+	
+chore: lower dart lower bound to 3.7
+	
+Jun 6, 2025
+ios
+	
+feat: kotlin and android minish lab inference
+	
+May 20, 2025
+lib
+	
+feat: kotlin and android minish lab inference
+	
+May 20, 2025
+linux
+	
+ONNX extensions & Whisper support for Linux
+	
+Oct 20, 2023
+macos
+	
+Fix macOS loading of ORT Extensions
+	
+Nov 8, 2023
+onnx_runtime
+	
+Update ffigen, pub upgrade
+	
+Nov 2, 2024
+test
+	
+feat: kotlin and android minish lab inference
+	
+May 20, 2025
+windows
+	
+Whisper on Windows (& ORT Extensions support)
+	
+Feb 5, 2024
+.gitignore
+	
+chore: remove git lfs configuration
+	
+May 19, 2025
+.metadata
+	
+Add web plugin template
+	
+Oct 11, 2023
+CHANGELOG.md
+	
+flutter create
+	
+Oct 7, 2023
+LICENSE
+	
+Update LICENSE for dual license
+	
+Feb 20, 2024
+README.md
+	
+README: catch up on updates, incl. Magika, demo app, CI
+	
+Apr 23, 2024
+analysis_options.yaml
+	
+flutter create
+	
+Oct 7, 2023
+codemagic.yaml
+	
+fix: specify flutter version on CI
+	
+Jun 7, 2025
+fonnx.iml
+	
+flutter create
+	
+Oct 7, 2023
+header.png
+	
+Add header image
+	
+Oct 13, 2023
+pubspec.yaml
+	
+fix: specify flutter version on CI
+	
+Jun 7, 2025
+Repository files navigation
+
+README
+
+    GPL-2.0 license
+
+FONNX image header, bird like Flutter mascot DJing. Text reads: FONNX. Any model on any edge. Run ONNX model & runtime, with platform-specific acceleration, inside Flutter, a modern, beautiful, cross-platform development framework.
+Platform 	Status
+Android 	Codemagic build status
+iOS 	Codemagic build status
+Linux 	Codemagic build status
+macOS 	Codemagic build status
+Web 	Codemagic build status
+Windows 	Codemagic build status
+Changelog
+2024 Apr 22
+
+    CI builds for all platforms are now running on Codemagic..
+
+2024 Feb 26
+
+    Google's Magika for file identification supported on all platforms.
+    Example app including full voice assistant flow, with Whisper, Silero voice activity detection. Available at telosnex.github.io/fonnx/
+
+2024 Feb 19
+
+    Whisper supported on all platforms, including web.
+
+2024 Feb 13
+
+    Whisper now supported on all platforms besides web.
+    Whisper models support timestamps. (not exposed via API, yet)
+    Silero VAD added to all platforms besides web.
+    Silero VAD enables detecting when the user is done speaking with a much higher success rate than relying on volume levels.
+    Example contains SttService, an example of how to integrate the VAD and Whisper together with an easy to use interface. (Stream)
+
+FONNX
+Any model on any edge
+
+Run ML models natively on any platform. ONNX models can be run on iOS, Android, Web, Linux, Windows, and macOS.
+What is FONNX?
+
+FONNX is a Flutter library for running ONNX models. Flutter, and FONNX, run natively on iOS, Android, Web, Linux, Windows, and macOS. FONNX leverages ONNX to provide native acceleration capabilities, from CoreML on iOS, to Android Neural Networks API on Android, to WASM SIMD on Web. Most models can be easily converted to ONNX format, including models from Pytorch, Tensorflow, and more.
+Getting ONNX Models
+Hugging Face
+
+🤗 Hugging Face has a large collection of models, including many that are ONNX format. 90% of the models are Pytorch, which can be converted to ONNX.
+
+Here is a search for ONNX models.
+Export ONNX from Pytorch, Tensorflow, & more
+
+A command-line tool called optimum-cli from HuggingFace converts Pytorch and Tensorflow models. This covers the vast majority of models. optimum-cli can also quantize models, significantly reduce model size, usually with negligible impact on accuracy.
+
+See official documentation or the quick start snippet on GitHub.
+Another tool that automates conversion to ONNX is HFOnnx. It was used to export the text embeddings models in this repo. Its advantages included a significantly smaller model size, and incorporating post-processing (pooling) into the model itself.
+
+    Brief intro to how ONNX model format & runtime work huggingface.com
+    Netron allows you to view ONNX models, inspect their runtime graph, and export them to other formats
+
+Text Embeddings
+
+These models generate embeddings for text. An embedding is a vector of floating point numbers that represents the meaning of the text.
+Embeddings are the foundation of a vector database, as well as retrieval augmented generation - deciding which text snippets to provide in the limited context window of an LLM like GPT.
+
+Running locally using FONNX provides significant privacy benefits, as well as latency benefits. For example, rather than having to store the embedding and text of each chunk of a document on a server, they can be stored on-device. Both MiniLM L6 V2 and MSMARCO MiniLM L6 V3 are both the product of the Sentence Transformers project. Their website has excellent documentation explaining, for instance, semantic search
+MiniLM L6 V2
+
+Trained on a billion sentence pairs from diverse sources, from Reddit to WikiAnswers to StackExchange. MiniLM L6 V2 is well-suited for numerous tasks, from text classification to semantic search. It is optimized for symmetric search, where text is roughly of the same length and meaning. Input text is divided into approximately 200 words, and an embedding is generated for each.
+🤗 Hugging Face
+MSMARCO MiniLM L6 V3
+
+Trained on pairs of Bing search queries to web pages that contained answers for the query. It is optimized for asymmetric semantic search, matching a search query to an answer. Additionally, it has 2x the input size of MiniLM L6 V2: it can accept up to 400 words as input for one embedding.
+🤗 Hugging Face
+Benchmarks
+
+iPhone 14: 67 ms
+Pixel Fold: 33 ms
+macOS: 13 ms
+WASM SIMD: 41 ms
+
+Avg. ms for 1 Mini LM L6 V2 embedding / 200 words.
+
+    Run on Thurs Oct 12th 2023.
+    macOS and WASM-SIMD runs on MacBook Pro M2 Max.
+    Average of 100 embeddings, after a warmup of 10.
+    Input is mix of lorem ipsum text from 8 languages.
+
+Integrating FONNX
+macOS, Windows, Linux via FFI
+
+The ONNX C library is used for macOS, Windows, and Linux. Flutter can call into it via FFI. Nothing special is required to use FFI on these platforms.
+iOS via ONNX pods
+
+iOS uses the official ONNX Objective-C library. No additional tasks besides adding FONNX to your Flutter project are required.
+
+iOS build fails when linked against .dylib provided with ONNX releases. They are explicitly marked as for macOS.
+Android via ONNX AAR
+
+Android uses the official ONNX Android dependencies from a Maven repository. Note that ProGuard rules are required to prevent the ONNX library from being stripped.
+Web
+
+Sending these headers with the request for the ONNX JS package gives a 10x speedup:
+
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Opener-Policy: same-origin
+
+See this GitHub issue for details. TL;DR: It allows use of multiple threads by ONNX's WASM implementation by using a SharedArrayBuffer.
+Developing with Web
+
+While developing, two issues prevent it work working on the web. Both have workarounds
+WASM Mime Type
+
+You may see errors in console logs about the MIME type of the .wasm being incorrect and starting with the wrong bytes.
+
+That is due to local Flutter serving of the web app.
+
+To fix, download the WASM files from the same CDN folder that hosts ort.min.js (see __worker.js) and also in __minilm_worker.js, remove the // in front of ort.env.wasm.wasmPaths = "".
+
+Then, place the WASM files downloaded from the CDN next to index.html.
+
+In release mode and deployed, this is not an issue, you do not need to host the WASM files.
+Cross-Origin-Embedder-Policy
+
+To safely use SharedArrayBuffer, the server must send the Cross-Origin-Embedder-Policy header with the value require-corp.
+
+See here for how to workaround it: nagadomi/nunif#34
+
+Note that the extension became adware, you should have Chrome set up its permissions such that it isn't run until you click it. Also, note that you have to do that each time the Flutter web app in debug mode's port changes.
