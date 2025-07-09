@@ -32,6 +32,34 @@ class SettingsDialog extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Theme toggle
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('New Chat'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onClearChat();
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.save),
+                    label: const Text('Save Chat'),
+                    onPressed: hasMessages
+                        ? () {
+                            Navigator.pop(context);
+                            onSaveChat();
+                          }
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(),
             ListTile(
               leading: Icon(
                 themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
@@ -41,8 +69,8 @@ class SettingsDialog extends ConsumerWidget {
                 value: themeMode == ThemeMode.dark,
                 onChanged: (value) {
                   ref.read(themeProvider.notifier).setThemeMode(
-                    value ? ThemeMode.dark : ThemeMode.light,
-                  );
+                        value ? ThemeMode.dark : ThemeMode.light,
+                      );
                 },
               ),
             ),
@@ -93,24 +121,7 @@ class SettingsDialog extends ConsumerWidget {
               ),
             ],
             // Chat actions
-            if (hasMessages) ...[
-              ListTile(
-                leading: const Icon(Icons.save),
-                title: const Text('Save Chat'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onSaveChat();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete),
-                title: const Text('New Chat'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onClearChat();
-                },
-              ),
-            ],
+            
             // Info
             ListTile(
               leading: const Icon(Icons.info),
