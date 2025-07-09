@@ -152,6 +152,7 @@ Context (${context.length} relevant passages):
     void Function(String, bool) onResponse, {
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
+    String? model, // New optional parameter
   }) async {
     try {
       // Removed redundant context extraction from selectedMemories
@@ -171,7 +172,7 @@ Context (${context.length} relevant passages):
           debugPrint('Jina search results: $searchResults');
           
           // Generate response with search results
-          const model = 'gpt-4o-mini';
+          final selectedModel = model ?? 'gpt-4o-mini'; // Use provided model or default
           const system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
           
           final formattedPrompt = '''
@@ -183,7 +184,7 @@ $prompt
 ''';
 
           final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt);
-          final url = _buildUrl(trimmedPrompt, model, system);
+          final url = _buildUrl(trimmedPrompt, selectedModel, system);
           
           final response = await _dio.get(
             url.toString(),
@@ -212,6 +213,7 @@ $prompt
           context: context, // Pass the provided context
           useWebSearch: false,
           history: history,
+          model: model, // Pass the model parameter
         );
         onResponse(response, true);
       }
@@ -240,6 +242,7 @@ $prompt
     List<String> context = const [], // Changed to non-nullable with default
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
+    String? model, // New optional parameter
   }) async {
     try {
       String searchResults = '';
@@ -255,7 +258,7 @@ $prompt
         }
       }
 
-      const model = 'gpt-4o-mini'; // Using openai-large for text generation
+      final selectedModel = model ?? 'gpt-4o-mini'; // Use provided model or default
       
       // Customize system prompts based on the mode
       final String system;
@@ -294,7 +297,7 @@ $prompt
         }
       }
       
-      final url = _buildUrl(trimmedPrompt, model, system);
+      final url = _buildUrl(trimmedPrompt, selectedModel, system);
       debugPrint('url: $url');
       final response = await _dio.get(
         url.toString(),

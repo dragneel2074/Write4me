@@ -5,6 +5,9 @@ import 'package:write4me/widgets/model_download_dialog.dart';
 import '../providers/theme_provider.dart';
 import '../providers/offline_mode_provider.dart';
 import '../services/model_management_service.dart';
+import '../providers/service_providers.dart'; // Import service providers
+import '../services/online_model_service.dart'; // Import OnlineModelService
+import 'online_model_selection_dialog.dart'; // New import
 
 class SettingsDialog extends ConsumerWidget {
   final bool hasMessages;
@@ -24,6 +27,7 @@ class SettingsDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final offlineModeState = ref.watch(offlineModeProvider);
     final themeMode = ref.watch(themeProvider);
+    final onlineModelService = ref.watch(onlineModelServiceProvider);
 
     return AlertDialog(
       title: const Text('Settings'),
@@ -90,17 +94,39 @@ class SettingsDialog extends ConsumerWidget {
                 },
               ),
             ),
-            // if (!offlineModeState.isOfflineMode && offlineModeState.availableModels.isNotEmpty)
-            //   ListTile(
-            //     leading: const Icon(Icons.memory),
-            //     title: const Text('Use Local Model'),
-            //     trailing: Switch(
-            //       value: offlineModeState.useLocalModel,
-            //       onChanged: (value) {
-            //         ref.read(offlineModeProvider.notifier).setUseLocalModel(value);
-            //       },
-            //     ),
-            //   ),
+            // Online Models List
+            if (!offlineModeState.isOfflineMode) ...[
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('Online Models', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              ListTile(
+                title: Text(
+                  onlineModelService.selectedOnlineModel?.name ?? 'No model selected',
+                  style: TextStyle(
+                    fontWeight: onlineModelService.selectedOnlineModel != null ? FontWeight.bold : null,
+                  ),
+                ),
+                subtitle: onlineModelService.selectedOnlineModel != null
+                    ? Text(onlineModelService.selectedOnlineModel!.description)
+                    : null,
+                trailing: onlineModelService.isLoading
+                    ? const CircularProgressIndicator()
+                    : onlineModelService.errorMessage != null
+                        ? Icon(Icons.error, color: Theme.of(context).colorScheme.error)
+                        : null,
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.more_horiz),
+                label: const Text('Show More Models'),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => const OnlineModelSelectionDialog(),
+                  );
+                },
+              ),
+            ],
             if (offlineModeState.availableModels.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.only(top: 8),

@@ -8,26 +8,35 @@ import '../models/chat_message.dart';
 import 'text_generation_service.dart';
 import '../utils/text_utils.dart';
 import 'offline_model_service.dart';
+import 'online_model_service.dart'; // New import
 
 class AIService extends ChangeNotifier {
   final TextGenerationService _textGenService;
   final OfflineModelService _offlineService;
   final FileProcessor _fileProcessor;
+  final OnlineModelService _onlineModelService; // New field
   bool _isGenerating = false;
 
-  AIService(this._textGenService, this._offlineService, this._fileProcessor) {
+  AIService(this._textGenService, this._offlineService, this._fileProcessor, this._onlineModelService) {
     // Listen to offline service changes
     _offlineService.addListener(_onOfflineServiceChanged);
+    _onlineModelService.addListener(_onOnlineServiceChanged); // New listener
   }
 
   @override
   void dispose() {
     _offlineService.removeListener(_onOfflineServiceChanged);
+    _onlineModelService.removeListener(_onOnlineServiceChanged); // New listener
     super.dispose();
   }
 
   void _onOfflineServiceChanged() {
     // Notify listeners when offline service changes
+    notifyListeners();
+  }
+
+  void _onOnlineServiceChanged() {
+    // Notify listeners when online service changes
     notifyListeners();
   }
 
@@ -339,8 +348,8 @@ class AIService extends ChangeNotifier {
       }
 
       // Step 2: Generate response based on model selection
-      if (_offlineService.useLocalModel || isOfflineMode) {
-        debugPrint('Using local model for generation');
+      if (isOfflineMode) {
+        debugPrint('Using local model for generation (Offline Mode)');
         debugPrint('Search results available: ${searchResults != null}');
         await _generateLocalResponse(
           prompt,
@@ -351,8 +360,18 @@ class AIService extends ChangeNotifier {
           useWebSearch ? [] : filteredHistory,
           pdfMemories, // Pass pdfMemories directly
         );
+      } else if (_onlineModelService.selectedOnlineModel != null) {
+        debugPrint('Using selected online model for generation: ${_onlineModelService.selectedOnlineModel!.name}');
+        await _textGenService.generateStreamingResponse(
+          prompt,
+          context, // Pass the context
+          onResponse,
+          useWebSearch: useWebSearch,
+          history: useWebSearch ? [] : filteredHistory,
+          model: _onlineModelService.selectedOnlineModel!.name, // Pass the selected online model name
+        );
       } else {
-        debugPrint('Using online service for generation');
+        debugPrint('Using default online service for generation');
         await _textGenService.generateStreamingResponse(
           prompt,
           context, // Pass the context

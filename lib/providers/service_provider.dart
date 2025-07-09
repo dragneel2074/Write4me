@@ -3,6 +3,7 @@ import '../services/ai_service.dart';
 import '../services/text_generation_service.dart';
 import '../services/offline_model_service.dart';
 import 'file_processor_provider.dart';
+import 'service_providers.dart' show onlineModelServiceProvider; // Import the new provider
 
 // Initialize OfflineModelService first
 final offlineModelServiceProvider = Provider<OfflineModelService>((ref) {
@@ -36,7 +37,8 @@ final aiServiceProvider = Provider<AIService>((ref) {
   final textGenService = ref.watch(textGenerationServiceProvider);
   final offlineService = ref.watch(offlineModelServiceProvider);
   final fileProcessor = ref.watch(fileProcessorProvider);
-  return AIService(textGenService, offlineService, fileProcessor);
+  final onlineModelService = ref.watch(onlineModelServiceProvider); // Get onlineModelService
+  return AIService(textGenService, offlineService, fileProcessor, onlineModelService); // Pass onlineModelService
 });
 
 // final notificationServiceProvider = Provider<NotificationService>((ref) {
