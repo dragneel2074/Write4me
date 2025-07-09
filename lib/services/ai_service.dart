@@ -122,35 +122,13 @@ class AIService extends ChangeNotifier {
     final limitedContext = _limitContextSize(context);
     debugPrint('- limited context length: ${limitedContext.length}');
     
-    final fullPrompt = StringBuffer();
     
-    // Determine which mode we're in
-    final bool hasDocuments = limitedContext.isNotEmpty;
-    final bool hasWebSearch = searchResults != null;
-    
-    if (kDebugMode) {
-      print('Generating prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : "Simple"}');
-    }
-    
-    // Choose appropriate prompt based on mode
-    if (hasWebSearch) {
-      _buildWebSearchPrompt(fullPrompt, prompt, searchResults, limitedContext);
-    } else if (hasDocuments) {
-      _buildDocumentPrompt(fullPrompt, prompt, limitedContext);
-    } else {
-      _buildSimplePrompt(fullPrompt, prompt);
-    }
-
-    debugPrint('Generated full prompt for local model:');
-    debugPrint('----------------------------------------');
-    debugPrint(fullPrompt.toString());
-    debugPrint('----------------------------------------');
 
     // Start timing the generation
     final stopwatch = Stopwatch()..start();
     
     await _offlineService.generateStreamingResponse(
-          fullPrompt.toString(),
+          prompt,
           onResponse,
           history: history,
           context: limitedContext, // Pass the limited context
@@ -162,64 +140,7 @@ class AIService extends ChangeNotifier {
     debugPrint('Response generation took ${elapsedSeconds.toStringAsFixed(2)} seconds');
   }
   
-  /// Builds a prompt for simple QA mode (no documents, no web search)
-  void _buildSimplePrompt(StringBuffer buffer, String prompt) {
-    buffer.writeln('You are a helpful assistant answering questions based on your knowledge.');
-    buffer.writeln('\nQUESTION: $prompt');
-    // buffer.writeln('\nINSTRUCTIONS:');
-    // buffer.writeln('1. Answer the question directly and concisely');
-    // buffer.writeln('2. If you don\'t know the answer, acknowledge that');
-    // buffer.writeln('3. Keep explanations brief and to the point');
-    buffer.writeln('\nANSWER:');
-  }
   
-  /// Builds a prompt for document QA mode
-  void _buildDocumentPrompt(StringBuffer buffer, String prompt, List<String> context) {
-    buffer.writeln('You are a document assistant analyzing and answering questions based on specific information.');
-    
-    // Add document context
-    buffer.writeln('\nDOCUMENT CONTEXT:');
-    for (int i = 0; i < context.length; i++) {
-      buffer.writeln('---');
-      buffer.writeln(context[i]);
-    }
-    buffer.writeln('---');
-    
-    buffer.writeln('\nQUESTION: $prompt');
-    buffer.writeln('\nINSTRUCTIONS:');
-    buffer.writeln('1. Answer based ONLY on the provided document context above');
-    // buffer.writeln('2. If the answer is not in the context, say "I don\'t have enough information"');
-    // buffer.writeln('3. Include references to the source documents in your answer');
-    buffer.writeln('4. Be concise but thorough in your response');
-    buffer.writeln('\nANSWER:');
-  }
-  
-  /// Builds a prompt for web search QA mode
-  void _buildWebSearchPrompt(StringBuffer buffer, String prompt, String searchResults, List<String> context) {
-    buffer.writeln('You are a research assistant helping with questions using web search results.');
-    
-    // Add web search results
-    buffer.writeln('\nWEB SEARCH RESULTS:');
-    buffer.writeln(searchResults);
-    
-    // Add document context if available
-    if (context.isNotEmpty) {
-      buffer.writeln('\nADDITIONAL DOCUMENT CONTEXT:');
-      for (int i = 0; i < context.length; i++) {
-        buffer.writeln('---');
-        buffer.writeln(context[i]);
-      }
-      buffer.writeln('---');
-    }
-    
-    buffer.writeln('\nQUESTION: $prompt');
-    buffer.writeln('\nINSTRUCTIONS:');
-    buffer.writeln('1. Use the web search results to provide an up-to-date answer');
-    buffer.writeln('2. Synthesize information from multiple sources when possible');
-    // buffer.writeln('3. Cite sources from the search results in your answer');
-    buffer.writeln('4. If search results don\'t contain the answer, acknowledge the limitations');
-    buffer.writeln('\nANSWER:');
-  }
   
   /// Limits context size to optimize inference speed
   List<String> _limitContextSize(List<String> context, {int maxTokens = 1500}) {

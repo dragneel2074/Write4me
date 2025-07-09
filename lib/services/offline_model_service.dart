@@ -1,13 +1,13 @@
-import 'package:fllama/fllama.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:dio/dio.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'package:write4me/models/chat_message.dart';
+import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
+import 'package:write4me/models/chat_message.dart';
 import 'package:write4me/utils/exceptions.dart';
+import 'package:fllama/fllama.dart';
 
 class CancelException implements Exception {
   final String message;
@@ -20,23 +20,23 @@ class CancelException implements Exception {
 class CancelableCompleter {
   final Completer<void> _completer = Completer<void>();
   final CancelToken token = CancelToken();
-  
+
   bool get isCancelled => token.isCancelled;
-  
+
   Future<void> get future => _completer.future;
-  
+
   void complete() {
     if (!_completer.isCompleted) {
       _completer.complete();
     }
   }
-  
+
   void completeError(Object error, [StackTrace? stackTrace]) {
     if (!_completer.isCompleted) {
       _completer.completeError(error, stackTrace);
     }
   }
-  
+
   void cancel() {
     if (!token.isCancelled) {
       token.cancel();
@@ -45,25 +45,26 @@ class CancelableCompleter {
 }
 
 class OfflineModelService extends ChangeNotifier {
-  final _dio = Dio();
   CancelableCompleter? _downloadCancel;
 
   static const String _selectedModelKey = 'selected_model';
   static const String _isOfflineModeKey = 'is_offline_mode';
   static const String _useLocalModelKey = 'use_local_model';
   static const String _downloadedModelsKey = 'downloaded_models';
-  
+
   static const Map<String, String> defaultModels = {
-    'Qwen-R1 (1.8 GB)': 'https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf',
-    'Qwen-2.5-0.5 (650 MB)': 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf'
+    'Qwen-R1 (1.8 GB)':
+        'https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf',
+    'Qwen-2.5-0.5 (650 MB)':
+        'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf'
   };
 
   bool _isOfflineMode = false;
   String _selectedModelPath = '';
   List<File> _availableModels = [];
   bool _useLocalModel = false;
-  Set<String> _downloadedUrls = {};  // Track downloaded URLs
-  
+  Set<String> _downloadedUrls = {}; // Track downloaded URLs
+
   bool get isOfflineMode => _isOfflineMode;
   String get selectedModelPath => _selectedModelPath;
   List<File> get availableModels => _availableModels;
@@ -116,23 +117,24 @@ class OfflineModelService extends ChangeNotifier {
   Future<List<File>> _getModelFiles() async {
     final directory = await getApplicationDocumentsDirectory();
     final dir = Directory(directory.path);
-    
+
     if (!await dir.exists()) {
       debugPrint('Models directory missing');
       return [];
     }
-    
-    return dir.list()
-      .where((e) => e is File && e.path.toLowerCase().endsWith('.gguf'))
-      .map((e) => e as File)
-      .toList();
+
+    return dir
+        .list()
+        .where((e) => e is File && e.path.toLowerCase().endsWith('.gguf'))
+        .map((e) => e as File)
+        .toList();
   }
 
   Future<void> _checkAvailableModels() async {
     try {
       _availableModels = await _getModelFiles();
       debugPrint('Available models: ${_availableModels.length}');
-      
+
       // Don't automatically set first model when initializing
       // if (_availableModels.isNotEmpty && _selectedModelPath.isEmpty) {
       //   debugPrint('Setting first model as selected: ${_availableModels.first.path}');
@@ -167,7 +169,7 @@ class OfflineModelService extends ChangeNotifier {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final file = File('${directory.path}/$fileName');
-      
+
       if (await file.exists()) {
         throw Exception('Model already exists');
       }
@@ -177,25 +179,25 @@ class OfflineModelService extends ChangeNotifier {
       }
 
       _downloadCancel = CancelableCompleter();
-      
+
       await _downloadWithProgress(
         url,
         file,
         onProgress,
         _downloadCancel!.token,
       );
-      
+
       _downloadCancel = null;
       await _checkAvailableModels();
-      
+
       // Don't automatically set selected model or enable local model
       _downloadedUrls.add(url);
       await _saveDownloadedUrls();
-      
+
       // Log that model was downloaded without auto-switching
       debugPrint('Model downloaded successfully: ${file.path}');
       debugPrint('Available models: ${_availableModels.length}');
-      
+
       notifyListeners();
     } catch (e) {
       _downloadCancel = null;
@@ -212,11 +214,11 @@ class OfflineModelService extends ChangeNotifier {
     CancelToken cancelToken,
   ) async {
     debugPrint('Downloading with progress from: $url');
-    
+
     final client = http.Client();
     try {
       final response = await client.send(http.Request('GET', Uri.parse(url)));
-      
+
       if (response.statusCode != 200) {
         throw DownloadException(
           'Download failed: HTTP ${response.statusCode}',
@@ -237,18 +239,18 @@ class OfflineModelService extends ChangeNotifier {
             await file.delete();
             throw CancelException();
           }
-          
+
           sink.add(chunk);
           downloaded += chunk.length;
           if (contentLength > 0) {
             onProgress(downloaded / contentLength);
           }
         }
-        
+
         await sink.flush();
         await sink.close();
         client.close();
-        
+
         debugPrint('Download completed successfully: ${file.path}');
       } catch (e) {
         await sink.close();
@@ -263,9 +265,8 @@ class OfflineModelService extends ChangeNotifier {
     }
   }
 
-
   Future<void> downloadCustomModel(
-    String url, 
+    String url,
     void Function(double) onProgress,
     CancelToken cancelToken,
   ) async {
@@ -288,7 +289,7 @@ class OfflineModelService extends ChangeNotifier {
     try {
       final client = http.Client();
       final response = await client.send(http.Request('GET', Uri.parse(url)));
-      
+
       if (response.statusCode != 200) {
         throw DownloadException(
           'Model download failed',
@@ -315,7 +316,7 @@ class OfflineModelService extends ChangeNotifier {
             onProgress(downloaded / contentLength);
           }
         }
-        
+
         await sink.flush();
         await sink.close();
         client.close();
@@ -323,7 +324,7 @@ class OfflineModelService extends ChangeNotifier {
         _downloadedUrls.add(url);
         await _saveDownloadedUrls();
         await _checkAvailableModels();
-        
+
         // Don't automatically switch to downloaded model
         // if (_availableModels.isNotEmpty) {
         //   await setSelectedModel(file.path);
@@ -331,11 +332,11 @@ class OfflineModelService extends ChangeNotifier {
         //   final prefs = await SharedPreferences.getInstance();
         //   await prefs.setBool(_useLocalModelKey, true);
         // }
-        
+
         // Just log that the model was downloaded
         debugPrint('Custom model downloaded: ${file.path}');
         debugPrint('Available models: ${_availableModels.length}');
-        
+
         notifyListeners();
       } catch (e) {
         await sink.close();
@@ -353,9 +354,11 @@ class OfflineModelService extends ChangeNotifier {
 
   Future<void> generateStreamingResponse(
     String prompt,
-    void Function(String, bool) onResponse, {
+    void Function(String, bool) onResponse,
+    {
     List<ChatMessage> history = const [],
-    List<String> context = const [], // Changed from List<PDFMemory> selectedMemories
+    List<String>? context,
+    String? searchResults,
   }) async {
     if (_selectedModelPath.isEmpty) {
       throw Exception('No model selected');
@@ -369,38 +372,38 @@ class OfflineModelService extends ChangeNotifier {
     try {
       bool firstResponse = true;
       final messages = <Message>[];
-      
-      // final messages = <Message>[];
 
-      // Removed redundant context extraction from selectedMemories
-      // The context is now directly passed from AIService
+      final fullPrompt = StringBuffer();
 
-      messages.add(Message(
-        Role.system, 
-        '''You are a helpful assistant who answers concisely.
-When provided with document context, analyze it carefully to provide accurate answers.
-For images with text, refer to the extracted text to provide relevant information.'''
-      ));
+      // Determine which mode we're in
+      final bool hasDocuments = context != null && context.isNotEmpty;
+      final bool hasWebSearch = searchResults != null;
 
-      // Add context to the prompt if available
-      if (context.isNotEmpty) {
-        messages.add(Message(
-          Role.user,
-          'Here is some relevant context:\n\n${context.join('\n\n')}\n\n'
-        ));
+      if (kDebugMode) {
+        print(
+            'Generating prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : "Simple"}');
       }
 
-      final recentHistory = history.length > 6 
-          ? history.sublist(history.length - 6) 
-          : history;
-          
+      // Choose appropriate prompt based on mode
+      if (hasWebSearch) {
+        _buildWebSearchPrompt(fullPrompt, prompt, searchResults!, context ?? []);
+      } else if (hasDocuments) {
+        _buildDocumentPrompt(fullPrompt, prompt, context!);
+      } else {
+        _buildSimplePrompt(fullPrompt, prompt);
+      }
+
+      messages.add(Message(Role.user, fullPrompt.toString()));
+
+      final recentHistory =
+          history.length > 6 ? history.sublist(history.length - 6) : history;
+
       for (final msg in recentHistory) {
         messages.add(Message(
           msg.isUser ? Role.user : Role.assistant,
           msg.content,
         ));
       }
-      messages.add(Message(Role.user, prompt));
 
       final request = OpenAiRequest(
         maxTokens: 512,
@@ -433,7 +436,7 @@ For images with text, refer to the extracted text to provide relevant informatio
   Future<void> deleteModel(String modelPath) async {
     debugPrint('Deleting model: $modelPath');
     final file = File(modelPath);
-    
+
     try {
       if (await file.exists()) {
         await file.delete();
@@ -464,7 +467,7 @@ For images with text, refer to the extracted text to provide relevant informatio
 
   String? _getUrlForModel(String modelPath) {
     final fileName = modelPath.split('/').last.toLowerCase();
-    
+
     for (var entry in defaultModels.entries) {
       if (entry.value.split('/').last.toLowerCase() == fileName) {
         return entry.value;
@@ -478,52 +481,110 @@ For images with text, refer to the extracted text to provide relevant informatio
     return null;
   }
 
-  String formatModelName(String path) {
-    final fileName = path.split('/').last.replaceAll('.gguf', '');
-    
-    // Check for sizes (like 0.5b, 7b, etc.) and cut at the "b"
-    final sizeMatch = RegExp(r'.*?(\d+(\.\d+)?b)', caseSensitive: false).firstMatch(fileName);
-    if (sizeMatch != null) {
-      // Get everything up to and including the "b"
-      final result = fileName.substring(0, sizeMatch.end);
-      return _capitalizeModelName(result);
-    }
-    
-    // If no size found, take first two words separated by dash or underscore
-    final parts = fileName.split(RegExp(r'[-_]'));
-    if (parts.length >= 2) {
-      final result = '${parts[0]} ${parts[1]}';
-      return _capitalizeModelName(result);
-    }
-    
-    // Fallback to full name if no pattern matches
-    return _capitalizeModelName(fileName);
-  }
-  
-  String _capitalizeModelName(String name) {
-    // Split by spaces, dashes, or underscores
-    final parts = name.split(RegExp(r'[ _-]'));
-    final capitalizedParts = parts.map((part) {
-      if (part.isEmpty) return '';
-      // Don't capitalize size indicators like '7b', '0.5b'
-      if (RegExp(r'^\d+(\.\d+)?b$', caseSensitive: false).hasMatch(part)) {
-        return part.toLowerCase();
-      }
-      // Capitalize first letter of each part
-      return part[0].toUpperCase() + (part.length > 1 ? part.substring(1).toLowerCase() : '');
-    });
-    return capitalizedParts.join(' ');
-  }
-
   Future<List<File>> getAvailableModels() async {
     return _getModelFiles();
   }
 
-  @override
-  void dispose() {
-    _dio.close();
-    super.dispose();
+}
+
+/// Builds a prompt for simple QA mode (no documents, no web search)
+void _buildSimplePrompt(StringBuffer buffer, String prompt) {
+  buffer.writeln(
+      'You are a helpful assistant answering questions based on your knowledge.');
+  buffer.writeln('\nQUESTION: $prompt');
+  buffer.writeln('\nANSWER:');
+}
+
+/// Builds a prompt for document QA mode
+void _buildDocumentPrompt(
+    StringBuffer buffer, String prompt, List<String> context) {
+  buffer.writeln(
+      'You are a document assistant analyzing and answering questions based on specific information.');
+
+  // Add document context
+  buffer.writeln('\nDOCUMENT CONTEXT:');
+  for (int i = 0; i < context.length; i++) {
+    buffer.writeln('---');
+    buffer.writeln(context[i]);
   }
+  buffer.writeln('---');
+
+  buffer.writeln('\nQUESTION: $prompt');
+  buffer.writeln('\nINSTRUCTIONS:');
+  buffer.writeln(
+      '1. Answer based ONLY on the provided document context above');
+  buffer.writeln('2. Be concise but thorough in your response');
+  buffer.writeln('\nANSWER:');
+}
+
+/// Builds a prompt for web search QA mode
+void _buildWebSearchPrompt(StringBuffer buffer, String prompt,
+    String searchResults, List<String> context) {
+  buffer.writeln(
+      'You are a research assistant helping with questions using web search results.');
+
+  // Add web search results
+  buffer.writeln('\nWEB SEARCH RESULTS:');
+  buffer.writeln(searchResults);
+
+  // Add document context if available
+  if (context.isNotEmpty) {
+    buffer.writeln('\nADDITIONAL DOCUMENT CONTEXT:');
+    for (int i = 0; i < context.length; i++) {
+      buffer.writeln('---');
+      buffer.writeln(context[i]);
+    }
+    buffer.writeln('---');
+  }
+
+  buffer.writeln('\nQUESTION: $prompt');
+  buffer.writeln('\nINSTRUCTIONS:');
+  buffer.writeln(
+      '1. Use the web search results to provide an up-to-date answer');
+  buffer.writeln(
+      '2. Synthesize information from multiple sources when possible');
+  buffer.writeln(
+      '4. If search results don\'t contain the answer, acknowledge the limitations');
+  buffer.writeln('\nANSWER:');
+}
+
+String formatModelName(String path) {
+  final fileName = path.split('/').last.replaceAll('.gguf', '');
+
+  // Check for sizes (like 0.5b, 7b, etc.) and cut at the "b"
+  final sizeMatch =
+      RegExp(r'.*?(\d+(\.\d+)?b)', caseSensitive: false).firstMatch(fileName);
+  if (sizeMatch != null) {
+    // Get everything up to and including the "b"
+    final result = fileName.substring(0, sizeMatch.end);
+    return _capitalizeModelName(result);
+  }
+
+  // If no size found, take first two words separated by dash or underscore
+  final parts = fileName.split(RegExp(r'[-_]'));
+  if (parts.length >= 2) {
+    final result = '${parts[0]} ${parts[1]}';
+    return _capitalizeModelName(result);
+  }
+
+  // Fallback to full name if no pattern matches
+  return _capitalizeModelName(fileName);
+}
+
+String _capitalizeModelName(String name) {
+  // Split by spaces, dashes, or underscores
+  final parts = name.split(RegExp(r'[ _-]'));
+  final capitalizedParts = parts.map((part) {
+    if (part.isEmpty) return '';
+    // Don't capitalize size indicators like '7b', '0.5b'
+    if (RegExp(r'^\d+(\.\d+)?b$', caseSensitive: false).hasMatch(part)) {
+      return part.toLowerCase();
+    }
+    // Capitalize first letter of each part
+    return part[0].toUpperCase() +
+        (part.length > 1 ? part.substring(1).toLowerCase() : '');
+  });
+  return capitalizedParts.join(' ');
 }
 
 extension DownloadErrorX on Exception {
@@ -531,7 +592,7 @@ extension DownloadErrorX on Exception {
     if (this is SocketException) return 'No internet connection';
     if (this is DownloadException) {
       final e = this as DownloadException;
-      return e.statusCode != null 
+      return e.statusCode != null
           ? 'Download error (HTTP ${e.statusCode})'
           : 'Download failed';
     }
