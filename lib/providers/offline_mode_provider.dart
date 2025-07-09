@@ -3,7 +3,10 @@ import 'package:write4me/providers/chat_provider.dart';
 import 'package:write4me/providers/navigator_provider.dart';
 import 'package:write4me/providers/service_provider.dart';
 import 'dart:io';
+import 'dart:convert'; // Import for JSON encoding/decoding
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import for SharedPreferences
+import 'package:write4me/models/model_parameters.dart'; // Import ModelParameters
 
 class OfflineModeState {
   final bool isOfflineMode;
@@ -12,6 +15,7 @@ class OfflineModeState {
   final List<File> availableModels;
   final bool isDownloading;
   final double downloadProgress;
+  final Map<String, ModelParameters> modelParameters; // New field
 
   const OfflineModeState({
     this.isOfflineMode = false,
@@ -20,6 +24,7 @@ class OfflineModeState {
     this.availableModels = const [],
     this.isDownloading = false,
     this.downloadProgress = 0,
+    this.modelParameters = const {}, // Initialize with empty map
   });
 
   OfflineModeState copyWith({
@@ -29,6 +34,7 @@ class OfflineModeState {
     List<File>? availableModels,
     bool? isDownloading,
     double? downloadProgress,
+    Map<String, ModelParameters>? modelParameters, // New field in copyWith
   }) {
     return OfflineModeState(
       isOfflineMode: isOfflineMode ?? this.isOfflineMode,
@@ -37,6 +43,7 @@ class OfflineModeState {
       availableModels: availableModels ?? this.availableModels,
       isDownloading: isDownloading ?? this.isDownloading,
       downloadProgress: downloadProgress ?? this.downloadProgress,
+      modelParameters: modelParameters ?? this.modelParameters,
     );
   }
 }
@@ -50,11 +57,24 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
 
   Future<void> _loadState() async {
     final models = await ref.read(offlineModelServiceProvider).getAvailableModels();
+    final prefs = await SharedPreferences.getInstance();
+    final Map<String, ModelParameters> loadedParameters = {};
+    for (final modelFile in models) {
+      final modelPath = modelFile.path;
+      final paramsJson = prefs.getString('model_params_$modelPath');
+      if (paramsJson != null) {
+        loadedParameters[modelPath] = ModelParameters.fromJson(jsonDecode(paramsJson));
+      } else {
+        loadedParameters[modelPath] = const ModelParameters(); // Default parameters
+      }
+    }
+
     state = state.copyWith(
       isOfflineMode: ref.read(offlineModelServiceProvider).isOfflineMode,
       useLocalModel: ref.read(offlineModelServiceProvider).useLocalModel,
       selectedModelPath: ref.read(offlineModelServiceProvider).selectedModelPath,
       availableModels: models,
+      modelParameters: loadedParameters,
     );
   }
 
@@ -175,6 +195,16 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     ref.read(offlineModelServiceProvider).setSelectedModel(path);
     state = state.copyWith(selectedModelPath: path);
     // _service.notifyListeners();
+  }
+
+  Future<void> setModelParameters(String modelPath, ModelParameters params) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('model_params_$modelPath', jsonEncode(params.toJson()));
+
+    state = state.copyWith(
+      modelParameters: Map.from(state.modelParameters)..[modelPath] = params,
+    );
+    debugPrint('Model parameters updated for $modelPath: ${params.toJson()}');
   }
 
   Future<void> downloadModel(

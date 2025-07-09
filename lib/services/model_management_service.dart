@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:write4me/models/model_parameters.dart';
 import 'package:write4me/utils/message_utils.dart';
+import 'package:write4me/widgets/model_settings_dialog.dart';
 import 'dart:io';
 // import 'package:url_launcher/url_launcher.dart';
 import '../providers/offline_mode_provider.dart';
@@ -126,9 +128,18 @@ class ModelManagementService {
               if (value != null) notifier.setSelectedModel(value);
             },
           ),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => showDeleteModelDialog(context, model, notifier),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => _showModelSettingsDialog(context, model, notifier, state),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => showDeleteModelDialog(context, model, notifier),
+              ),
+            ],
           ),
         ),
       ),
@@ -143,5 +154,26 @@ class ModelManagementService {
       return clipped[0].toUpperCase() + clipped.substring(1).toLowerCase();
     }
     return modelName[0].toUpperCase() + modelName.substring(1).toLowerCase();
+  }
+
+  static Future<void> _showModelSettingsDialog(
+    BuildContext context,
+    File model,
+    OfflineModeNotifier notifier,
+    OfflineModeState state,
+  ) async {
+    final currentParams = state.modelParameters[model.path] ?? const ModelParameters();
+
+    final result = await showDialog<ModelParameters>(
+      context: context,
+      builder: (context) => ModelSettingsDialog(
+        initialParameters: currentParams,
+        modelPath: model.path,
+      ),
+    );
+
+    if (result != null) {
+      notifier.setModelParameters(model.path, result);
+    }
   }
 } 

@@ -1,13 +1,16 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:write4me/models/chat_message.dart';
+import 'package:write4me/models/model_parameters.dart';
 import 'package:write4me/utils/exceptions.dart';
-import 'package:fllama/fllama.dart';
+import 'package:write4me/providers/offline_mode_provider.dart'; // Import OfflineModeProvider
+import 'package:fllama/fllama.dart'; // Import fllama.dart
 
 class CancelException implements Exception {
   final String message;
@@ -51,6 +54,7 @@ class OfflineModelService extends ChangeNotifier {
   static const String _isOfflineModeKey = 'is_offline_mode';
   static const String _useLocalModelKey = 'use_local_model';
   static const String _downloadedModelsKey = 'downloaded_models';
+  static const String _modelParametersKey = 'model_parameters';
 
   static const Map<String, String> defaultModels = {
     'Qwen-R1 (1.8 GB)':
@@ -64,11 +68,13 @@ class OfflineModelService extends ChangeNotifier {
   List<File> _availableModels = [];
   bool _useLocalModel = false;
   Set<String> _downloadedUrls = {}; // Track downloaded URLs
+  Map<String, ModelParameters> _modelParameters = {};
 
   bool get isOfflineMode => _isOfflineMode;
   String get selectedModelPath => _selectedModelPath;
   List<File> get availableModels => _availableModels;
   bool get useLocalModel => _useLocalModel;
+  Map<String, ModelParameters> get modelParameters => _modelParameters;
 
   String get currentModelName {
     if (_selectedModelPath.isEmpty) return '';
@@ -79,6 +85,7 @@ class OfflineModelService extends ChangeNotifier {
     await _loadPreferences();
     await _checkAvailableModels();
     await _loadDownloadedUrls();
+    await _loadModelParameters();
   }
 
   Future<void> _loadPreferences() async {
@@ -146,7 +153,6 @@ class OfflineModelService extends ChangeNotifier {
       debugPrint('Error checking models: $e');
     }
   }
-
   Future<void> _loadDownloadedUrls() async {
     final prefs = await SharedPreferences.getInstance();
     final urls = prefs.getStringList(_downloadedModelsKey) ?? [];
@@ -158,6 +164,33 @@ class OfflineModelService extends ChangeNotifier {
     debugPrint('Saving downloaded URLs: $_downloadedUrls');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_downloadedModelsKey, _downloadedUrls.toList());
+  }
+
+  Future<void> _loadModelParameters() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? paramsJsonString = prefs.getString(_modelParametersKey);
+    if (paramsJsonString != null) {
+      final Map<String, dynamic> decodedMap = json.decode(paramsJsonString);
+      _modelParameters = decodedMap.map((key, value) =>
+          MapEntry(key, ModelParameters.fromJson(value as Map<String, dynamic>)));
+      debugPrint('Loaded model parameters: $_modelParameters');
+    } else {
+      _modelParameters = {};
+      debugPrint('No model parameters found, initializing empty map.');
+    }
+  }
+
+  Future<void> _saveModelParameters() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedMap = json.encode(_modelParameters.map((key, value) => MapEntry(key, value.toJson())));
+    await prefs.setString(_modelParametersKey, encodedMap);
+    debugPrint('Saved model parameters: $_modelParameters');
+  }
+
+  Future<void> setModelParameters(String modelPath, ModelParameters params) async {
+    _modelParameters[modelPath] = params;
+    await _saveModelParameters();
+    notifyListeners();
   }
 
   /// Common download logic for both default and custom models
@@ -360,6 +393,8 @@ class OfflineModelService extends ChangeNotifier {
     List<String>? context,
     String? searchResults,
   }) async {
+    final modelParameters = _modelParameters[_selectedModelPath] ?? const ModelParameters();
+
     if (_selectedModelPath.isEmpty) {
       throw Exception('No model selected');
     }
@@ -406,15 +441,15 @@ class OfflineModelService extends ChangeNotifier {
       }
 
       final request = OpenAiRequest(
-        maxTokens: 512,
+        maxTokens: modelParameters.maxTokens,
         messages: messages,
-        numGpuLayers: 99,
+        numGpuLayers: modelParameters.numGpuLayers,
         modelPath: _selectedModelPath,
-        frequencyPenalty: 0.5,
-        presencePenalty: 0.7,
-        topP: 1.0,
-        contextSize: 1024,
-        temperature: 0.5,
+        frequencyPenalty: modelParameters.frequencyPenalty,
+        presencePenalty: modelParameters.presencePenalty,
+        topP: modelParameters.topP,
+        contextSize: modelParameters.contextSize,
+        temperature: modelParameters.temperature,
         logger: (log) => debugPrint('[llama.cpp] $log'),
       );
 
