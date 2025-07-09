@@ -686,7 +686,7 @@ class _HomePageState extends ConsumerState<HomePage>
               if (_isProcessingRAG) // Conditionally show overlay
                 Positioned.fill(
                   child: Container(
-                    color: Colors.black.withOpacity(0.5), // Semi-transparent background
+                    color: Colors.black.withValues(alpha: 0.5), // Semi-transparent background
                     child: const Center(
                       child: CircularProgressIndicator(),
                     ),

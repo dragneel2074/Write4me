@@ -121,16 +121,7 @@ class SettingsDialog extends ConsumerWidget {
               },
             ),
             
-            // Diagnostics
-            ListTile(
-              leading: const Icon(Icons.troubleshoot),
-              title: const Text('Vector Store Diagnostics'),
-              subtitle: const Text('Check vector search functionality'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/diagnostics');
-              },
-            ),
+            
           ],
         ),
       ),

@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/text_utils.dart';
 import '../models/chat_message.dart';
-import '../models/pdf_memory.dart';
 import '../file_processing/file_processor.dart';
 
 class TextGenerationService {
@@ -290,7 +289,9 @@ $prompt
       final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt, limit: wordLimit);
       
       if (kDebugMode && trimmedPrompt.length != formattedPrompt.length) {
-        print("Prompt was trimmed from ${formattedPrompt.length} to ${trimmedPrompt.length} characters");
+        if (kDebugMode) {
+          print("Prompt was trimmed from ${formattedPrompt.length} to ${trimmedPrompt.length} characters");
+        }
       }
       
       final url = _buildUrl(trimmedPrompt, model, system);
@@ -381,7 +382,9 @@ $prompt
       cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
       
       if (kDebugMode && cleaned.length != text.length) {
-        print('TextGenerationService: Text length changed during fallback cleaning (${text.length} -> ${cleaned.length})');
+        if (kDebugMode) {
+          print('TextGenerationService: Text length changed during fallback cleaning (${text.length} -> ${cleaned.length})');
+        }
       }
       
       return cleaned;

@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:write4me/models/chat_message.dart';
 import 'package:http/http.dart' as http;
-import 'package:write4me/models/pdf_memory.dart';
 import 'package:write4me/utils/exceptions.dart';
 
 class CancelException implements Exception {
@@ -264,30 +263,6 @@ class OfflineModelService extends ChangeNotifier {
     }
   }
 
-  /// Process downloaded model file and update state
-  Future<void> _processDownloadedModel(String url, File file) async {
-    _downloadedUrls.add(url);
-    await Future.wait([
-      _saveDownloadedUrls(),
-      _checkAvailableModels(),
-    ]);
-
-    // Don't automatically switch to the downloaded model
-    // if (_availableModels.isNotEmpty) {
-    //   final downloadedFile = _availableModels.lastWhere(
-    //     (f) => f.path == file.path,
-    //     orElse: () => _availableModels.last,
-    //   );
-    //   await setSelectedModel(downloadedFile.path);
-    //   await setUseLocalModel(true);
-    // }
-    
-    // Just log the download completion
-    debugPrint('Model processed: ${file.path}');
-    debugPrint('Available models: ${_availableModels.length}');
-    
-    notifyListeners();
-  }
 
   Future<void> downloadCustomModel(
     String url, 
