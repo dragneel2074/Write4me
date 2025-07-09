@@ -25,6 +25,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_provider.dart';
 import '../providers/ui_state_provider.dart';
 import 'providers/service_providers.dart';
+import '../providers/file_processor_provider.dart'; // Added for fileProcessorProvider
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/selected_documents_provider.dart';
 
@@ -278,6 +279,12 @@ class _HomePageState extends ConsumerState<HomePage>
         if (imageMemory != null) {
           _addContent(imageMemory);
           
+          // Get FileProcessor from provider
+          final fileProcessor = ref.read(fileProcessorProvider);
+          // Process the OCR'd text from the image
+          await fileProcessor.processText(imageMemory.extractedText, imageMemory.name);
+          debugPrint("[RAG] Processed image OCR text with FileProcessor: ${imageMemory.name}");
+
           // Add to selectedDocumentsProvider to ensure RAG uses it
           final currentDocs = ref.read(selectedDocumentsProvider);
           ref.read(selectedDocumentsProvider.notifier).state = [...currentDocs, imageMemory];
