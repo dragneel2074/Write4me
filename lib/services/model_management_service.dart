@@ -90,7 +90,8 @@ class ModelManagementService {
     OfflineModeNotifier notifier,
     OfflineModeState state,
   ) {
-    final modelName = model.path.split('/').last.replaceAll('.gguf', '');
+    final fullModelName = model.path.split('/').last.replaceAll('.gguf', '');
+    final clippedModelName = _clipModelName(fullModelName);
     final isSelected = model.path == state.selectedModelPath;
 
     return Card(
@@ -98,25 +99,51 @@ class ModelManagementService {
       color: isSelected 
           ? Theme.of(context).colorScheme.primaryContainer 
           : null,
-      child: ListTile(
-        title: Text(
-          modelName,
-          style: TextStyle(
-            fontWeight: isSelected ? FontWeight.bold : null,
+      child: InkWell(
+        onLongPress: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(fullModelName),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+          title: Flexible(
+            child: Text(
+              clippedModelName,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : null,
+                fontSize: 14, // Smaller font size
+              ),
+            ),
           ),
-        ),
-        leading: Radio<String>(
-          value: model.path,
-          groupValue: state.selectedModelPath,
-          onChanged: (value) {
-            if (value != null) notifier.setSelectedModel(value);
-          },
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline),
-          onPressed: () => showDeleteModelDialog(context, model, notifier),
+          leading: Radio<String>(
+            value: model.path,
+            groupValue: state.selectedModelPath,
+            onChanged: (value) {
+              if (value != null) notifier.setSelectedModel(value);
+            },
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => showDeleteModelDialog(context, model, notifier),
+          ),
         ),
       ),
     );
+  }
+
+  static String _clipModelName(String modelName) {
+    final regex = RegExp(r'(.*?\d+[bB])');
+    final match = regex.firstMatch(modelName);
+    if (match != null) {
+      final clipped = match.group(1)!;
+      return clipped[0].toUpperCase() + clipped.substring(1).toLowerCase();
+    }
+    return modelName[0].toUpperCase() + modelName.substring(1).toLowerCase();
   }
 } 
