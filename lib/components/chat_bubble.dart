@@ -122,26 +122,43 @@ class ChatBubble extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 const Text('Reason:'),
-                Row(
+                Wrap(
+                  spacing: 8.0, // gap between adjacent chips
+                  runSpacing: 4.0, // gap between lines
                   children: [
-                    Radio<String>(
-                      value: 'Spam',
-                      groupValue: selectedReason,
-                      onChanged: (value) => setState(() => selectedReason = value!),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Radio<String>(
+                          value: 'Spam',
+                          groupValue: selectedReason,
+                          onChanged: (value) => setState(() => selectedReason = value!),
+                        ),
+                        const Text('Spam'),
+                      ],
                     ),
-                    const Text('Spam'),
-                    Radio<String>(
-                      value: 'Offensive',
-                      groupValue: selectedReason,
-                      onChanged: (value) => setState(() => selectedReason = value!),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Radio<String>(
+                          value: 'Offensive',
+                          groupValue: selectedReason,
+                          onChanged: (value) => setState(() => selectedReason = value!),
+                        ),
+                        const Text('Offensive'),
+                      ],
                     ),
-                    const Text('Offensive'),
-                    Radio<String>(
-                      value: 'Other',
-                      groupValue: selectedReason,
-                      onChanged: (value) => setState(() => selectedReason = value!),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Radio<String>(
+                          value: 'Other',
+                          groupValue: selectedReason,
+                          onChanged: (value) => setState(() => selectedReason = value!),
+                        ),
+                        const Text('Other'),
+                      ],
                     ),
-                    const Text('Other'),
                   ],
                 ),
                 const SizedBox(height: 16),

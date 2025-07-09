@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:write4me/providers/offline_mode_provider.dart';
 import 'package:write4me/services/offline_model_service.dart';
 import 'package:write4me/utils/message_utils.dart';

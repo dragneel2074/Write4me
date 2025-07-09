@@ -386,9 +386,9 @@ class OfflineModelService extends ChangeNotifier {
 
       // Choose appropriate prompt based on mode
       if (hasWebSearch) {
-        _buildWebSearchPrompt(fullPrompt, prompt, searchResults!, context ?? []);
+        _buildWebSearchPrompt(fullPrompt, prompt, searchResults, context ?? []);
       } else if (hasDocuments) {
-        _buildDocumentPrompt(fullPrompt, prompt, context!);
+        _buildDocumentPrompt(fullPrompt, prompt, context);
       } else {
         _buildSimplePrompt(fullPrompt, prompt);
       }

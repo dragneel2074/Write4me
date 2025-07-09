@@ -110,15 +110,13 @@ class ModelManagementService {
         },
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 8.0),
-          title: Flexible(
-            child: Text(
-              clippedModelName,
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : null,
-                fontSize: 14, // Smaller font size
-              ),
+          title: Text(
+            clippedModelName,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.bold : null,
+              fontSize: 14, // Smaller font size
             ),
           ),
           leading: Radio<String>(

@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:write4me/providers/chat_provider.dart';
 import 'package:write4me/providers/navigator_provider.dart';
 import 'package:write4me/providers/service_provider.dart';
-import '../services/offline_model_service.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 
