@@ -114,7 +114,7 @@ class AIService extends ChangeNotifier {
   ) async {
     debugPrint('_generateLocalResponse called with:');
     debugPrint('- prompt: $prompt');
-    debugPrint('- searchResults: ${searchResults?.substring(0, searchResults?.length.clamp(0, 100) ?? 0)}...');
+    debugPrint('- searchResults: ${searchResults?.substring(0, searchResults.length.clamp(0, 100))}...');
     debugPrint('- context length: ${context.length}');
     
     // Limit context size for faster inference
@@ -357,7 +357,7 @@ class AIService extends ChangeNotifier {
             for (int i = 0; i < context.length; i++) {
               if (kDebugMode) {
                 print('\n----------- CLEANING CONTEXT CHUNK ${i+1}/${context.length} -----------');
-                print('Before cleaning (first 100 chars): ${context[i].length > 100 ? context[i].substring(0, 100) + "..." : context[i]}');
+                print('Before cleaning (first 100 chars): ${context[i].length > 100 ? "${context[i].substring(0, 100)}..." : context[i]}');
                 
                 // Look for problematic patterns before cleaning
                 final dollarDigitCount = RegExp(r'\$\d+').allMatches(context[i]).length;
@@ -374,7 +374,7 @@ class AIService extends ChangeNotifier {
               if (kDebugMode) {
                 final newLength = context[i].length;
                 final lengthDiff = originalLength - newLength;
-                print('After cleaning (first 100 chars): ${context[i].length > 100 ? context[i].substring(0, 100) + "..." : context[i]}');
+                print('After cleaning (first 100 chars): ${context[i].length > 100 ? "${context[i].substring(0, 100)}..." : context[i]}');
                 print('Length change: $originalLength → $newLength (${lengthDiff > 0 ? "-$lengthDiff" : "+${-lengthDiff}"} chars)');
                 print('----------------------------------------------------------\n');
               }

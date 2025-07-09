@@ -42,7 +42,7 @@ class TextGenerationService {
     if (hasWebSearch) {
       _buildWebSearchPrompt(formattedPrompt, prompt, history, cleanText);
     } else if (hasDocuments) {
-      _buildDocumentPrompt(formattedPrompt, prompt, context!, history, cleanText);
+      _buildDocumentPrompt(formattedPrompt, prompt, context, history, cleanText);
     } else {
       _buildSimplePrompt(formattedPrompt, prompt, history, cleanText);
     }

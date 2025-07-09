@@ -7,7 +7,7 @@ class AppThemes {
       seedColor: Colors.blue,
       brightness: Brightness.light,
     ),
-    cardTheme: const CardTheme(
+    cardTheme: const CardThemeData(
       elevation: 0.5,
       margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
     ),
@@ -43,7 +43,7 @@ class AppThemes {
       seedColor: Colors.blue,
       brightness: Brightness.dark,
     ),
-    cardTheme: const CardTheme(
+    cardTheme: const CardThemeData(
       elevation: 0.5,
       margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
     ),
