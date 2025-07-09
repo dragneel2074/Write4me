@@ -111,6 +111,7 @@ class AIService extends ChangeNotifier {
     List<String> context,
     void Function(String, bool) onResponse,
     List<ChatMessage> history,
+    List<PDFMemory> pdfMemories, // Added pdfMemories
   ) async {
     debugPrint('_generateLocalResponse called with:');
     debugPrint('- prompt: $prompt');
@@ -152,6 +153,7 @@ class AIService extends ChangeNotifier {
       fullPrompt.toString(),
       onResponse,
       history: history,
+      selectedMemories: pdfMemories, // Pass pdfMemories
     );
     
     // Print performance statistics
@@ -426,6 +428,7 @@ class AIService extends ChangeNotifier {
           onResponse,
           // Use filtered history when web search is not enabled
           useWebSearch ? [] : filteredHistory,
+          pdfMemories, // Pass pdfMemories directly
         );
       } else {
         debugPrint('Using online service for generation');

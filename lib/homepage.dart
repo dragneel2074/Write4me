@@ -277,6 +277,12 @@ class _HomePageState extends ConsumerState<HomePage>
             await _imageService.processImageContent(source);
         if (imageMemory != null) {
           _addContent(imageMemory);
+          
+          // Add to selectedDocumentsProvider to ensure RAG uses it
+          final currentDocs = ref.read(selectedDocumentsProvider);
+          ref.read(selectedDocumentsProvider.notifier).state = [...currentDocs, imageMemory];
+          debugPrint("[RAG] Added Image to selectedDocumentsProvider: ${currentDocs.length + 1} documents");
+
           if (!mounted) return;
 
           NotificationService.showTopNotification(

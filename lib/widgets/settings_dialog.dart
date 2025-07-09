@@ -104,7 +104,7 @@ class SettingsDialog extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.delete),
-                title: const Text('Clear Chat'),
+                title: const Text('New Chat'),
                 onTap: () {
                   Navigator.pop(context);
                   onClearChat();

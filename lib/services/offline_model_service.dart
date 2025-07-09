@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:write4me/models/chat_message.dart';
 import 'package:http/http.dart' as http;
+import 'package:write4me/models/pdf_memory.dart';
 import 'package:write4me/utils/exceptions.dart';
 
 class CancelException implements Exception {
@@ -379,6 +380,7 @@ class OfflineModelService extends ChangeNotifier {
     String prompt,
     void Function(String, bool) onResponse, {
     List<ChatMessage> history = const [],
+    List<PDFMemory> selectedMemories = const [], // Added selectedMemories
   }) async {
     if (_selectedModelPath.isEmpty) {
       throw Exception('No model selected');
@@ -393,12 +395,32 @@ class OfflineModelService extends ChangeNotifier {
       bool firstResponse = true;
       final messages = <Message>[];
       
+      // final messages = <Message>[];
+
+      // Build context from selected memories
+      final List<String> context = [];
+      if (selectedMemories.isNotEmpty) {
+        for (var memory in selectedMemories) {
+          if (memory.isSelected) {
+            context.add(memory.extractedText);
+          }
+        }
+      }
+
       messages.add(Message(
         Role.system, 
         '''You are a helpful assistant who answers concisely.
 When provided with document context, analyze it carefully to provide accurate answers.
 For images with text, refer to the extracted text to provide relevant information.'''
       ));
+
+      // Add context to the prompt if available
+      if (context.isNotEmpty) {
+        messages.add(Message(
+          Role.user,
+          'Here is some relevant context:\n\n${context.join('\n\n')}\n\n'
+        ));
+      }
 
       final recentHistory = history.length > 6 
           ? history.sublist(history.length - 6) 

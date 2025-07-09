@@ -180,7 +180,7 @@ Context (${context.length} relevant passages):
           debugPrint('Jina search results: $searchResults');
           
           // Generate response with search results
-          const model = 'openai-large';
+          const model = 'gpt-4o-mini';
           const system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
           
           final formattedPrompt = '''
@@ -264,7 +264,7 @@ $prompt
         }
       }
 
-      const model = 'openai-large'; // Using openai-large for text generation
+      const model = 'gpt-4o-mini'; // Using openai-large for text generation
       
       // Customize system prompts based on the mode
       final String system;
