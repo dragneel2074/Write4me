@@ -112,6 +112,9 @@ class ModelManagementService {
         },
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+          onTap: () {
+            notifier.setSelectedModel(model.path);
+          },
           title: Text(
             clippedModelName,
             overflow: TextOverflow.ellipsis,
@@ -120,13 +123,6 @@ class ModelManagementService {
               fontWeight: isSelected ? FontWeight.bold : null,
               fontSize: 14, // Smaller font size
             ),
-          ),
-          leading: Radio<String>(
-            value: model.path,
-            groupValue: state.selectedModelPath,
-            onChanged: (value) {
-              if (value != null) notifier.setSelectedModel(value);
-            },
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
