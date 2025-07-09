@@ -41,6 +41,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final List<PDFMemory> _pdfMemories = [];
   final TextEditingController _controller = TextEditingController();
   late final ScrollController _scrollController;
+  bool _isProcessingRAG = false; // New state variable
 
   // Move these to a new StateNotifier
   // final bool _isImageMode = false;
@@ -205,37 +206,45 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _pickPDFAndCreateRAG() async {
+    final chatNotifier = ref.read(chatProvider.notifier);
+    chatNotifier.setGenerating(true); // Set generating to true
+    setState(() { _isProcessingRAG = true; }); // Set RAG processing to true
     debugPrint("[RAG] Starting PDF processing workflow");
     
-    // Use the PDFService through the provider
-    final pdfService = ref.read(pdfServiceProvider);
-    final pdfMemory = await pdfService.pickAndProcessPDF();
-    
-    if (pdfMemory != null) {
-      debugPrint("[RAG] PDF picked: ${pdfMemory.name}");
-      _addContent(pdfMemory);
+    try {
+      // Use the PDFService through the provider
+      final pdfService = ref.read(pdfServiceProvider);
+      final pdfMemory = await pdfService.pickAndProcessPDF();
       
-      // Add to selectedDocumentsProvider to ensure RAG uses it
-      final currentDocs = ref.read(selectedDocumentsProvider);
-      ref.read(selectedDocumentsProvider.notifier).state = [...currentDocs, pdfMemory];
-      debugPrint("[RAG] Added PDF to selectedDocumentsProvider: ${currentDocs.length + 1} documents");
-      
-      if (mounted) {
-        NotificationService.showTopNotification(
-          context,
-          message: 'PDF processed: ${pdfMemory.name}',
-        );
+      if (pdfMemory != null) {
+        debugPrint("[RAG] PDF picked: ${pdfMemory.name}");
+        _addContent(pdfMemory);
+        
+        // Add to selectedDocumentsProvider to ensure RAG uses it
+        final currentDocs = ref.read(selectedDocumentsProvider);
+        ref.read(selectedDocumentsProvider.notifier).state = [...currentDocs, pdfMemory];
+        debugPrint("[RAG] Added PDF to selectedDocumentsProvider: ${currentDocs.length + 1} documents");
+        
+        if (mounted) {
+          NotificationService.showTopNotification(
+            context,
+            message: 'PDF processed: ${pdfMemory.name}',
+          );
+        }
+        
+        // The PDF has already been processed by the PDFService
+        // which has the FileProcessor injected into it
+        
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(content: Text('PDF processed successfully!'))
+        // );
+      } else {
+        if (mounted) {
+        }
       }
-      
-      // The PDF has already been processed by the PDFService
-      // which has the FileProcessor injected into it
-      
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(content: Text('PDF processed successfully!'))
-      // );
-    } else {
-      if (mounted) {
-      }
+    } finally {
+      chatNotifier.setGenerating(false); // Set generating to false
+      setState(() { _isProcessingRAG = false; }); // Set RAG processing to false
     }
   }
 
@@ -271,6 +280,9 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _processImageContent() async {
+    final chatNotifier = ref.read(chatProvider.notifier);
+    chatNotifier.setGenerating(true); // Set generating to true
+    setState(() { _isProcessingRAG = true; }); // Set RAG processing to true
     final source = await DialogManager.showImageSourceDialog(context);
     if (source != null) {
       try {
@@ -305,7 +317,13 @@ class _HomePageState extends ConsumerState<HomePage>
           message: 'Error processing image: ${e.toString()}',
           isError: true,
         );
+      } finally { // Added finally block
+        chatNotifier.setGenerating(false); // Set generating to false
+        setState(() { _isProcessingRAG = false; }); // Set RAG processing to false
       }
+    } else { // Added else block for when source is null
+      chatNotifier.setGenerating(false); // Set generating to false if no source selected
+      setState(() { _isProcessingRAG = false; }); // Set RAG processing to false
     }
   }
 
@@ -576,91 +594,104 @@ class _HomePageState extends ConsumerState<HomePage>
             onChatSelected: _loadSavedChat,
             onChatDeleted: _deleteChat,
           ),
-          body: Column(
+          body: Stack( // Wrap with Stack
             children: [
-              if (chatState.messages.isEmpty)
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Ask anything,\nget instant answers.',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2,
-                        ),
-                        textAlign: TextAlign.center,
+              Column(
+                children: [
+                  if (chatState.messages.isEmpty)
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Ask anything,\nget instant answers.',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            height: 2,
+                            width: 120,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .primaryColor
+                                  .withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                        ],
                       ),
-                      Container(
-                        margin: const EdgeInsets.only(top: 8),
-                        height: 2,
-                        width: 120,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .primaryColor
-                              .withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(1),
+                    ),
+                  Expanded(
+                    child: ChatMessages(
+                      scrollController: _scrollController,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, -2),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      children: [
+                        ModelSelector(
+                          isOfflineMode: offlineModeState.isOfflineMode,
+                        ),
+                        DocumentListContainer(
+                          documents: _pdfMemories,
+                          onSelectionChanged: () => setState(() {}),
+                          onLongPress: _showExtractedText,
+                          onRemove: (memory) {
+                            setState(() {
+                              _pdfMemories.remove(memory);
+                            });
+                          },
+                        ),
+                        ChatInput(
+                          controller: _controller,
+                          isImageMode: uiState.isImageMode,
+                          isWebSearch: uiState.isWebSearch,
+                          isGenerating: chatState.isGenerating,
+                          onSubmit: _submitMessage,
+                          onStop: _stopGeneration,
+                          onAddContent: _showAddOptions,
+                          onToggleWebSearch: offlineModeState.isOfflineMode
+                              ? null
+                              : () => ref
+                                  .read(uiStateProvider.notifier)
+                                  .toggleWebSearch(),
+                          onToggleImage: () =>
+                              ref.read(uiStateProvider.notifier).toggleImageMode(),
+                          isWebSearchDisabled: _pdfMemories.isNotEmpty ||
+                              offlineModeState.isOfflineMode,
+                          isOfflineMode: offlineModeState.isOfflineMode,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (_isProcessingRAG) // Conditionally show overlay
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.5), // Semi-transparent background
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
                   ),
                 ),
-              Expanded(
-                child: ChatMessages(
-                  scrollController: _scrollController,
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    ModelSelector(
-                      isOfflineMode: offlineModeState.isOfflineMode,
-                    ),
-                    DocumentListContainer(
-                      documents: _pdfMemories,
-                      onSelectionChanged: () => setState(() {}),
-                      onLongPress: _showExtractedText,
-                      onRemove: (memory) {
-                        setState(() {
-                          _pdfMemories.remove(memory);
-                        });
-                      },
-                    ),
-                    ChatInput(
-                      controller: _controller,
-                      isImageMode: uiState.isImageMode,
-                      isWebSearch: uiState.isWebSearch,
-                      isGenerating: chatState.isGenerating,
-                      onSubmit: _submitMessage,
-                      onStop: _stopGeneration,
-                      onAddContent: _showAddOptions,
-                      onToggleWebSearch: offlineModeState.isOfflineMode
-                          ? null
-                          : () => ref
-                              .read(uiStateProvider.notifier)
-                              .toggleWebSearch(),
-                      onToggleImage: () =>
-                          ref.read(uiStateProvider.notifier).toggleImageMode(),
-                      isWebSearchDisabled: _pdfMemories.isNotEmpty ||
-                          offlineModeState.isOfflineMode,
-                      isOfflineMode: offlineModeState.isOfflineMode,
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         );
