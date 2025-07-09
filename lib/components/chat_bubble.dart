@@ -101,10 +101,11 @@ class ChatBubble extends StatelessWidget {
         title: const Text('Report Message'),
         content: StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 const Text('Message to Report:'),
                 Container(
                   margin: const EdgeInsets.symmetric(vertical: 8),
@@ -172,7 +173,7 @@ class ChatBubble extends StatelessWidget {
                   onChanged: (value) => setState(() => additionalComments = value),
                 ),
               ],
-            );
+            ));
           },
         ),
         actions: [

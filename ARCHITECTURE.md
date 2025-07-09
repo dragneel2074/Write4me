@@ -1,7 +1,5 @@
 # Write4Me Architecture
 
-Edit: I had to roll back the RAG implementation due to bugs.
-
 This document provides an in-depth explanation of the Write4Me app architecture. It's intended for developers who want to understand the codebase and potentially contribute to it.
 
 ## System Overview
