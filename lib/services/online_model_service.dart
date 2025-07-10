@@ -33,9 +33,9 @@ class OnlineModel {
       tier: json['tier'] as String,
       inputModalities: List<String>.from(json['input_modalities'] as List),
       outputModalities: List<String>.from(json['output_modalities'] as List),
-      tools: json['tools'] as bool,
-      vision: json['vision'] as bool,
-      audio: json['audio'] as bool,
+      tools: json['tools'] as bool? ?? false,
+      vision: json['vision'] as bool? ?? false,
+      audio: json['audio'] as bool? ?? false,
     );
   }
 }
