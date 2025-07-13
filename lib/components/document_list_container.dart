@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../models/pdf_memory.dart';
+import '../models/image_memory.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/selected_documents_provider.dart';
 
 class DocumentListContainer extends ConsumerWidget {
-  final List<PDFMemory> documents;
+  final List<dynamic> documents;
   final VoidCallback onSelectionChanged;
-  final Function(PDFMemory) onLongPress;
-  final Function(PDFMemory) onRemove;
+  final Function(dynamic) onLongPress;
+  final Function(dynamic) onRemove;
 
   const DocumentListContainer({
     super.key,
@@ -19,9 +20,9 @@ class DocumentListContainer extends ConsumerWidget {
 
   Color _getChipColor(BuildContext context, bool isImage, bool isPDF) {
     final colorScheme = Theme.of(context).colorScheme;
-    if (isImage) return colorScheme.secondary.withValues(alpha:0.1);
-    if (isPDF) return colorScheme.tertiary.withValues(alpha:0.1);
-    return colorScheme.primary.withValues(alpha:0.1);
+    if (isImage) return colorScheme.secondary.withOpacity(0.1);
+    if (isPDF) return colorScheme.tertiary.withOpacity(0.1);
+    return colorScheme.primary.withOpacity(0.1);
   }
 
   Color _getSelectedChipColor(BuildContext context, bool isImage, bool isPDF) {
@@ -47,8 +48,8 @@ class DocumentListContainer extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: documents.map((doc) {
-            final isImage = doc.name.startsWith('Image:');
-            final isPDF = doc.name.endsWith('.pdf');
+            final isImage = doc is ImageMemory;
+            final isPDF = doc is PDFMemory;
             
             return Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -101,7 +102,7 @@ class DocumentListContainer extends ConsumerWidget {
                       ? Theme.of(context).colorScheme.onPrimary
                       : null,
                   side: BorderSide(
-                    color: _getSelectedChipColor(context, isImage, isPDF).withValues(alpha:0.5),
+                    color: _getSelectedChipColor(context, isImage, isPDF).withOpacity(0.5),
                     width: 1,
                   ),
                 ),

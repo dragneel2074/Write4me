@@ -52,7 +52,8 @@ class OfflineModelService extends ChangeNotifier {
 
   static const String _selectedModelKey = 'selected_model';
   static const String _isOfflineModeKey = 'is_offline_mode';
-  static const String _useLocalModelKey = 'use_local_model';
+  static const String _isLocalModelActiveKey = 'is_local_model_active';
+  static const String _isLocalModelSelectedKey = 'is_local_model_selected';
   static const String _downloadedModelsKey = 'downloaded_models';
   static const String _modelParametersKey = 'model_parameters';
 
@@ -66,14 +67,16 @@ class OfflineModelService extends ChangeNotifier {
   bool _isOfflineMode = false;
   String _selectedModelPath = '';
   List<File> _availableModels = [];
-  bool _useLocalModel = false;
+  bool _isLocalModelActive = false;
+  bool _isLocalModelSelected = false;
   Set<String> _downloadedUrls = {}; // Track downloaded URLs
   Map<String, ModelParameters> _modelParameters = {};
 
   bool get isOfflineMode => _isOfflineMode;
   String get selectedModelPath => _selectedModelPath;
   List<File> get availableModels => _availableModels;
-  bool get useLocalModel => _useLocalModel;
+  bool get isLocalModelActive => _isLocalModelActive;
+  bool get isLocalModelSelected => _isLocalModelSelected;
   Map<String, ModelParameters> get modelParameters => _modelParameters;
 
   String get currentModelName {
@@ -92,7 +95,8 @@ class OfflineModelService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _isOfflineMode = prefs.getBool(_isOfflineModeKey) ?? false;
     _selectedModelPath = prefs.getString(_selectedModelKey) ?? '';
-    _useLocalModel = prefs.getBool(_useLocalModelKey) ?? false;
+    _isLocalModelActive = prefs.getBool(_isLocalModelActiveKey) ?? false;
+    _isLocalModelSelected = prefs.getBool(_isLocalModelSelectedKey) ?? false;
   }
 
   Future<void> setOfflineMode(bool value) async {
@@ -109,13 +113,20 @@ class OfflineModelService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setUseLocalModel(bool value) async {
+  Future<void> setIsLocalModelActive(bool value) async {
     if (value && _availableModels.isEmpty) {
       throw Exception('No local models available');
     }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_useLocalModelKey, value);
-    _useLocalModel = value;
+    await prefs.setBool(_isLocalModelActiveKey, value);
+    _isLocalModelActive = value;
+    notifyListeners();
+  }
+
+  Future<void> setIsLocalModelSelected(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_isLocalModelSelectedKey, value);
+    _isLocalModelSelected = value;
     notifyListeners();
   }
 

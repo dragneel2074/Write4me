@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../file_processing/file_processor.dart';
 
 import '../models/pdf_memory.dart';
+import '../models/image_memory.dart';
 import '../models/chat_message.dart';
 import 'text_generation_service.dart';
 import '../utils/text_utils.dart';
@@ -177,6 +178,7 @@ class AIService extends ChangeNotifier {
   Future<void> getStreamingResponse(
     String prompt,
     List<PDFMemory> pdfMemories,
+    List<ImageMemory> imageMemories,
     void Function(String, bool) onResponse, {
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
@@ -184,7 +186,8 @@ class AIService extends ChangeNotifier {
     debugPrint('\ngetStreamingResponse called with:');
     debugPrint('- prompt: $prompt');
     debugPrint('- useWebSearch: $useWebSearch');
-    debugPrint('- isLocalModel: ${_offlineService.useLocalModel}');
+    debugPrint('- isLocalModelActive: ${_offlineService.isLocalModelActive}');
+    debugPrint('- isLocalModelSelected: ${_offlineService.isLocalModelSelected}');
     debugPrint('- isOfflineMode: ${_offlineService.isOfflineMode}');
     debugPrint('- history length: ${history.length}');
 
@@ -202,9 +205,9 @@ class AIService extends ChangeNotifier {
       
       // When in offline mode, we must use local model and cannot use web search
       if (isOfflineMode) {
-        if (!_offlineService.useLocalModel) {
+        if (!_offlineService.isLocalModelActive) {
           debugPrint('In offline mode but local model not active - forcing local model');
-          await _offlineService.setUseLocalModel(true);
+          await _offlineService.setIsLocalModelActive(true);
         }
         // Override web search setting when in offline mode
         if (useWebSearch) {
@@ -328,6 +331,15 @@ class AIService extends ChangeNotifier {
           }
         }
       }
+
+      // Add image context directly
+      if (imageMemories.isNotEmpty) {
+        for (var memory in imageMemories) {
+          if (memory.isSelected) {
+            context.add("From: ${memory.name}\n${memory.extractedText}");
+          }
+        }
+      }
       
       // Step 1: Perform web search if enabled and not in offline mode
       String? searchResults;
@@ -348,8 +360,9 @@ class AIService extends ChangeNotifier {
       }
 
       // Step 2: Generate response based on model selection
-      if (isOfflineMode) {
-        debugPrint('Using local model for generation (Offline Mode)');
+      if (_offlineService.isOfflineMode || _offlineService.isLocalModelSelected) {
+        // If in offline mode OR local model is explicitly selected, use local model
+        debugPrint('Using local model for generation (Offline Mode: ${_offlineService.isOfflineMode}, Local Model Selected: ${_offlineService.isLocalModelSelected})');
         debugPrint('Search results available: ${searchResults != null}');
         await _generateLocalResponse(
           prompt,
@@ -361,6 +374,7 @@ class AIService extends ChangeNotifier {
           pdfMemories, // Pass pdfMemories directly
         );
       } else if (_onlineModelService.selectedOnlineModel != null) {
+        // If not in offline mode and a specific online model is selected
         debugPrint('Using selected online model for generation: ${_onlineModelService.selectedOnlineModel!.name}');
         await _textGenService.generateStreamingResponse(
           prompt,
@@ -371,6 +385,7 @@ class AIService extends ChangeNotifier {
           model: _onlineModelService.selectedOnlineModel!.name, // Pass the selected online model name
         );
       } else {
+        // If not in offline mode and no specific online model is selected, use default online service
         debugPrint('Using default online service for generation');
         await _textGenService.generateStreamingResponse(
           prompt,
@@ -414,7 +429,9 @@ class AIService extends ChangeNotifier {
 
   Future<String> getResponse(
     String question,
-    List<PDFMemory> selectedMemories, {
+    List<PDFMemory> selectedMemories,
+    List<ImageMemory> imageMemories,
+    {
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
   }) async {
@@ -423,6 +440,7 @@ class AIService extends ChangeNotifier {
     await getStreamingResponse(
       question,
       selectedMemories,
+      imageMemories,
       (response, done) {
         if (done) completer.complete(response);
       },

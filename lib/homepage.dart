@@ -10,6 +10,7 @@ import 'components/chat_messages.dart';
 import 'components/document_list_container.dart';
 import 'models/chat_message.dart';
 import 'models/pdf_memory.dart';
+import 'models/image_memory.dart';
 import 'services/image_generation_service.dart';
 import 'services/image_service.dart';
 import 'services/notification_service.dart';
@@ -39,6 +40,7 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage>
     with SingleTickerProviderStateMixin {
   final List<PDFMemory> _pdfMemories = [];
+  final List<ImageMemory> _imageMemories = [];
   final TextEditingController _controller = TextEditingController();
   late final ScrollController _scrollController;
   bool _isProcessingRAG = false; // New state variable
@@ -218,7 +220,7 @@ class _HomePageState extends ConsumerState<HomePage>
       
       if (pdfMemory != null) {
         debugPrint("[RAG] PDF picked: ${pdfMemory.name}");
-        _addContent(pdfMemory);
+        _addPdfContent(pdfMemory);
         
         // Add to selectedDocumentsProvider to ensure RAG uses it
         final currentDocs = ref.read(selectedDocumentsProvider);
@@ -256,9 +258,15 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  void _addContent(PDFMemory memory) {
+  void _addPdfContent(PDFMemory memory) {
     setState(() {
       _pdfMemories.add(memory);
+    });
+  }
+
+  void _addImageContent(ImageMemory memory) {
+    setState(() {
+      _imageMemories.add(memory);
     });
   }
 
@@ -268,7 +276,7 @@ class _HomePageState extends ConsumerState<HomePage>
       try {
         PDFMemory? webMemory = await _webService.processWebContent(url);
         if (webMemory != null) {
-          _addContent(webMemory);
+          _addPdfContent(webMemory);
           if (!mounted) return;
           NotificationService.showTopNotification(
             context,
@@ -294,21 +302,10 @@ class _HomePageState extends ConsumerState<HomePage>
     final source = await DialogManager.showImageSourceDialog(context);
     if (source != null) {
       try {
-        PDFMemory? imageMemory =
+        ImageMemory? imageMemory =
             await _imageService.processImageContent(source);
         if (imageMemory != null) {
-          _addContent(imageMemory);
-          
-          // Get FileProcessor from provider
-          final fileProcessor = ref.read(fileProcessorProvider);
-          // Process the OCR'd text from the image
-          await fileProcessor.processText(imageMemory.extractedText, imageMemory.name);
-          debugPrint("[RAG] Processed image OCR text with FileProcessor: ${imageMemory.name}");
-
-          // Add to selectedDocumentsProvider to ensure RAG uses it
-          final currentDocs = ref.read(selectedDocumentsProvider);
-          ref.read(selectedDocumentsProvider.notifier).state = [...currentDocs, imageMemory];
-          debugPrint("[RAG] Added Image to selectedDocumentsProvider: ${currentDocs.length + 1} documents");
+          _addImageContent(imageMemory);
 
           if (!mounted) return;
 
@@ -335,7 +332,7 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  void _showExtractedText(PDFMemory memory) {
+  void _showExtractedText(dynamic memory) {
     DialogManager.showExtractedText(
       context,
       memory.name,
@@ -354,15 +351,13 @@ class _HomePageState extends ConsumerState<HomePage>
     _controller.clear();
     setState(() {
       _pdfMemories.clear();
+      _imageMemories.clear();
     });
 
     if (mounted) {
-        MessageUtils.showInfo(context, 'Started new chat');
+        MessageUtils.showInfo(context, 'No messages to save');
       // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(
-      //     content: Text('Started new chat'),
-      //     duration: Duration(seconds: 1),
-      //   ),
+      //   const SnackBar(content: Text('Started new chat')),
       // );
     }
   }
@@ -478,7 +473,8 @@ class _HomePageState extends ConsumerState<HomePage>
         debugPrint('Submitting message with:');
         debugPrint('- isWebSearch: ${uiState.isWebSearch}');
         debugPrint('- isOfflineMode: ${offlineModeState.isOfflineMode}');
-        debugPrint('- useLocalModel: ${offlineModeState.useLocalModel}');
+        debugPrint('- isLocalModelActive: ${offlineModeState.isLocalModelActive}');
+        debugPrint('- isLocalModelSelected: ${offlineModeState.isLocalModelSelected}');
         debugPrint('- useWebSearch: $useWebSearch');
         
         // DEBUG: Show history before filtering service messages
@@ -494,6 +490,7 @@ class _HomePageState extends ConsumerState<HomePage>
           await aiService.getStreamingResponse(
             message,
             _pdfMemories,
+            _imageMemories,
             (response, done) {
               if (mounted) {
                 chatNotifier.updateLastMessage(response);
@@ -560,7 +557,8 @@ class _HomePageState extends ConsumerState<HomePage>
     
     // Add debug prints
     debugPrint('HomePage build - isOfflineMode: ${offlineModeState.isOfflineMode}');
-    debugPrint('HomePage build - useLocalModel: ${offlineModeState.useLocalModel}');
+    debugPrint('HomePage build - isLocalModelActive: ${offlineModeState.isLocalModelActive}');
+    debugPrint('HomePage build - isLocalModelSelected: ${offlineModeState.isLocalModelSelected}');
     debugPrint('HomePage build - availableModels: ${offlineModeState.availableModels.length}');
 
     return ref.watch(offlineModelInitProvider).when(
@@ -658,12 +656,16 @@ class _HomePageState extends ConsumerState<HomePage>
                           isOfflineMode: offlineModeState.isOfflineMode,
                         ),
                         DocumentListContainer(
-                          documents: _pdfMemories,
+                          documents: [..._pdfMemories, ..._imageMemories],
                           onSelectionChanged: () => setState(() {}),
                           onLongPress: _showExtractedText,
                           onRemove: (memory) {
                             setState(() {
-                              _pdfMemories.remove(memory);
+                              if (memory is PDFMemory) {
+                                _pdfMemories.remove(memory);
+                              } else if (memory is ImageMemory) {
+                                _imageMemories.remove(memory);
+                              }
                             });
                           },
                         ),
@@ -683,6 +685,7 @@ class _HomePageState extends ConsumerState<HomePage>
                           onToggleImage: () =>
                               ref.read(uiStateProvider.notifier).toggleImageMode(),
                           isWebSearchDisabled: _pdfMemories.isNotEmpty ||
+                              _imageMemories.isNotEmpty ||
                               offlineModeState.isOfflineMode,
                           isOfflineMode: offlineModeState.isOfflineMode,
                         ),

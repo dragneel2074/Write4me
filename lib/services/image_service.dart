@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import '../models/pdf_memory.dart';
+import '../models/image_memory.dart';
 import 'package:gal/gal.dart'; // Import the gal package
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
@@ -46,7 +46,7 @@ class ImageService {
     }
   }
 
-  Future<PDFMemory?> processImageContent(ImageSource source) async {
+  Future<ImageMemory?> processImageContent(ImageSource source) async {
     try {
       // Request permissions first
       bool permissionGranted = false;
@@ -95,7 +95,7 @@ class ImageService {
         throw Exception('No text found in image');
       }
 
-      return PDFMemory(
+      return ImageMemory(
         'Image: ${pickedFile.name}',
         recognizedText.text,
         isSelected: true,

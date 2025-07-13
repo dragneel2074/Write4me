@@ -1,9 +1,55 @@
-https://text.pollinations.ai/models
-
-[{"name":"deepseek","description":"DeepSeek V3","provider":"azure","tier":"seed","community":false,"aliases":"deepseek-v3","input_modalities":["text"],"output_modalities":["text"],"tools":false,"vision":false,"audio":false},{"name":"deepseek-reasoning","description":"DeepSeek R1 0528","reasoning":true,"provider":"azure","tier":"seed","community":false,"aliases":"deepseek-r1-0528","input_modalities":["text"],"output_modalities":["text"],"tools":false,"vision":false,"audio":false},{"name":"grok","description":"xAI Grok-3 Mini","provider":"azure","tier":"seed","community":false,"aliases":"grok-3-mini","input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"llama-roblox","description":"Llama 3.1 8B FP8 (Cloudflare)","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"llama-3.1-8b-instruct-fp8","input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"llamascout","description":"Llama 4 Scout 17B","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"llama-4-scout-17b-16e-instruct","input_modalities":["text"],"output_modalities":["text"],"tools":false,"vision":false,"audio":false},{"name":"mistral","description":"Mistral Small 3.1 24B","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"mistral-small-3.1-24b-instruct","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"mistral-roblox","description":"Mistral Small 3.1 24B (Cloudflare)","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"mistral-small-cloudflare","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"openai","description":"OpenAI GPT-4o Mini","provider":"azure","tier":"anonymous","community":false,"aliases":"gpt-4o-mini","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"openai-audio","description":"OpenAI GPT-4o Mini Audio Preview","maxInputChars":5000,"voices":["alloy","echo","fable","onyx","nova","shimmer","coral","verse","ballad","ash","sage","amuch","dan"],"provider":"azure","tier":"seed","community":false,"aliases":"gpt-4o-mini-audio-preview","input_modalities":["text","image","audio"],"output_modalities":["audio","text"],"tools":true,"vision":true,"audio":true},{"name":"openai-fast","description":"OpenAI GPT-4.1 Nano","provider":"azure","tier":"anonymous","community":false,"aliases":"gpt-4.1-nano","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"openai-large","description":"OpenAI GPT-4.1","provider":"azure","tier":"flower","community":false,"aliases":"gpt-4.1","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"openai-roblox","description":"OpenAI GPT-4.1 Mini (Roblox)","provider":"azure","tier":"flower","community":false,"aliases":"gpt-4.1-mini-roblox","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"phi","description":"Phi-4 Mini Instruct","provider":"azure","tier":"anonymous","community":false,"aliases":"phi-4-mini-instruct","input_modalities":["text","image","audio"],"output_modalities":["text"],"tools":false,"vision":true,"audio":true},{"name":"qwen-coder","description":"Qwen 2.5 Coder 32B","provider":"scaleway","tier":"anonymous","community":false,"aliases":"qwen2.5-coder-32b-instruct","input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"bidara","description":"BIDARA (Biomimetic Designer and Research Assistant by NASA)","provider":"azure","tier":"anonymous","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"elixposearch","description":"Elixpo Search","provider":"scaleway","tier":"anonymous","community":true,"input_modalities":["text"],"output_modalities":["text"],"tools":false,"vision":false,"audio":false},{"name":"evil","description":"Evil","provider":"cloudflare","uncensored":true,"tier":"seed","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"hypnosis-tracy","description":"Hypnosis Tracy","provider":"azure","tier":"seed","community":true,"input_modalities":["text","audio"],"output_modalities":["audio","text"],"tools":true,"vision":false,"audio":true},{"name":"midijourney","description":"MIDIjourney","provider":"azure","tier":"anonymous","community":true,"input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"mirexa","description":"Mirexa AI Companion","provider":"azure","tier":"seed","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"rtist","description":"Rtist","provider":"azure","tier":"seed","community":true,"input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"sur","description":"Sur AI Assistant","provider":"cloudflare","tier":"seed","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"unity","description":"Unity Unrestricted Agent","provider":"cloudflare","uncensored":true,"tier":"seed","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false}]
-
-https://image.pollinations.ai/models
-
-["flux","kontext","turbo","gptimage"]
-
-https://image.pollinations.ai/prompt/boy%20in%20a%20castle?nologo=true&model=turbo
+I/flutter (29990): Submitting message with:
+I/flutter (29990): - isWebSearch: false
+I/flutter (29990): - isOfflineMode: false
+I/flutter (29990): - useLocalModel: true
+I/flutter (29990): - useWebSearch: false
+I/flutter (29990): Chat history before filtering:
+I/flutter (29990): [0] AI: Hey!
+I/flutter (29990):
+I/flutter (29990): Chat Service is Online. Ask Me Anything.
+I/flutter (29990):
+I/flutter (29990):  ...
+I/flutter (29990): [1] USER: what is this...
+I/flutter (29990): [2] AI: The context provides an academic calendar from Tri...
+I/flutter (29990): Getting meaningful history: 3 → 2 messages
+I/flutter (29990): First meaningful message: 'what is this...'
+I/flutter (29990):
+I/flutter (29990): getStreamingResponse called with:
+I/flutter (29990): - prompt: what is this
+I/flutter (29990): - useWebSearch: false
+I/flutter (29990): - isLocalModel: true
+I/flutter (29990): - isOfflineMode: false
+I/flutter (29990): - history length: 2
+I/flutter (29990): Filtered chat history: 2 → 2 messages
+I/flutter (29990): - filtered history length: 2
+I/flutter (29990): Web search not requested or offline mode enabled
+I/flutter (29990): Using selected online model for generation: llama-fast-roblox
+I/flutter (29990): TextGenerationService: Formatting prompt for mode: Document
+I/flutter (29990): Formatting 1 context chunks for API request
+I/flutter (29990): Using word limit of 2000 for 1 context chunks
+I/flutter (29990): Original prompt length: 1627 characters
+I/flutter (29990): ========== URL GENERATION DETAILS ==========
+I/flutter (29990): Original prompt length: 1627
+I/flutter (29990): Original prompt preview: Query: Answer based on the context about:
+I/flutter (29990): what is...
+I/flutter (29990): TextGenerationService: Sanitizing prompt text of length 1627 for API request
+I/flutter (29990): TextGenerationService: First 100 chars before cleaning: Query: Answer based on the context about:
+I/flutter (29990): what is this
+I/flutter (29990):
+I/flutter (29990): Context (1 relevant passages):
+I/flutter (29990): ----- PASSAG
+I/flutter (29990): FileProcessor: Cleaning text for API submission (length: 1627)
+I/flutter (29990): FileProcessor: Text length changed: 1627 → 1623 (4 chars removed)
+I/flutter (29990): TextGenerationService: Text cleaned for API submission, new length: 1623
+I/flutter (29990): TextGenerationService: Text length changed during cleaning (1627 -> 1623)
+I/flutter (29990): Final URL length: 2465
+I/flutter (29990): URL preview: https://text.pollinations.ai/Query%3A%20Answer%20based%20on%20the%20context%20about%3A%20what%20is%2...
+I/flutter (29990): ===========================================
+I/flutter (29990): url: https://text.pollinations.ai/Query%3A%20Answer%20based%20on%20the%20context%20about%3A%20what%20is%20this%20Context%20(1%20relevant%20passages)%3A%20-----%20PASSAGE%201%2F1%20-----%20From%3A%20Image%3A%20scaled_1000023349.jpg%20Ref.%20No.%20Tribhuvan%20University%20Institute%20of%20Science%20and%20Technology%20SCHOOL.%20OF%20MATHEMATICAL%20SCIENCES%20Admission%20Regular%20Class%20Starts%20Titles%20Holiday%20(Raksha%20Bandhan)%20Holiday%20(Gaijatra)%20Academic%20Calendar%20of%20MDSII%20Semester%20Holiday%20(Shree%20Krishna%20Janmasthami)%20First%20Assessment%20Preparation%20Leave%20First%20Assessment%20Holiday%20(Constitution%20Day)%20First%20Assessment%20Result%20Class%20Resume%20Dashain%20-%20Tihar%20-%20Chhath%20Vacation%20Final%20Exam%20Form%20Fill-up%20Regular%20Class%20Ends%20Second%20Assessment%20Second%20Assessment%20Result%20Internal%20Marks%20Submission%20Date%20Final%20Examination%20Sawaraj%20Paudel%20..Director..%20MDS%20III%20Semester%20Starts%20Dates%20Asar%2022-%20Sawan%2005%20Asar%20-30%2
+I/flutter (29990): HomePage build - isOfflineMode: false
+I/flutter (29990): HomePage build - useLocalModel: true
+I/flutter (29990): HomePage build - availableModels: 1
+I/flutter (29990): Generation completed, cleaning up
+I/flutter (29990): HomePage build - isOfflineMode: false
+I/flutter (29990): HomePage build - useLocalModel: true
+I/flutter (29990): HomePage build - availableModels: 1

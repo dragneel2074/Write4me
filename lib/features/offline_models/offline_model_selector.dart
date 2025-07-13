@@ -22,7 +22,7 @@ class OfflineModelSelector extends ConsumerWidget {
         children: [
           ...offlineModeState.availableModels.map((model) {
             final modelName = formatModelName(model.path);
-            final isSelected = offlineModeState.useLocalModel && 
+            final isSelected = offlineModeState.isLocalModelActive && 
                              model.path == offlineModeState.selectedModelPath;
             
             debugPrint('Model chip: $modelName (selected: $isSelected)');
@@ -36,7 +36,8 @@ class OfflineModelSelector extends ConsumerWidget {
                 onSelected: (selected) {
                   if (selected) {
                     ref.read(offlineModeProvider.notifier)
-                      ..setUseLocalModel(true)
+                      ..setIsLocalModelActive(true)
+                      ..setIsLocalModelSelected(true)
                       ..setSelectedModel(model.path);
                   }
                 },
