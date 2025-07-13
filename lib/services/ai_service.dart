@@ -121,7 +121,6 @@ class AIService extends ChangeNotifier {
     List<String> context,
     void Function(String, bool) onResponse,
     List<ChatMessage> history,
-    List<PDFMemory> pdfMemories, // Added pdfMemories
   ) async {
     debugPrint('_generateLocalResponse called with:');
     debugPrint('- prompt: $prompt');
@@ -332,14 +331,14 @@ class AIService extends ChangeNotifier {
         }
       }
 
-      // Add image context directly
-      if (imageMemories.isNotEmpty) {
-        for (var memory in imageMemories) {
-          if (memory.isSelected) {
-            context.add("From: ${memory.name}\n${memory.extractedText}");
-          }
-        }
-      }
+      // Add image context directly      
+      if (imageMemories.isNotEmpty) {       
+         for (var memory in imageMemories) {         
+           if (memory.isSelected) {            
+            context.add("From: ${memory.name}${memory.extractedText}");
+         }      
+           }    
+             }
       
       // Step 1: Perform web search if enabled and not in offline mode
       String? searchResults;
@@ -371,7 +370,6 @@ class AIService extends ChangeNotifier {
           onResponse,
           // Use filtered history when web search is not enabled
           useWebSearch ? [] : filteredHistory,
-          pdfMemories, // Pass pdfMemories directly
         );
       } else if (_onlineModelService.selectedOnlineModel != null) {
         // If not in offline mode and a specific online model is selected

@@ -39,18 +39,18 @@ class TextGenerationService {
 
     // Choose appropriate prompt based on mode
     if (hasWebSearch) {
-      _buildWebSearchPrompt(formattedPrompt, prompt, history, cleanText);
+      _buildWebSearchPrompt(formattedPrompt, prompt, history, cleanText, context ?? []);
     } else if (hasDocuments) {
       _buildDocumentPrompt(formattedPrompt, prompt, context, history, cleanText);
     } else {
-      _buildSimplePrompt(formattedPrompt, prompt, history, cleanText);
+      _buildSimplePrompt(formattedPrompt, prompt, history, cleanText, context ?? []);
     }
 
     return formattedPrompt.toString();
   }
   
   /// Builds a prompt for simple QA mode (no documents, no web search)
-  void _buildSimplePrompt(StringBuffer buffer, String prompt, List<ChatMessage> history, Function cleanText) {
+  void _buildSimplePrompt(StringBuffer buffer, String prompt, List<ChatMessage> history, Function cleanText, List<String> context) {
     // Add conversation history for simple queries
     if (history.isNotEmpty) {
       buffer.writeln('Previous conversation:');
@@ -62,6 +62,16 @@ class TextGenerationService {
         buffer.writeln('${message.role}: $cleanedContent');
       }
       buffer.writeln();
+    }
+
+    // Add context if available
+    if (context.isNotEmpty) {
+      buffer.writeln('\nCONTEXT:');
+      for (int i = 0; i < context.length; i++) {
+        buffer.writeln('---');
+        buffer.writeln(context[i]);
+      }
+      buffer.writeln('---');
     }
 
     // Add the current query
@@ -102,11 +112,21 @@ Context (${context.length} relevant passages):
   }
   
   /// Builds a prompt for web search QA mode
-  void _buildWebSearchPrompt(StringBuffer buffer, String prompt, List<ChatMessage> history, Function cleanText) {
+  void _buildWebSearchPrompt(StringBuffer buffer, String prompt, List<ChatMessage> history, Function cleanText, List<String> context) {
     // For web search, we focus entirely on the current query
     // History is typically not included for web search to keep the prompt clean
     
     buffer.write('Search the internet and provide accurate information about: $prompt');
+
+    // Add document context if available
+    if (context.isNotEmpty) {
+      buffer.writeln('\nADDITIONAL CONTEXT:');
+      for (int i = 0; i < context.length; i++) {
+        buffer.writeln('---');
+        buffer.writeln(context[i]);
+      }
+      buffer.writeln('---');
+    }
     
     // We could add limited history here if needed in the future
   }

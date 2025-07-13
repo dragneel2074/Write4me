@@ -158,13 +158,20 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
         isLocalModelSelected: true,
       );
     } else {
-      // When switching back to online mode, disable local model active state
-      await ref.read(offlineModelServiceProvider).setIsLocalModelActive(false);
-      state = state.copyWith(
-        isOfflineMode: value,
-        isLocalModelActive: false,
-      );
-      debugPrint('Switched back to online mode - local model active state disabled');
+      // When switching back to online mode, disable local model active state ONLY if local model is not selected
+      if (!state.isLocalModelSelected) {
+        await ref.read(offlineModelServiceProvider).setIsLocalModelActive(false);
+        state = state.copyWith(
+          isOfflineMode: value,
+          isLocalModelActive: false,
+        );
+        debugPrint('Switched back to online mode - local model active state disabled');
+      } else {
+        state = state.copyWith(
+          isOfflineMode: value,
+        );
+        debugPrint('Switched back to online mode - local model active state retained as selected');
+      }
     }
     
     ref.read(chatProvider.notifier).clearError();

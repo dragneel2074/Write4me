@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:write4me/models/chat_message.dart';
 import 'package:write4me/models/model_parameters.dart';
+import 'package:write4me/models/image_memory.dart'; // Added import
 import 'package:write4me/utils/exceptions.dart';
 // Import OfflineModeProvider
 import 'package:fllama/fllama.dart'; // Import fllama.dart
@@ -424,10 +425,11 @@ class OfflineModelService extends ChangeNotifier {
       // Determine which mode we're in
       final bool hasDocuments = context != null && context.isNotEmpty;
       final bool hasWebSearch = searchResults != null;
+      final bool hasImages = context != null && context.any((element) => element.startsWith("From: Image:"));
 
       if (kDebugMode) {
         print(
-            'Generating prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : "Simple"}');
+            'Generating prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : hasImages ? "Image" : "Simple"}');
       }
 
       // Choose appropriate prompt based on mode
@@ -435,8 +437,10 @@ class OfflineModelService extends ChangeNotifier {
         _buildWebSearchPrompt(fullPrompt, prompt, searchResults, context ?? []);
       } else if (hasDocuments) {
         _buildDocumentPrompt(fullPrompt, prompt, context);
+      } else if (hasImages) {
+        _buildImagePrompt(fullPrompt, prompt, context ?? []);
       } else {
-        _buildSimplePrompt(fullPrompt, prompt);
+        _buildSimplePrompt(fullPrompt, prompt, context ?? []);
       }
 
       messages.add(Message(Role.user, fullPrompt.toString()));
@@ -534,9 +538,17 @@ class OfflineModelService extends ChangeNotifier {
 }
 
 /// Builds a prompt for simple QA mode (no documents, no web search)
-void _buildSimplePrompt(StringBuffer buffer, String prompt) {
+void _buildSimplePrompt(StringBuffer buffer, String prompt, List<String> context) {
   buffer.writeln(
       'You are a helpful assistant answering questions based on your knowledge.');
+  if (context.isNotEmpty) {
+    buffer.writeln('\nCONTEXT:');
+    for (int i = 0; i < context.length; i++) {
+      buffer.writeln('---');
+      buffer.writeln(context[i]);
+    }
+    buffer.writeln('---');
+  }
   buffer.writeln('\nQUESTION: $prompt');
   buffer.writeln('\nANSWER:');
 }
@@ -591,6 +603,29 @@ void _buildWebSearchPrompt(StringBuffer buffer, String prompt,
       '2. Synthesize information from multiple sources when possible');
   buffer.writeln(
       '4. If search results don\'t contain the answer, acknowledge the limitations');
+  buffer.writeln('\nANSWER:');
+}
+
+/// Builds a prompt for image QA mode
+void _buildImagePrompt(StringBuffer buffer, String prompt, List<String> context) {
+  buffer.writeln(
+      'You are an image analysis assistant. Analyze the provided image content and answer questions based on it.');
+
+  // Add image context
+  buffer.writeln('\nIMAGE CONTEXT:');
+  for (var entry in context) {
+    if (entry.startsWith("From: Image:")) {
+      buffer.writeln('---');
+      buffer.writeln(entry);
+    }
+  }
+  buffer.writeln('---');
+
+  buffer.writeln('\nQUESTION: $prompt');
+  buffer.writeln('\nINSTRUCTIONS:');
+  buffer.writeln(
+      '1. Answer based ONLY on the provided image context above');
+  buffer.writeln('2. Be concise but thorough in your response');
   buffer.writeln('\nANSWER:');
 }
 
