@@ -414,20 +414,42 @@ class ChatBubble extends StatelessWidget {
                   ),
                 ),
               ],
-              // Report flag for assistant messages
+              // Report and Copy options for assistant messages
               if (!message.isUser)
-                Padding(
-                  padding: const EdgeInsets.only(left: 12, bottom: 4),
-                  child: GestureDetector(
-                    onTap: () => _reportMessage(context, message.content),
-                    child: Text(
-                      'Report',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12, bottom: 4),
+                      child: GestureDetector(
+                        onTap: () {
+                          if (onCopyText != null) {
+                            onCopyText!(message.content);
+                          }
+                        },
+                        child: Text(
+                          'Copy',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 12, bottom: 4),
+                      child: GestureDetector(
+                        onTap: () => _reportMessage(context, message.content),
+                        child: Text(
+                          'Report',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
             ],
           ),
