@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:write4me/utils/message_utils.dart';
 import 'package:write4me/widgets/model_download_dialog.dart';
 import '../providers/theme_provider.dart';
-import '../providers/offline_mode_provider.dart';
 import '../services/model_management_service.dart';
 import '../providers/service_providers.dart'; // Import service providers
-import '../services/online_model_service.dart'; // Import OnlineModelService
+// Import OnlineModelService
 import 'online_model_selection_dialog.dart'; // New import
 
 class SettingsDialog extends ConsumerWidget {

@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:write4me/models/chat_message.dart';
 import 'package:write4me/models/model_parameters.dart';
 import 'package:write4me/utils/exceptions.dart';
-import 'package:write4me/providers/offline_mode_provider.dart'; // Import OfflineModeProvider
+// Import OfflineModeProvider
 import 'package:fllama/fllama.dart'; // Import fllama.dart
 
 class CancelException implements Exception {

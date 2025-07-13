@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
-import '../services/online_model_service.dart';
 
 class OnlineModelSelectionDialog extends ConsumerWidget {
   const OnlineModelSelectionDialog({super.key});
