@@ -111,6 +111,12 @@ class FileProcessor {
     if (!await file.exists()) {
       throw Exception("File does not exist: $filePath");
     }
+
+    // Check file size
+    final fileSize = await file.length();
+    if (fileSize > 2 * 1024 * 1024) { // 2MB limit
+      throw Exception("File size exceeds the 2MB limit: $filePath");
+    }
     
     final content = await file.readAsString();
     if (kDebugMode) {

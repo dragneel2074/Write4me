@@ -205,7 +205,7 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  Future<void> _pickPDFAndCreateRAG() async {
+   Future<void> _pickPDFAndCreateRAG() async {
     final chatNotifier = ref.read(chatProvider.notifier);
     chatNotifier.setGenerating(true); // Set generating to true
     setState(() { _isProcessingRAG = true; }); // Set RAG processing to true
@@ -242,6 +242,14 @@ class _HomePageState extends ConsumerState<HomePage>
         if (mounted) {
         }
       }
+    } catch (e) {
+        if (!mounted) return;
+
+        NotificationService.showTopNotification(
+          context,
+          message: 'Error processing PDF: ${e.toString().replaceFirst("Exception: ", "")}',
+          isError: true,
+        );
     } finally {
       chatNotifier.setGenerating(false); // Set generating to false
       setState(() { _isProcessingRAG = false; }); // Set RAG processing to false
