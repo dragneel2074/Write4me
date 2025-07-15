@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:write4me/services/offline_model_service.dart';
 import 'package:write4me/utils/message_utils.dart';
@@ -168,6 +170,8 @@ class _HomePageState extends ConsumerState<HomePage>
   Future<void> _showAddOptions() async {
     final offlineModeState = ref.read(offlineModeProvider);
     final isOffline = offlineModeState.isOfflineMode;
+    final onlineModel = ref.read(onlineModelServiceProvider).selectedOnlineModel;
+    final hasVision = onlineModel?.vision ?? false;
 
     showModalBottomSheet(
       context: context,
@@ -185,20 +189,19 @@ class _HomePageState extends ConsumerState<HomePage>
             ),
             ListTile(
               leading: const Icon(Icons.image),
-              title: const Text('Add Image'),
+              title: const Text('Add Image (OCR)'),
               onTap: () {
                 Navigator.pop(context);
                 _processImageContent();
               },
             ),
-            // Only show web URL option in online mode
-            if (!isOffline)
+            if (!isOffline && hasVision)
               ListTile(
-                leading: const Icon(Icons.link),
-                title: const Text('Add Web URL'),
+                leading: const Icon(Icons.image_search),
+                title: const Text('Add Image (Vision)'),
                 onTap: () {
                   Navigator.pop(context);
-                  _processWebContent();
+                  _processImageVision();
                 },
               ),
           ],
@@ -332,6 +335,29 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
+  Future<void> _processImageVision() async {
+    final chatNotifier = ref.read(chatProvider.notifier);
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      final imageFile = File(pickedFile.path);
+      chatNotifier.setSelectedImage(imageFile);
+
+      final imageMemory = ImageMemory(
+        pickedFile.path.split('/').last,
+        'Image for vision model',
+      );
+      _addImageContent(imageMemory);
+
+      if (mounted) {
+        NotificationService.showTopNotification(
+          context,
+          message: 'Image selected for vision model',
+        );
+      }
+    }
+  }
+
   void _showExtractedText(dynamic memory) {
     DialogManager.showExtractedText(
       context,
@@ -357,7 +383,7 @@ class _HomePageState extends ConsumerState<HomePage>
     if (mounted) {
         MessageUtils.showInfo(context, 'No messages to save');
       // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(content: Text('Started new chat')),
+      //   const SnackBar(content: Text('No messages to save')),
       // );
     }
   }
@@ -378,6 +404,7 @@ class _HomePageState extends ConsumerState<HomePage>
     final offlineModeState = ref.read(offlineModeProvider);
     final aiService = ref.read(aiServiceProvider);
     final textGenService = ref.read(textGenerationServiceProvider);
+    final onlineModelService = ref.read(onlineModelServiceProvider);
 
     _controller.clear();
     chatNotifier.startLoading();
@@ -486,6 +513,28 @@ class _HomePageState extends ConsumerState<HomePage>
           }
         }
 
+        Map<String, dynamic>? visionMessage;
+        if (chatState.selectedImage != null && (onlineModelService.selectedOnlineModel?.vision ?? false)) {
+          final imageBytes = await chatState.selectedImage!.readAsBytes();
+          final base64Image = base64Encode(imageBytes);
+          visionMessage = {
+            'model': onlineModelService.selectedOnlineModel!.name,
+            'messages': [
+              {
+                'role': 'user',
+                'content': [
+                  {'type': 'text', 'text': message},
+                  {
+                    'type': 'image_url',
+                    'image_url': {'url': 'data:image/jpeg;base64,$base64Image'}
+                  }
+                ]
+              }
+            ],
+            'max_tokens': 300
+          };
+        }
+
         try {
           await aiService.getStreamingResponse(
             message,
@@ -502,6 +551,7 @@ class _HomePageState extends ConsumerState<HomePage>
             // Use getMeaningfulHistory() instead of all messages to exclude service check messages
             history: chatState.getMeaningfulHistory(),
             useLocalModel: offlineModeState.isLocalModelSelected,
+            visionMessage: visionMessage,
           );
         } catch (e) {
           chatNotifier.replaceMessage(
@@ -512,6 +562,12 @@ class _HomePageState extends ConsumerState<HomePage>
               isError: true,
             ),
           );
+        }
+        if (visionMessage != null) {
+          chatNotifier.setSelectedImage(null);
+          setState(() {
+            _imageMemories.removeWhere((memory) => memory.extractedText == 'Image for vision model');
+          });
         }
       }
     } catch (e) {

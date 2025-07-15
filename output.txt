@@ -1,3 +1,49 @@
+Vision Capabilities (Image Input) 🖼️➡️📝
+Models: openai, openai-large, claude-hybridspace (check List Text Models for updates).
+How: Include image URLs or base64 data within the content array of a user message.
+
+{
+  "model": "openai",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "text", "text": "Describe this image:" },
+        {
+          "type": "image_url",
+          "image_url": { "url": "data:image/jpeg;base64,{base64_string}" }
+        }
+      ]
+    }
+  ],
+  "max_tokens": 300
+}
+
+    Details: This functionality mirrors the OpenAI Vision API. See OpenAI Vision Guide for full specifications.
+    Return: Standard OpenAI chat completion JSON response containing the text analysis.
+
+Code Examples: Vision (Image Input)
+
+CURL (using URL):
+
+# Get JSON response with image analysis
+curl https://text.pollinations.ai/openai \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "What is in this image?"},
+          {"type": "image_url", "image_url": {"url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/1024px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"}}
+        ]
+      }
+    ],
+    "max_tokens": 300
+  }'
+
+
 https://image.pollinations.ai/models
 
 ["flux","kontext","turbo","gptimage"]

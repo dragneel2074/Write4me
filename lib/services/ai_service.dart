@@ -182,6 +182,7 @@ class AIService extends ChangeNotifier {
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
     required bool useLocalModel,
+    Map<String, dynamic>? visionMessage,
   }) async {
     debugPrint('\ngetStreamingResponse called with:');
     debugPrint('- prompt: $prompt');
@@ -381,6 +382,7 @@ class AIService extends ChangeNotifier {
           useWebSearch: useWebSearch,
           history: useWebSearch ? [] : filteredHistory,
           model: _onlineModelService.selectedOnlineModel!.name, // Pass the selected online model name
+          visionMessage: visionMessage,
         );
       } else {
         // If not in offline mode and no specific online model is selected, use default online service

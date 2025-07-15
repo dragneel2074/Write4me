@@ -6,6 +6,7 @@ class ModelParameters {
   final double temperature;
   final double frequencyPenalty;
   final double presencePenalty;
+  final bool vision;
 
   const ModelParameters({
     this.maxTokens = 512,
@@ -15,6 +16,7 @@ class ModelParameters {
     this.temperature = 0.5,
     this.frequencyPenalty = 0.5,
     this.presencePenalty = 0.7,
+    this.vision = false,
   });
 
   ModelParameters copyWith({
@@ -25,6 +27,7 @@ class ModelParameters {
     double? temperature,
     double? frequencyPenalty,
     double? presencePenalty,
+    bool? vision,
   }) {
     return ModelParameters(
       maxTokens: maxTokens ?? this.maxTokens,
@@ -34,6 +37,7 @@ class ModelParameters {
       temperature: temperature ?? this.temperature,
       frequencyPenalty: frequencyPenalty ?? this.frequencyPenalty,
       presencePenalty: presencePenalty ?? this.presencePenalty,
+      vision: vision ?? this.vision,
     );
   }
 
@@ -46,6 +50,7 @@ class ModelParameters {
         'temperature': temperature,
         'frequencyPenalty': frequencyPenalty,
         'presencePenalty': presencePenalty,
+        'vision': vision,
       };
 
   // Create from JSON
@@ -57,5 +62,6 @@ class ModelParameters {
         temperature: json['temperature'] as double,
         frequencyPenalty: json['frequencyPenalty'] as double,
         presencePenalty: json['presencePenalty'] as double,
+        vision: json['vision'] as bool? ?? false,
       );
 }

@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-// import 'package:write4me/screens/reminders_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:write4me/providers/chat_provider.dart';
+import 'package:write4me/providers/service_providers.dart';
 
-class ChatInput extends StatelessWidget {
+class ChatInput extends ConsumerWidget {
   final TextEditingController controller;
   final bool isImageMode;
   final bool isWebSearch;
@@ -30,24 +34,28 @@ class ChatInput extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final onlineModelService = ref.watch(onlineModelServiceProvider);
+    final selectedModel = onlineModelService.selectedOnlineModel;
+    final isVisionModelSelected = selectedModel?.vision ?? false;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha:0.05),
+            color: Theme.of(context).dividerColor.withOpacity(0.05),
           ),
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Text Input Field with Submit Button
           Row(
             children: [
               _buildActionButton(
+                context: context,
                 icon: Icons.add,
                 onPressed: onAddContent,
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -57,7 +65,7 @@ class ChatInput extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.light 
+                    color: Theme.of(context).brightness == Brightness.light
                         ? const Color(0xFFF5F5F5)
                         : Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(22),
@@ -66,9 +74,9 @@ class ChatInput extends StatelessWidget {
                     controller: controller,
                     enabled: !isGenerating,
                     decoration: InputDecoration(
-                      hintText: isGenerating 
+                      hintText: isGenerating
                           ? 'Generating...'
-                          : isImageMode 
+                          : isImageMode
                               ? 'Describe the image...'
                               : isWebSearch
                                   ? 'Search the internet...'
@@ -86,6 +94,7 @@ class ChatInput extends StatelessWidget {
                 ),
               ),
               _buildActionButton(
+                context: context,
                 icon: isGenerating ? Icons.stop : Icons.send,
                 onPressed: isGenerating ? onStop : onSubmit,
                 showActive: true,
@@ -103,39 +112,28 @@ class ChatInput extends StatelessWidget {
                 ),
               ),
             ),
-          // Bottom Action Buttons
           Wrap(
             spacing: 4,
             runSpacing: 8,
             children: [
               if (!isOfflineMode) ...[
                 _buildActionButton(
+                  context: context,
                   icon: isImageMode ? Icons.image : Icons.image_outlined,
                   onPressed: onToggleImage,
                   isActive: isImageMode,
                   label: 'Generate Image',
                 ),
                 _buildActionButton(
+                  context: context,
                   icon: isWebSearch ? Icons.language : Icons.language_outlined,
-                  onPressed: isWebSearchDisabled || isOfflineMode 
-                      ? null 
+                  onPressed: isWebSearchDisabled || isOfflineMode
+                      ? null
                       : onToggleWebSearch,
                   isActive: isWebSearch,
                   label: 'Search Web',
                 ),
               ],
-              // _buildActionButton(
-              //   icon: Icons.smart_toy_outlined,
-              //   onPressed: () {
-              //     Navigator.push(
-              //       context,
-              //       MaterialPageRoute(
-              //         builder: (context) => const RemindersScreen(),
-              //       ),
-              //     );
-              //   },
-              //   label: 'Agent',
-              // ),
             ],
           ),
         ],
@@ -144,6 +142,7 @@ class ChatInput extends StatelessWidget {
   }
 
   Widget _buildActionButton({
+    required BuildContext context,
     required IconData icon,
     VoidCallback? onPressed,
     bool isActive = false,
@@ -151,36 +150,40 @@ class ChatInput extends StatelessWidget {
     String? label,
     EdgeInsetsGeometry? padding,
   }) {
-    return Builder(
-      builder: (context) => TextButton.icon(
-        icon: Icon(
-          icon,
-          size: 20,
-          color: (isActive || showActive)
-              ? Theme.of(context).primaryColor
-              : Theme.of(context).iconTheme.color?.withValues(alpha:0.7),
-        ),
-        label: label != null 
-            ? Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: (isActive || showActive)
-                      ? Theme.of(context).primaryColor
-                      : Theme.of(context).iconTheme.color?.withValues(alpha:0.7),
-                ),
-              )
-            : const SizedBox.shrink(),
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          padding: padding ?? EdgeInsets.symmetric(
-            horizontal: label != null ? 8 : 12,
-            vertical: 8,
-          ),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
+    return TextButton.icon(
+      icon: Icon(
+        icon,
+        size: 20,
+        color: (isActive || showActive)
+            ? Theme.of(context).primaryColor
+            : onPressed == null
+                ? Theme.of(context).disabledColor
+                : Theme.of(context).iconTheme.color?.withOpacity(0.7),
+      ),
+      label: label != null
+          ? Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: (isActive || showActive)
+                    ? Theme.of(context).primaryColor
+                    : onPressed == null
+                        ? Theme.of(context).disabledColor
+                        : Theme.of(context).iconTheme.color?.withOpacity(0.7),
+              ),
+            )
+          : const SizedBox.shrink(),
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        padding: padding ??
+            EdgeInsets.symmetric(
+              horizontal: label != null ? 8 : 12,
+              vertical: 8,
+            ),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
 }
+

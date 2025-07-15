@@ -173,10 +173,31 @@ Context (${context.length} relevant passages):
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
     String? model, // New optional parameter
+    Map<String, dynamic>? visionMessage,
   }) async {
     try {
       // Removed redundant context extraction from selectedMemories
       // The context is now directly passed from AIService
+
+      if (visionMessage != null) {
+        final selectedModel = model ?? 'gpt-4o-mini';
+        final response = await _dio.post(
+          'https://text.pollinations.ai/openai',
+          data: visionMessage,
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          ),
+        );
+
+        if (response.statusCode == 200) {
+          onResponse(response.data['choices'][0]['message']['content'], true);
+        } else {
+          throw HttpException('Failed to generate text: ${response.statusCode}');
+        }
+        return;
+      }
 
       if (useWebSearch) {
         // Show searching status

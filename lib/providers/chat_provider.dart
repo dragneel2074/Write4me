@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/chat_message.dart';
 import 'package:flutter/foundation.dart';
@@ -8,12 +10,14 @@ class ChatState {
   final bool isLoading;
   final bool isGenerating;
   final String? error;
+  final File? selectedImage;
 
   ChatState({
     this.messages = const [],
     this.isLoading = false,
     this.isGenerating = false,
     this.error,
+    this.selectedImage,
   });
 
   ChatState copyWith({
@@ -21,12 +25,14 @@ class ChatState {
     bool? isLoading,
     bool? isGenerating,
     String? error,
+    File? selectedImage,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
       isGenerating: isGenerating ?? this.isGenerating,
       error: error ?? this.error,
+      selectedImage: selectedImage ?? this.selectedImage,
     );
   }
   
@@ -81,6 +87,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
         isGenerating: false,
       );
     }
+  }
+
+  void setSelectedImage(File? image) {
+    state = state.copyWith(selectedImage: image);
   }
 
   void updateLastMessage(String content) {

@@ -34,7 +34,7 @@ class OnlineModel {
       inputModalities: List<String>.from(json['input_modalities'] as List),
       outputModalities: List<String>.from(json['output_modalities'] as List),
       tools: json['tools'] as bool? ?? false,
-      vision: json['vision'] as bool? ?? false,
+      vision: json['input_modalities'].contains('image'),
       audio: json['audio'] as bool? ?? false,
     );
   }
