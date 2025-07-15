@@ -346,6 +346,7 @@ class _HomePageState extends ConsumerState<HomePage>
       final imageMemory = ImageMemory(
         pickedFile.path.split('/').last,
         'Image for vision model',
+        imageFile: imageFile,
       );
       _addImageContent(imageMemory);
 
@@ -355,6 +356,18 @@ class _HomePageState extends ConsumerState<HomePage>
           message: 'Image selected for vision model',
         );
       }
+    }
+  }
+
+  void _showPreview(dynamic memory) {
+    if (memory is ImageMemory && memory.imageFile != null) {
+      DialogManager.showImagePreview(context, memory.name, memory.imageFile!);
+    } else {
+      DialogManager.showExtractedText(
+        context,
+        memory.name,
+        memory.extractedText,
+      );
     }
   }
 
@@ -722,6 +735,22 @@ class _HomePageState extends ConsumerState<HomePage>
                         ModelSelector(
                           isOfflineMode: offlineModeState.isOfflineMode,
                         ),
+                        DocumentListContainer(
+                          documents: [..._pdfMemories, ..._imageMemories],
+                          onSelectionChanged: () => setState(() {}),
+                          onLongPress: _showPreview,
+                          onRemove: (memory) {
+                            final offlineModelService = ref.read(offlineModelServiceProvider);
+                            offlineModelService.clearTruncationMessage();
+                            setState(() {
+                              if (memory is PDFMemory) {
+                                _pdfMemories.remove(memory);
+                              } else if (memory is ImageMemory) {
+                                _imageMemories.remove(memory);
+                              }
+                            });
+                          },
+                        ),
                         ChatInput( // Moved ChatInput here
                           controller: _controller,
                           isImageMode: uiState.isImageMode,
@@ -751,20 +780,6 @@ class _HomePageState extends ConsumerState<HomePage>
                               textAlign: TextAlign.center,
                             ),
                           ),
-                        DocumentListContainer( // Moved DocumentListContainer here
-                          documents: [..._pdfMemories, ..._imageMemories],
-                          onSelectionChanged: () => setState(() {}),
-                          onLongPress: _showExtractedText,
-                          onRemove: (memory) {
-                            setState(() {
-                              if (memory is PDFMemory) {
-                                _pdfMemories.remove(memory);
-                              } else if (memory is ImageMemory) {
-                                _imageMemories.remove(memory);
-                              }
-                            });
-                          },
-                        ),
                       ],
                     ),
                   ),
