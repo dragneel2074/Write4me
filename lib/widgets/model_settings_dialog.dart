@@ -32,17 +32,28 @@ class _ModelSettingsDialogState extends State<ModelSettingsDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Reset to Default',
-                onPressed: () {
-                  setState(() {
-                    _currentParameters = const ModelParameters();
-                  });
-                },
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: const Text(
+                    'Changing anything might break the app',
+                    style: TextStyle(
+                      color: Colors.orange, // Or Colors.red, depending on desired emphasis
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Reset to Default',
+                  onPressed: () {
+                    setState(() {
+                      _currentParameters = const ModelParameters();
+                    });
+                  },
+                ),
+              ],
             ),
             _buildSlider(
               'Max Tokens',
