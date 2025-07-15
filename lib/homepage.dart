@@ -569,18 +569,13 @@ class _HomePageState extends ConsumerState<HomePage>
 
         ref.listen<OfflineModelService>(offlineModelServiceProvider, (previous, next) {
           if (next.truncationMessage != null && next.truncationMessage != previous?.truncationMessage) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(next.truncationMessage!),
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-              // Clear the message after showing it
-              ref.read(offlineModelServiceProvider).clearTruncationMessage();
-            }
+            // Message is now displayed directly in the UI, no need for SnackBar
+            // Clear the message after it's displayed (or when a new message is submitted)
+            // For now, we rely on OfflineModelService to clear it.
           }
         });
+
+        final String? truncationMessage = ref.watch(offlineModelServiceProvider).truncationMessage;
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -671,21 +666,7 @@ class _HomePageState extends ConsumerState<HomePage>
                         ModelSelector(
                           isOfflineMode: offlineModeState.isOfflineMode,
                         ),
-                        DocumentListContainer(
-                          documents: [..._pdfMemories, ..._imageMemories],
-                          onSelectionChanged: () => setState(() {}),
-                          onLongPress: _showExtractedText,
-                          onRemove: (memory) {
-                            setState(() {
-                              if (memory is PDFMemory) {
-                                _pdfMemories.remove(memory);
-                              } else if (memory is ImageMemory) {
-                                _imageMemories.remove(memory);
-                              }
-                            });
-                          },
-                        ),
-                        ChatInput(
+                        ChatInput( // Moved ChatInput here
                           controller: _controller,
                           isImageMode: uiState.isImageMode,
                           isWebSearch: uiState.isWebSearch,
@@ -704,6 +685,29 @@ class _HomePageState extends ConsumerState<HomePage>
                               _imageMemories.isNotEmpty ||
                               offlineModeState.isOfflineMode,
                           isOfflineMode: offlineModeState.isOfflineMode,
+                        ),
+                        if (truncationMessage != null) // New truncation message display
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                            child: Text(
+                              truncationMessage,
+                              style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        DocumentListContainer( // Moved DocumentListContainer here
+                          documents: [..._pdfMemories, ..._imageMemories],
+                          onSelectionChanged: () => setState(() {}),
+                          onLongPress: _showExtractedText,
+                          onRemove: (memory) {
+                            setState(() {
+                              if (memory is PDFMemory) {
+                                _pdfMemories.remove(memory);
+                              } else if (memory is ImageMemory) {
+                                _imageMemories.remove(memory);
+                              }
+                            });
+                          },
                         ),
                       ],
                     ),
