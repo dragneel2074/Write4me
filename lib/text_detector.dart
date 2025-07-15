@@ -8,10 +8,10 @@ class TextDetectorPage extends StatefulWidget {
   const TextDetectorPage({super.key});
 
   @override
-  _TextDetectorPageState createState() => _TextDetectorPageState();
+  TextDetectorPageState createState() => TextDetectorPageState();
 }
 
-class _TextDetectorPageState extends State<TextDetectorPage> {
+class TextDetectorPageState extends State<TextDetectorPage> {
   XFile? _image;
   String _recognizedText = '';
   final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);

@@ -26,7 +26,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_provider.dart';
 import '../providers/ui_state_provider.dart';
 import 'providers/service_providers.dart';
-import '../providers/file_processor_provider.dart'; // Added for fileProcessorProvider
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/selected_documents_provider.dart';
 
@@ -501,6 +500,7 @@ class _HomePageState extends ConsumerState<HomePage>
             useWebSearch: useWebSearch,
             // Use getMeaningfulHistory() instead of all messages to exclude service check messages
             history: chatState.getMeaningfulHistory(),
+            useLocalModel: offlineModeState.isLocalModelSelected,
           );
         } catch (e) {
           chatNotifier.replaceMessage(
@@ -758,6 +758,7 @@ class _HomePageState extends ConsumerState<HomePage>
     final currentKey = await textGenService.getJinaApiKey();
     
     final controller = TextEditingController(text: currentKey);
+    if (!mounted) return;
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(

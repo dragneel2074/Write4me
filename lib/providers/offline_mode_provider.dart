@@ -97,7 +97,7 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     final hasInternet = await _checkInternetConnection();
     if (!hasInternet) {
       final context = ref.read(navigatorKeyProvider).currentContext;
-      if (context == null) return false;
+      if (context == null || !context.mounted) return false;
 
       final shouldSwitch = await showDialog<bool>(
         context: context,

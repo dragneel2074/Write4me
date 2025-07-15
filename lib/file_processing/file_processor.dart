@@ -10,11 +10,11 @@ import '../embeddings/fonnx_embeddings.dart';
 class FileProcessor {
   final ChromaVectorStore _vectorStore = ChromaVectorStore();
   // Optimal chunk size for balancing context and efficiency
-  static const int DEFAULT_CHUNK_SIZE = 500;
+  static const int defaultChunkSize = 500;
   // Reasonable overlap to maintain context between chunks
-  static const int DEFAULT_OVERLAP_SIZE = 150;
+  static const int defaultOverlapSize = 150;
   // Default number of documents to retrieve from similarity search
-  static const int DEFAULT_SEARCH_RESULTS = 10;
+  static const int defaultSearchResults = 10;
 
   /// Processes text content directly (from PDFs or other sources)
   Future<void> processText(String content, String fileName) async {
@@ -37,7 +37,7 @@ class FileProcessor {
     }
     
     // Process in batches for large documents
-    final List<String> chunks = _chunkText(cleanedContent, DEFAULT_CHUNK_SIZE);
+    final List<String> chunks = _chunkText(cleanedContent, defaultChunkSize);
     if (kDebugMode) {
       print("FileProcessor: Split content into ${chunks.length} chunks");
     }
@@ -135,7 +135,7 @@ class FileProcessor {
     
     String currentChunk = '';
     String previousChunk = '';
-    const int overlapSize = DEFAULT_OVERLAP_SIZE;
+    const int overlapSize = defaultOverlapSize;
     
     for (String paragraph in paragraphs) {
       paragraph = paragraph.trim();
@@ -215,7 +215,7 @@ class FileProcessor {
   /// Returns a list of documents that match the query.
   Future<List<Document>> queryFile(String query, {
     List<String>? selectedFiles,
-    int limit = DEFAULT_SEARCH_RESULTS,
+    int limit = defaultSearchResults,
   }) async {
     if (query.trim().isEmpty) {
       return [];

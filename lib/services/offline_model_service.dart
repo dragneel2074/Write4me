@@ -8,7 +8,6 @@ import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:write4me/models/chat_message.dart';
 import 'package:write4me/models/model_parameters.dart';
-import 'package:write4me/models/image_memory.dart'; // Added import
 import 'package:write4me/utils/exceptions.dart';
 // Import OfflineModeProvider
 import 'package:fllama/fllama.dart'; // Import fllama.dart
@@ -272,7 +271,7 @@ class OfflineModelService extends ChangeNotifier {
         );
       }
 
-      final contentLength = response.contentLength ?? 0;
+      final contentLength = response.contentLength;
       final sink = file.openWrite();
       int downloaded = 0;
 
@@ -287,8 +286,8 @@ class OfflineModelService extends ChangeNotifier {
 
           sink.add(chunk);
           downloaded += chunk.length;
-          if (contentLength > 0) {
-            onProgress(downloaded / contentLength);
+          if (contentLength != null && contentLength > 0) {
+            onProgress(downloaded / contentLength.toDouble());
           }
         }
 
@@ -343,7 +342,7 @@ class OfflineModelService extends ChangeNotifier {
         );
       }
 
-      final contentLength = response.contentLength ?? 0;
+      final contentLength = response.contentLength;
       final sink = file.openWrite();
       int downloaded = 0;
 
@@ -357,8 +356,8 @@ class OfflineModelService extends ChangeNotifier {
           }
           sink.add(chunk);
           downloaded += chunk.length;
-          if (contentLength > 0) {
-            onProgress(downloaded / contentLength);
+          if (contentLength != null && contentLength > 0) {
+            onProgress(downloaded / contentLength.toDouble());
           }
         }
 
@@ -616,7 +615,7 @@ void _buildImagePrompt(StringBuffer buffer, String prompt, List<String> context)
   for (var entry in context) {
     if (entry.startsWith("From: Image:")) {
       buffer.writeln('---');
-      buffer.writeln(entry);
+      buffer.writeln(entry.replaceFirst("From: Image:", ""));
     }
   }
   buffer.writeln('---');

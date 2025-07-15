@@ -99,10 +99,9 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
               padding: const EdgeInsets.only(right: 8),
               child: ChoiceChip(
                 label: const Text('Cloud'),
-                selected: !ref.watch(offlineModeProvider.select((s) => s.isLocalModelActive)),
+                selected: !ref.watch(offlineModeProvider.select((s) => s.isLocalModelSelected)),
                 onSelected: (selected) {
                   if (selected) {
-                    ref.read(offlineModeProvider.notifier).setIsLocalModelActive(false);
                     ref.read(offlineModeProvider.notifier).setIsLocalModelSelected(false);
                   }
                 },
@@ -113,7 +112,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
           if (models.isNotEmpty)
             ...models.map((model) {
               final modelName = formatModelName(model.path);
-              final isSelected = ref.watch(offlineModeProvider.select((s) => s.isLocalModelActive)) && 
+              final isSelected = ref.watch(offlineModeProvider.select((s) => s.isLocalModelSelected)) && 
                                model.path == ref.watch(offlineModeProvider.select((s) => s.selectedModelPath));
               
               return Padding(
@@ -124,10 +123,8 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                   selected: isSelected,
                   onSelected: (selected) {
                     if (selected) {
-                      ref.read(offlineModeProvider.notifier)
-                        ..setIsLocalModelActive(true)
-                        ..setIsLocalModelSelected(true)
-                        ..setSelectedModel(model.path);
+                      ref.read(offlineModeProvider.notifier).setIsLocalModelSelected(true);
+                      ref.read(offlineModeProvider.notifier).setSelectedModel(model.path);
                     }
                   },
                 ),

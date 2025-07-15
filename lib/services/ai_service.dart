@@ -181,12 +181,12 @@ class AIService extends ChangeNotifier {
     void Function(String, bool) onResponse, {
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
+    required bool useLocalModel,
   }) async {
     debugPrint('\ngetStreamingResponse called with:');
     debugPrint('- prompt: $prompt');
     debugPrint('- useWebSearch: $useWebSearch');
-    debugPrint('- isLocalModelActive: ${_offlineService.isLocalModelActive}');
-    debugPrint('- isLocalModelSelected: ${_offlineService.isLocalModelSelected}');
+    debugPrint('- useLocalModel: $useLocalModel');
     debugPrint('- isOfflineMode: ${_offlineService.isOfflineMode}');
     debugPrint('- history length: ${history.length}');
 
@@ -335,7 +335,7 @@ class AIService extends ChangeNotifier {
       if (imageMemories.isNotEmpty) {       
          for (var memory in imageMemories) {         
            if (memory.isSelected) {            
-            context.add("From: ${memory.name}${memory.extractedText}");
+            context.add("From: ${memory.name}\n${memory.extractedText}");
          }      
            }    
              }
@@ -359,9 +359,9 @@ class AIService extends ChangeNotifier {
       }
 
       // Step 2: Generate response based on model selection
-      if (_offlineService.isOfflineMode || _offlineService.isLocalModelSelected) {
+      if (isOfflineMode || useLocalModel) {
         // If in offline mode OR local model is explicitly selected, use local model
-        debugPrint('Using local model for generation (Offline Mode: ${_offlineService.isOfflineMode}, Local Model Selected: ${_offlineService.isLocalModelSelected})');
+        debugPrint('Using local model for generation (Offline Mode: $isOfflineMode, Local Model Selected: $useLocalModel)');
         debugPrint('Search results available: ${searchResults != null}');
         await _generateLocalResponse(
           prompt,
@@ -432,6 +432,7 @@ class AIService extends ChangeNotifier {
     {
     bool useWebSearch = false,
     List<ChatMessage> history = const [],
+    required bool useLocalModel,
   }) async {
     final completer = Completer<String>();
 
@@ -444,6 +445,7 @@ class AIService extends ChangeNotifier {
       },
       useWebSearch: useWebSearch,
       history: history,
+      useLocalModel: useLocalModel,
     );
 
     return completer.future;

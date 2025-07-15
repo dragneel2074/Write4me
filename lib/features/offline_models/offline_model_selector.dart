@@ -35,10 +35,9 @@ class OfflineModelSelector extends ConsumerWidget {
                 selected: isSelected,
                 onSelected: (selected) {
                   if (selected) {
-                    ref.read(offlineModeProvider.notifier)
-                      ..setIsLocalModelActive(true)
-                      ..setIsLocalModelSelected(true)
-                      ..setSelectedModel(model.path);
+                    ref.read(offlineModeProvider.notifier).setIsLocalModelActive(true);
+                    ref.read(offlineModeProvider.notifier).setIsLocalModelSelected(true);
+                    ref.read(offlineModeProvider.notifier).setSelectedModel(model.path);
                   }
                 },
               ),
