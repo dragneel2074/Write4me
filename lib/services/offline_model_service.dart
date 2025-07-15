@@ -9,8 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:write4me/models/chat_message.dart';
 import 'package:write4me/models/model_parameters.dart';
 import 'package:write4me/utils/exceptions.dart';
-// Import OfflineModeProvider
-import 'package:fllama/fllama.dart'; // Import fllama.dart
+import 'package:fllama/fllama.dart';
 
 class CancelException implements Exception {
   final String message;
@@ -19,7 +18,6 @@ class CancelException implements Exception {
   String toString() => message;
 }
 
-/// Class to manage cancellable operations
 class CancelableCompleter {
   final Completer<void> _completer = Completer<void>();
   final CancelToken token = CancelToken();
@@ -69,8 +67,21 @@ class OfflineModelService extends ChangeNotifier {
   List<File> _availableModels = [];
   bool _isLocalModelActive = false;
   bool _isLocalModelSelected = false;
-  Set<String> _downloadedUrls = {}; // Track downloaded URLs
+  Set<String> _downloadedUrls = {};
   Map<String, ModelParameters> _modelParameters = {};
+  String? _truncationMessage;
+
+  String? get truncationMessage => _truncationMessage;
+
+  void clearTruncationMessage() {
+    _truncationMessage = null;
+    notifyListeners();
+  }
+
+  void setTruncationMessage(String? message) {
+    _truncationMessage = message;
+    notifyListeners();
+  }
 
   bool get isOfflineMode => _isOfflineMode;
   String get selectedModelPath => _selectedModelPath;
@@ -152,18 +163,12 @@ class OfflineModelService extends ChangeNotifier {
     try {
       _availableModels = await _getModelFiles();
       debugPrint('Available models: ${_availableModels.length}');
-
-      // Don't automatically set first model when initializing
-      // if (_availableModels.isNotEmpty && _selectedModelPath.isEmpty) {
-      //   debugPrint('Setting first model as selected: ${_availableModels.first.path}');
-      //   await setSelectedModel(_availableModels.first.path);
-      // }
-
       notifyListeners();
     } catch (e) {
       debugPrint('Error checking models: $e');
     }
   }
+
   Future<void> _loadDownloadedUrls() async {
     final prefs = await SharedPreferences.getInstance();
     final urls = prefs.getStringList(_downloadedModelsKey) ?? [];
@@ -204,7 +209,6 @@ class OfflineModelService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Common download logic for both default and custom models
   Future<void> downloadModel(
     String url,
     void Function(double) onProgress,
@@ -234,11 +238,9 @@ class OfflineModelService extends ChangeNotifier {
       _downloadCancel = null;
       await _checkAvailableModels();
 
-      // Don't automatically set selected model or enable local model
       _downloadedUrls.add(url);
       await _saveDownloadedUrls();
 
-      // Log that model was downloaded without auto-switching
       debugPrint('Model downloaded successfully: ${file.path}');
       debugPrint('Available models: ${_availableModels.length}');
 
@@ -250,7 +252,6 @@ class OfflineModelService extends ChangeNotifier {
     }
   }
 
-  /// Downloads a file with progress tracking and cancellation support
   Future<void> _downloadWithProgress(
     String url,
     File file,
@@ -369,15 +370,6 @@ class OfflineModelService extends ChangeNotifier {
         await _saveDownloadedUrls();
         await _checkAvailableModels();
 
-        // Don't automatically switch to downloaded model
-        // if (_availableModels.isNotEmpty) {
-        //   await setSelectedModel(file.path);
-        //   _useLocalModel = true;
-        //   final prefs = await SharedPreferences.getInstance();
-        //   await prefs.setBool(_useLocalModelKey, true);
-        // }
-
-        // Just log that the model was downloaded
         debugPrint('Custom model downloaded: ${file.path}');
         debugPrint('Available models: ${_availableModels.length}');
 
@@ -398,8 +390,7 @@ class OfflineModelService extends ChangeNotifier {
 
   Future<void> generateStreamingResponse(
     String prompt,
-    void Function(String, bool) onResponse,
-    {
+    void Function(String, bool) onResponse, {
     List<ChatMessage> history = const [],
     List<String>? context,
     String? searchResults,
@@ -421,31 +412,76 @@ class OfflineModelService extends ChangeNotifier {
 
       final fullPrompt = StringBuffer();
 
-      // Determine which mode we're in
       final bool hasDocuments = context != null && context.isNotEmpty;
       final bool hasWebSearch = searchResults != null;
       final bool hasImages = context != null && context.any((element) => element.startsWith("From: Image:"));
 
-      if (kDebugMode) {
-        print(
-            'Generating prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : hasImages ? "Image" : "Simple"}');
+      // Estimate tokens for system prompt and chat history
+      int basePromptTokens = 0;
+      // Add system prompt tokens (approximate)
+      if (hasWebSearch) {
+        basePromptTokens += _estimateTokens('You are a research assistant helping with questions using web search results.');
+        basePromptTokens += _estimateTokens('WEB SEARCH RESULTS:');
+        basePromptTokens += _estimateTokens(searchResults);
+        basePromptTokens += _estimateTokens('QUESTION: $prompt');
+        basePromptTokens += _estimateTokens('INSTRUCTIONS:');
+        basePromptTokens += _estimateTokens('1. Use the web search results to provide an up-to-date answer');
+        basePromptTokens += _estimateTokens('2. Synthesize information from multiple sources when possible');
+        basePromptTokens += _estimateTokens('4. If search results don\'t contain the answer, acknowledge the limitations');
+        basePromptTokens += _estimateTokens('ANSWER:');
+      } else if (hasDocuments) {
+        basePromptTokens += _estimateTokens('You are a document assistant analyzing and answering questions based on specific information.');
+        basePromptTokens += _estimateTokens('DOCUMENT CONTEXT:');
+        basePromptTokens += _estimateTokens('QUESTION: $prompt');
+        basePromptTokens += _estimateTokens('INSTRUCTIONS:');
+        basePromptTokens += _estimateTokens('1. Answer based ONLY on the provided document context above');
+        basePromptTokens += _estimateTokens('2. Be concise but thorough in your response');
+        basePromptTokens += _estimateTokens('ANSWER:');
+      } else if (hasImages) {
+        basePromptTokens += _estimateTokens('You are an image analysis assistant. Analyze the provided image content and answer questions based on it.');
+        basePromptTokens += _estimateTokens('IMAGE CONTEXT:');
+        basePromptTokens += _estimateTokens('QUESTION: $prompt');
+        basePromptTokens += _estimateTokens('INSTRUCTIONS:');
+        basePromptTokens += _estimateTokens('1. Answer based ONLY on the provided image context above');
+        basePromptTokens += _estimateTokens('2. Be concise but thorough in your response');
+        basePromptTokens += _estimateTokens('ANSWER:');
+      } else {
+        basePromptTokens += _estimateTokens('You are a helpful AI assistant. Answer the user\'s question below.');
+        basePromptTokens += _estimateTokens('QUESTION: $prompt');
+        basePromptTokens += _estimateTokens('ANSWER:');
       }
 
-      // Choose appropriate prompt based on mode
+      // Add history tokens
+      final recentHistory = history.length > 6 ? history.sublist(history.length - 6) : history;
+      for (final msg in recentHistory) {
+        basePromptTokens += _estimateTokens(msg.content);
+      }
+
+      // Calculate remaining tokens for context
+      final int remainingTokensForContext = modelParameters.contextSize - basePromptTokens;
+      if (remainingTokensForContext <= 0) {
+        setTruncationMessage('Context too large. Please reduce the amount of selected documents or chat history.');
+        return;
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+            'Generating prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : hasImages ? "Image" : "Simple"}');
+        debugPrint('Estimated base prompt tokens (excluding RAG context): $basePromptTokens');
+        debugPrint('Remaining tokens for RAG context: $remainingTokensForContext');
+      }
+
       if (hasWebSearch) {
-        _buildWebSearchPrompt(fullPrompt, prompt, searchResults, context ?? []);
+        _buildWebSearchPrompt(fullPrompt, prompt, searchResults, context ?? [], remainingTokensForContext);
       } else if (hasDocuments) {
-        _buildDocumentPrompt(fullPrompt, prompt, context);
+        _buildDocumentPrompt(fullPrompt, prompt, context, remainingTokensForContext);
       } else if (hasImages) {
-        _buildImagePrompt(fullPrompt, prompt, context ?? []);
+        _buildImagePrompt(fullPrompt, prompt, context, remainingTokensForContext);
       } else {
         _buildSimplePrompt(fullPrompt, prompt, context ?? []);
       }
 
       messages.add(Message(Role.user, fullPrompt.toString()));
-
-      final recentHistory =
-          history.length > 6 ? history.sublist(history.length - 6) : history;
 
       for (final msg in recentHistory) {
         messages.add(Message(
@@ -534,137 +570,149 @@ class OfflineModelService extends ChangeNotifier {
     return _getModelFiles();
   }
 
-}
+  void _buildSimplePrompt(StringBuffer buffer, String prompt, List<String> context) {
+    buffer.writeln('You are a helpful AI assistant. Answer the user\'s question below.');
+    buffer.writeln('\nQUESTION: $prompt');
+    buffer.writeln('\nANSWER:');
+  }
 
-/// Builds a prompt for simple QA mode (no documents, no web search)
-void _buildSimplePrompt(StringBuffer buffer, String prompt, List<String> context) {
-  buffer.writeln(
-      'You are a helpful assistant answering questions based on your knowledge.');
-  if (context.isNotEmpty) {
-    buffer.writeln('\nCONTEXT:');
-    for (int i = 0; i < context.length; i++) {
+  void _buildDocumentPrompt(
+      StringBuffer buffer, String prompt, List<String> context, int maxContextTokens) {
+    buffer.writeln(
+        'You are a document assistant analyzing and answering questions based on specific information.');
+
+    buffer.writeln('\nDOCUMENT CONTEXT:');
+    final truncatedContext = _truncateContext(context, maxContextTokens);
+    for (int i = 0; i < truncatedContext.length; i++) {
       buffer.writeln('---');
-      buffer.writeln(context[i]);
+      buffer.writeln(truncatedContext[i]);
     }
     buffer.writeln('---');
+
+    buffer.writeln('\nQUESTION: $prompt');
+    buffer.writeln('\nINSTRUCTIONS:');
+    buffer.writeln(
+        '1. Answer based ONLY on the provided document context above');
+    buffer.writeln('2. Be concise but thorough in your response');
+    buffer.writeln('\nANSWER:');
   }
-  buffer.writeln('\nQUESTION: $prompt');
-  buffer.writeln('\nANSWER:');
-}
 
-/// Builds a prompt for document QA mode
-void _buildDocumentPrompt(
-    StringBuffer buffer, String prompt, List<String> context) {
-  buffer.writeln(
-      'You are a document assistant analyzing and answering questions based on specific information.');
+  void _buildWebSearchPrompt(StringBuffer buffer, String prompt,
+      String searchResults, List<String> context, int maxContextTokens) {
+    buffer.writeln(
+        'You are a research assistant helping with questions using web search results.');
 
-  // Add document context
-  buffer.writeln('\nDOCUMENT CONTEXT:');
-  for (int i = 0; i < context.length; i++) {
-    buffer.writeln('---');
-    buffer.writeln(context[i]);
-  }
-  buffer.writeln('---');
+    buffer.writeln('\nWEB SEARCH RESULTS:');
+    buffer.writeln(searchResults);
 
-  buffer.writeln('\nQUESTION: $prompt');
-  buffer.writeln('\nINSTRUCTIONS:');
-  buffer.writeln(
-      '1. Answer based ONLY on the provided document context above');
-  buffer.writeln('2. Be concise but thorough in your response');
-  buffer.writeln('\nANSWER:');
-}
-
-/// Builds a prompt for web search QA mode
-void _buildWebSearchPrompt(StringBuffer buffer, String prompt,
-    String searchResults, List<String> context) {
-  buffer.writeln(
-      'You are a research assistant helping with questions using web search results.');
-
-  // Add web search results
-  buffer.writeln('\nWEB SEARCH RESULTS:');
-  buffer.writeln(searchResults);
-
-  // Add document context if available
-  if (context.isNotEmpty) {
-    buffer.writeln('\nADDITIONAL DOCUMENT CONTEXT:');
-    for (int i = 0; i < context.length; i++) {
+    if (context.isNotEmpty) {
+      buffer.writeln('\nADDITIONAL DOCUMENT CONTEXT:');
+      final truncatedContext = _truncateContext(context, maxContextTokens);
+      for (int i = 0; i < truncatedContext.length; i++) {
+        buffer.writeln('---');
+        buffer.writeln(truncatedContext[i]);
+      }
       buffer.writeln('---');
-      buffer.writeln(context[i]);
+    }
+
+    buffer.writeln('\nQUESTION: $prompt');
+    buffer.writeln('\nINSTRUCTIONS:');
+    buffer.writeln(
+        '1. Use the web search results to provide an up-to-date answer');
+    buffer.writeln(
+        '2. Synthesize information from multiple sources when possible');
+    buffer.writeln(
+        '4. If search results don\'t contain the answer, acknowledge the limitations');
+    buffer.writeln('\nANSWER:');
+  }
+
+  void _buildImagePrompt(StringBuffer buffer, String prompt, List<String> context, int maxContextTokens) {
+    buffer.writeln(
+        'You are an image analysis assistant. Analyze the provided image content and answer questions based on it.');
+
+    buffer.writeln('\nIMAGE CONTEXT:');
+    final truncatedContext = _truncateContext(context, maxContextTokens);
+    for (var entry in truncatedContext) {
+      if (entry.startsWith("From: Image:")) {
+        buffer.writeln('---');
+        buffer.writeln(entry.replaceFirst("From: Image:", ""));
+      }
     }
     buffer.writeln('---');
+
+    buffer.writeln('\nQUESTION: $prompt');
+    buffer.writeln('\nINSTRUCTIONS:');
+    buffer.writeln(
+        '1. Answer based ONLY on the provided image context above');
+    buffer.writeln('2. Be concise but thorough in your response');
+    buffer.writeln('\nANSWER:');
   }
 
-  buffer.writeln('\nQUESTION: $prompt');
-  buffer.writeln('\nINSTRUCTIONS:');
-  buffer.writeln(
-      '1. Use the web search results to provide an up-to-date answer');
-  buffer.writeln(
-      '2. Synthesize information from multiple sources when possible');
-  buffer.writeln(
-      '4. If search results don\'t contain the answer, acknowledge the limitations');
-  buffer.writeln('\nANSWER:');
-}
+  String formatModelName(String path) {
+    final fileName = path.split('/').last.replaceAll('.gguf', '');
 
-/// Builds a prompt for image QA mode
-void _buildImagePrompt(StringBuffer buffer, String prompt, List<String> context) {
-  buffer.writeln(
-      'You are an image analysis assistant. Analyze the provided image content and answer questions based on it.');
-
-  // Add image context
-  buffer.writeln('\nIMAGE CONTEXT:');
-  for (var entry in context) {
-    if (entry.startsWith("From: Image:")) {
-      buffer.writeln('---');
-      buffer.writeln(entry.replaceFirst("From: Image:", ""));
+    final sizeMatch =
+        RegExp(r'.*?(\d+(\.\d+)?b)', caseSensitive: false).firstMatch(fileName);
+    if (sizeMatch != null) {
+      final result = fileName.substring(0, sizeMatch.end);
+      return _capitalizeModelName(result);
     }
-  }
-  buffer.writeln('---');
 
-  buffer.writeln('\nQUESTION: $prompt');
-  buffer.writeln('\nINSTRUCTIONS:');
-  buffer.writeln(
-      '1. Answer based ONLY on the provided image context above');
-  buffer.writeln('2. Be concise but thorough in your response');
-  buffer.writeln('\nANSWER:');
-}
-
-String formatModelName(String path) {
-  final fileName = path.split('/').last.replaceAll('.gguf', '');
-
-  // Check for sizes (like 0.5b, 7b, etc.) and cut at the "b"
-  final sizeMatch =
-      RegExp(r'.*?(\d+(\.\d+)?b)', caseSensitive: false).firstMatch(fileName);
-  if (sizeMatch != null) {
-    // Get everything up to and including the "b"
-    final result = fileName.substring(0, sizeMatch.end);
-    return _capitalizeModelName(result);
-  }
-
-  // If no size found, take first two words separated by dash or underscore
-  final parts = fileName.split(RegExp(r'[-_]'));
-  if (parts.length >= 2) {
-    final result = '${parts[0]} ${parts[1]}';
-    return _capitalizeModelName(result);
-  }
-
-  // Fallback to full name if no pattern matches
-  return _capitalizeModelName(fileName);
-}
-
-String _capitalizeModelName(String name) {
-  // Split by spaces, dashes, or underscores
-  final parts = name.split(RegExp(r'[ _-]'));
-  final capitalizedParts = parts.map((part) {
-    if (part.isEmpty) return '';
-    // Don't capitalize size indicators like '7b', '0.5b'
-    if (RegExp(r'^\d+(\.\d+)?b$', caseSensitive: false).hasMatch(part)) {
-      return part.toLowerCase();
+    final parts = fileName.split(RegExp(r'[-_]'));
+    if (parts.length >= 2) {
+      final result = '${parts[0]} ${parts[1]}';
+      return _capitalizeModelName(result);
     }
-    // Capitalize first letter of each part
-    return part[0].toUpperCase() +
-        (part.length > 1 ? part.substring(1).toLowerCase() : '');
-  });
-  return capitalizedParts.join(' ');
+
+    return _capitalizeModelName(fileName);
+  }
+
+  String _capitalizeModelName(String name) {
+    return name.splitMapJoin(
+      RegExp(r'[-_\s]'),
+      onMatch: (m) => ' ',
+      onNonMatch: (n) => n.isNotEmpty ? '${n[0].toUpperCase()}${n.substring(1)}' : '',
+    ).trim();
+  }
+
+  // Helper to estimate tokens (simple heuristic: 4 chars per token)
+  int _estimateTokens(String text) {
+    return (text.length / 4).ceil();
+  }
+
+  List<String> _truncateContext(List<String> context, int maxTokens) {
+    final List<String> truncated = [];
+    int currentTokens = 0;
+    // Using a more robust token estimation for context truncation
+    // This is a heuristic, actual tokenization can vary.
+    // A common ratio is 4 characters per token for English text.
+    const double charsPerToken = 4.0;
+
+    for (final entry in context) {
+      final entryTokens = (entry.length / charsPerToken).ceil();
+
+      if (currentTokens + entryTokens <= maxTokens) {
+        truncated.add(entry);
+        currentTokens += entryTokens;
+      } else {
+        final remainingTokens = maxTokens - currentTokens;
+        if (remainingTokens > 0) {
+          // Calculate how many characters can fit into the remaining tokens
+          final charsToTake = (remainingTokens * charsPerToken).floor();
+          if (charsToTake > 0) {
+            // Ensure we don't go out of bounds
+            final truncatedEntry = entry.substring(0, charsToTake.clamp(0, entry.length));
+            truncated.add('$truncatedEntry...');
+            _truncationMessage = 'Context truncated: Original length ${context.length} entries, truncated to ${truncated.length} entries.';
+            debugPrint(_truncationMessage!);
+            notifyListeners();
+          }
+        }
+        break;
+      }
+    }
+    return truncated;
+  }
 }
 
 extension DownloadErrorX on Exception {

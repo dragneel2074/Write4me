@@ -17,7 +17,7 @@ class FileProcessor {
   static const int defaultSearchResults = 10;
 
   /// Processes text content directly (from PDFs or other sources)
-  Future<void> processText(String content, String fileName) async {
+  Future<void> processText(String content, String fileName, {Function(String)? onTruncation}) async {
     if (content.trim().isEmpty) {
       if (kDebugMode) {
         print("FileProcessor: Warning - empty content provided for $fileName");
@@ -41,12 +41,20 @@ class FileProcessor {
     if (kDebugMode) {
       print("FileProcessor: Split content into ${chunks.length} chunks");
     }
+
+    // Check if truncation is needed and invoke callback
+    if (chunks.length * defaultChunkSize > 1500) { // Assuming 1500 is a rough token limit for context
+      final originalLength = cleanedContent.length;
+      // This is a very rough estimate, a more accurate tokenization would be better
+      final truncatedLength = (1500 / (1000 / 700)).round(); // Convert tokens back to characters roughly
+      if (onTruncation != null) {
+        onTruncation('Content for $fileName was truncated from ${originalLength} characters to approximately ${truncatedLength} characters to fit model context.');
+      }
+    }
     
     // Process chunks in smaller batches to prevent memory issues
     const int batchSize = 20;
     int processedChunks = 0;
-    List<Document> allDocuments = [];
-    
     while (processedChunks < chunks.length) {
       final end = (processedChunks + batchSize < chunks.length) 
           ? processedChunks + batchSize 
@@ -82,7 +90,12 @@ class FileProcessor {
         ));
       }
       
-      allDocuments.addAll(batchDocuments);
+      // Store documents in the vector store immediately after processing each batch
+      if (kDebugMode) {
+        print("FileProcessor: Storing ${batchDocuments.length} documents in vector store for batch ${processedChunks ~/ batchSize + 1}");
+      }
+      await _vectorStore.addDocuments(batchDocuments);
+
       processedChunks = end;
       
       // Report progress
@@ -92,11 +105,6 @@ class FileProcessor {
       }
     }
     
-    // Store all documents in the vector store
-    if (kDebugMode) {
-      print("FileProcessor: Storing ${allDocuments.length} documents in vector store");
-    }
-    await _vectorStore.addDocuments(allDocuments);
     if (kDebugMode) {
       print("FileProcessor: Successfully indexed all chunks for $fileName");
     }

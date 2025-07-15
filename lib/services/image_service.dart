@@ -67,16 +67,14 @@ class ImageService {
       try {
         pickedFile = await _picker.pickImage(
           source: source,
-          maxWidth: 1800,
-          maxHeight: 1800,
-          imageQuality: 85,
+          maxWidth: 1024, // Reduced max width
+          maxHeight: 1024, // Reduced max height
+          imageQuality: 70, // Reduced image quality
         );
       } catch (e) {
-        debugPrint('Error picking image: $e');
-        // If first attempt fails, try again without image constraints
-        pickedFile = await _picker.pickImage(
-          source: source,
-        );
+        debugPrint('Error picking image with constraints: $e');
+        // If picking with constraints fails, inform the user and return null
+        throw Exception('Failed to pick image with optimal size. Try a smaller image or different source.');
       }
 
       if (pickedFile == null) return null;

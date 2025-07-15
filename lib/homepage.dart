@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:write4me/services/offline_model_service.dart';
 import 'package:write4me/utils/message_utils.dart';
 import 'components/chat_input.dart';
 import 'components/chat_messages.dart';
@@ -565,6 +566,21 @@ class _HomePageState extends ConsumerState<HomePage>
       data: (_) {
         final chatState = ref.watch(chatProvider);
         final uiState = ref.watch(uiStateProvider);
+
+        ref.listen<OfflineModelService>(offlineModelServiceProvider, (previous, next) {
+          if (next.truncationMessage != null && next.truncationMessage != previous?.truncationMessage) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(next.truncationMessage!),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+              // Clear the message after showing it
+              ref.read(offlineModelServiceProvider).clearTruncationMessage();
+            }
+          }
+        });
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,

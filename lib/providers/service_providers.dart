@@ -30,7 +30,8 @@ final aiServiceProvider = ChangeNotifierProvider<AIService>((ref) {
 /// Provider for PDFService that depends on FileProcessor
 final pdfServiceProvider = Provider<PDFService>((ref) {
   final fileProcessor = ref.read(fileProcessorProvider);
-  return PDFService(fileProcessor);
+  final offlineModelService = ref.read(legacy_providers.offlineModelServiceProvider);
+  return PDFService(fileProcessor, offlineModelService);
 });
 
 /// Provider for OnlineModelService

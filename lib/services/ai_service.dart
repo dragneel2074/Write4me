@@ -152,7 +152,7 @@ class AIService extends ChangeNotifier {
   
   
   /// Limits context size to optimize inference speed
-  List<String> _limitContextSize(List<String> context, {int maxTokens = 1500}) {
+  List<String> _limitContextSize(List<String> context, {int maxTokens = 1024}) {
     if (context.isEmpty) return context;
     
     // Simple heuristic: ~4 chars per token

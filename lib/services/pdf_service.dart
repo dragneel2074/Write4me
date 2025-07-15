@@ -5,10 +5,13 @@ import 'dart:io';
 import '../models/pdf_memory.dart';
 import '../file_processing/file_processor.dart';
 
+import 'offline_model_service.dart';
+
 class PDFService {
   final FileProcessor fileProcessor;
+  final OfflineModelService _offlineModelService;
 
-  PDFService(this.fileProcessor);
+  PDFService(this.fileProcessor, this._offlineModelService);
 
   Future<PDFMemory?> pickAndProcessPDF() async {
     if (kDebugMode) {
@@ -46,7 +49,13 @@ class PDFService {
         if (kDebugMode) {
           print("PDFService: Processing $pdfName for vector embeddings");
         }
-        await fileProcessor.processText(pdfContent, pdfName);
+        await fileProcessor.processText(pdfContent, pdfName, onTruncation: (message) {
+          if (kDebugMode) {
+            print("PDFService: Truncation message from FileProcessor: $message");
+          }
+          _offlineModelService.setTruncationMessage(message);
+          _offlineModelService.notifyListeners();
+        });
 
         if (kDebugMode) {
           print("PDFService: Successfully processed $pdfName for vector search");

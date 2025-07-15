@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:write4me/providers/offline_mode_provider.dart';
-import 'package:write4me/services/offline_model_service.dart';
+import 'package:write4me/providers/service_provider.dart';
+
 import 'package:write4me/utils/message_utils.dart';
 import 'package:write4me/widgets/model_download_dialog.dart';
 
@@ -21,7 +22,7 @@ class OfflineModelSelector extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         children: [
           ...offlineModeState.availableModels.map((model) {
-            final modelName = formatModelName(model.path);
+            final modelName = ref.read(offlineModelServiceProvider).formatModelName(model.path);
             final isSelected = offlineModeState.isLocalModelActive && 
                              model.path == offlineModeState.selectedModelPath;
             
