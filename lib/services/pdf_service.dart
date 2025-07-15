@@ -54,7 +54,6 @@ class PDFService {
             print("PDFService: Truncation message from FileProcessor: $message");
           }
           _offlineModelService.setTruncationMessage(message);
-          _offlineModelService.notifyListeners();
         });
 
         if (kDebugMode) {

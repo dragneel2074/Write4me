@@ -419,6 +419,11 @@ $prompt
     return prefs.getString('jina_api_key') ?? '';
   }
 
+  Future<String> getPollinationApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('pollination_api_key') ?? '';
+  }
+
   void dispose() {
     _dio.close();
   }

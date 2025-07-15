@@ -41,10 +41,14 @@ class OnlineModel {
 }
 
 class OnlineModelService extends ChangeNotifier {
-  static const String _modelsUrl = 'https://text.pollinations.ai/models';
+  static const String _textModelsUrl = 'https://text.pollinations.ai/models';
+  static const String _imageModelsUrl = 'https://image.pollinations.ai/models';
 
-  List<OnlineModel> _availableOnlineModels = [];
-  List<OnlineModel> get availableOnlineModels => _availableOnlineModels;
+  List<OnlineModel> _availableTextModels = [];
+  List<OnlineModel> get availableTextModels => _availableTextModels;
+
+  List<String> _availableImageModels = [];
+  List<String> get availableImageModels => _availableImageModels;
 
   OnlineModel? _selectedOnlineModel;
   OnlineModel? get selectedOnlineModel => _selectedOnlineModel;
@@ -55,38 +59,50 @@ class OnlineModelService extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  Future<void> fetchAndFilterModels() async {
+  Future<void> fetchModels() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse(_modelsUrl));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
-        _availableOnlineModels = jsonList.map((json) => OnlineModel.fromJson(json)).where((model) {
-          // Filter out models where input_modalities or output_modalities contain "0 text"
-          final hasZeroTextInput = model.inputModalities.contains('0 text');
-          final hasZeroTextOutput = model.outputModalities.contains('0 text');
-          return !hasZeroTextInput && !hasZeroTextOutput && model.tier == "anonymous";
-        }).toList();
-        
-        // Optionally, set a default selected model if available
-        if (_availableOnlineModels.isNotEmpty && _selectedOnlineModel == null) {
-          _selectedOnlineModel = _availableOnlineModels.first;
-        }
-
-      } else {
-        _errorMessage = 'Failed to load models: ${response.statusCode}';
-        debugPrint('Failed to load models: ${response.statusCode}');
-      }
+      await _fetchTextModels();
+      await _fetchImageModels();
     } catch (e) {
       _errorMessage = 'Error fetching models: $e';
       debugPrint('Error fetching models: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _fetchTextModels() async {
+    final response = await http.get(Uri.parse(_textModelsUrl));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      _availableTextModels = jsonList.map((json) => OnlineModel.fromJson(json)).where((model) {
+        final hasZeroTextInput = model.inputModalities.contains('0 text');
+        final hasZeroTextOutput = model.outputModalities.contains('0 text');
+        return !hasZeroTextInput && !hasZeroTextOutput && model.tier == "anonymous";
+      }).toList();
+      
+      if (_availableTextModels.isNotEmpty && _selectedOnlineModel == null) {
+        _selectedOnlineModel = _availableTextModels.first;
+      }
+    } else {
+      throw Exception('Failed to load text models: ${response.statusCode}');
+    }
+  }
+
+  Future<void> _fetchImageModels() async {
+    final response = await http.get(Uri.parse(_imageModelsUrl));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      _availableImageModels = List<String>.from(jsonList);
+    } else {
+      throw Exception('Failed to load image models: ${response.statusCode}');
     }
   }
 

@@ -97,7 +97,7 @@ class SettingsDialog extends ConsumerWidget {
             if (!offlineModeState.isOfflineMode) ...[
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('Online Models', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text('Online Text/Image Models', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               ListTile(
                 title: Text(

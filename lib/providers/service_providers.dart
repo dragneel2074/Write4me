@@ -38,6 +38,6 @@ final pdfServiceProvider = Provider<PDFService>((ref) {
 final onlineModelServiceProvider = ChangeNotifierProvider<OnlineModelService>((ref) {
   final service = OnlineModelService();
   // Fetch models when the service is initialized
-  service.fetchAndFilterModels();
+  service.fetchModels();
   return service;
 }); 

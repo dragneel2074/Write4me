@@ -47,6 +47,11 @@ class ChatInput extends StatelessWidget {
           // Text Input Field with Submit Button
           Row(
             children: [
+              _buildActionButton(
+                icon: Icons.add,
+                onPressed: onAddContent,
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              ),
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -103,11 +108,6 @@ class ChatInput extends StatelessWidget {
             spacing: 4,
             runSpacing: 8,
             children: [
-              _buildActionButton(
-                icon: Icons.add,
-                onPressed: onAddContent,
-                label: 'Add Files',
-              ),
               if (!isOfflineMode) ...[
                 _buildActionButton(
                   icon: isImageMode ? Icons.image : Icons.image_outlined,
@@ -149,6 +149,7 @@ class ChatInput extends StatelessWidget {
     bool isActive = false,
     bool showActive = false,
     String? label,
+    EdgeInsetsGeometry? padding,
   }) {
     return Builder(
       builder: (context) => TextButton.icon(
@@ -172,7 +173,7 @@ class ChatInput extends StatelessWidget {
             : const SizedBox.shrink(),
         onPressed: onPressed,
         style: TextButton.styleFrom(
-          padding: EdgeInsets.symmetric(
+          padding: padding ?? EdgeInsets.symmetric(
             horizontal: label != null ? 8 : 12,
             vertical: 8,
           ),

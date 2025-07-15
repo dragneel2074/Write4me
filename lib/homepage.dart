@@ -404,7 +404,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   FilledButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _showApiKeyDialog(context);
+                      _showApiKeysDialog(context);
                     },
                     child: const Text('Set API Key'),
                   ),
@@ -597,7 +597,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 if (!offlineModeState.isOfflineMode) 
                   IconButton(
                     icon: const Icon(Icons.key),
-                    onPressed: () => _showApiKeyDialog(context),
+                    onPressed: () => _showApiKeysDialog(context),
                   ),
                 IconButton(
                   icon: const Icon(Icons.settings),
@@ -773,46 +773,70 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  Future<void> _showApiKeyDialog(BuildContext context) async {
+  Future<void> _showApiKeysDialog(BuildContext context) async {
     final textGenService = ref.read(textGenerationServiceProvider);
-    final currentKey = await textGenService.getJinaApiKey();
-    
-    final controller = TextEditingController(text: currentKey);
+    final jinaController = TextEditingController(text: await textGenService.getJinaApiKey());
+    final pollinationController = TextEditingController(text: await textGenService.getPollinationApiKey());
+
     if (!mounted) return;
+
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Jina API Key'),
+        title: const Text('API Keys'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Enter your Jina API key for web search:'),
+            const Text('Enter your API keys for the following services:'),
             const SizedBox(height: 16),
             TextField(
-              controller: controller,
+              controller: jinaController,
               decoration: const InputDecoration(
-                hintText: 'Enter API key',
+                labelText: 'Jina API Key (Web Search)',
+                hintText: 'Enter Jina API key',
                 border: OutlineInputBorder(),
               ),
               obscureText: true,
             ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: pollinationController,
+              decoration: const InputDecoration(
+                labelText: 'Pollination API Key (Image Edit)',
+                hintText: 'Enter Pollination API key',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
             GestureDetector(
-  onTap: () async {
-    final Uri url = Uri.parse('https://jina.ai/#apiform');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      throw 'Could not launch $url';
-    }
-  },
-  child: const Text(
-    'Get a free API key by going to Jina.ai',
-    style: TextStyle(
-      color: Colors.blue,
-      decoration: TextDecoration.underline,
-    ),
-  ),)
-
+              onTap: () async {
+                final Uri url = Uri.parse('https://jina.ai/#apiform');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: const Text(
+                'Get Jina API Key',
+                style: TextStyle(
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () async {
+                // Add the URL for getting a Pollination API key
+              },
+              child: const Text(
+                'Get Pollination API Key',
+                style: TextStyle(
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
           ],
         ),
         actions: [
@@ -823,13 +847,11 @@ class _HomePageState extends ConsumerState<HomePage>
           FilledButton(
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
-              await prefs.setString('jina_api_key', controller.text.trim());
+              await prefs.setString('jina_api_key', jinaController.text.trim());
+              await prefs.setString('pollination_api_key', pollinationController.text.trim());
               if (context.mounted) {
                 Navigator.pop(context);
-                // ScaffoldMessenger.of(context).showSnackBar(
-                //   const SnackBar(content: Text('API key saved')),
-                // );
-                MessageUtils.showSuccess(context, 'API key saved');
+                MessageUtils.showSuccess(context, 'API keys saved');
               }
             },
             child: const Text('Save'),
