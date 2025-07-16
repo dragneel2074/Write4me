@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:collection/collection.dart'; // For firstWhereOrNull
 
 class OnlineModel {
   final String name;
@@ -111,7 +112,14 @@ class OnlineModelService extends ChangeNotifier {
       }).toList();
       
       if (_availableTextModels.isNotEmpty && _selectedOnlineModel == null) {
-        _selectedOnlineModel = _availableTextModels.first;
+        final gpt4oMini = _availableTextModels.firstWhereOrNull(
+          (model) => model.name == 'openai',
+        );
+        if (gpt4oMini != null) {
+          _selectedOnlineModel = gpt4oMini;
+        } else {
+          _selectedOnlineModel = _availableTextModels.first;
+        }
       }
     } else {
       throw Exception('Failed to load text models: ${response.statusCode}');

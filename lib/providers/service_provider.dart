@@ -30,7 +30,8 @@ final initializedOfflineModelProvider = Provider<OfflineModelService>((ref) {
 });
 
 final textGenerationServiceProvider = Provider<TextGenerationService>((ref) {
-  return TextGenerationService();
+  final onlineModelService = ref.watch(onlineModelServiceProvider);
+  return TextGenerationService(onlineModelService);
 });
 
 final aiServiceProvider = Provider<AIService>((ref) {

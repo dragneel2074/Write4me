@@ -1,0 +1,117 @@
+✓ Built build\app\outputs\flutter-apk\app-debug.apk
+I/flutter (30472): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(61)] Using the Impeller rendering backend (Vulkan).
+I/flutter (30472): Models refreshed:
+I/flutter (30472): - Available models: 1
+I/flutter (30472): - Current selected model:
+I/flutter (30472): - Current local model usage: false
+I/flutter (30472): Initialized OfflineModeNotifier:
+I/flutter (30472): - Models available: 1
+I/flutter (30472): - Is offline mode: false
+I/flutter (30472): - Use local model: false
+I/flutter (30472): - Local model selected: false
+I/flutter (30472): - Selected model:
+I/flutter (30472): Initialization complete
+I/flutter (30472): HomePage build - isOfflineMode: false
+I/flutter (30472): HomePage build - isLocalModelActive: false
+I/flutter (30472): HomePage build - isLocalModelSelected: false
+I/flutter (30472): HomePage build - availableModels: 1
+I/flutter (30472): Available models: 1
+I/flutter (30472): Loaded downloaded URLs: {https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf}
+I/flutter (30472): No model parameters found, initializing empty map.
+I/flutter (30472): HomePage build - isOfflineMode: false
+I/flutter (30472): HomePage build - isLocalModelActive: false
+I/flutter (30472): HomePage build - isLocalModelSelected: false
+I/flutter (30472): HomePage build - availableModels: 1
+I/flutter (30472): HomePage build - isOfflineMode: false
+I/flutter (30472): HomePage build - isLocalModelActive: false
+I/flutter (30472): HomePage build - isLocalModelSelected: false
+I/flutter (30472): HomePage build - availableModels: 1
+W/WindowOnBackDispatcher(30472): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@12a0422
+I/flutter (30472): Models refreshed:
+I/flutter (30472): - Available models: 1
+I/flutter (30472): - Current selected model: /data/user/0/com.kickerai.write4me2/app_flutter/qwen2.5-0.5b-instruct-q8_0.gguf
+I/flutter (30472): - Current local model usage: true
+I/flutter (30472): Initialized OfflineModeNotifier:
+I/flutter (30472): - Models available: 1
+I/flutter (30472): - Is offline mode: false
+I/flutter (30472): - Use local model: true
+I/flutter (30472): - Local model selected: false
+I/flutter (30472): - Selected model: /data/user/0/com.kickerai.write4me2/app_flutter/qwen2.5-0.5b-instruct-q8_0.gguf
+I/flutter (30472): Offline mode initialized
+I/flutter (30472): TextGenerationService: Formatting prompt for mode: Simple
+I/flutter (30472): Original prompt length: ${formattedPrompt.length} characters
+I/flutter (30472): --- FULL PROMPT (ONLINE ---
+I/flutter (30472): say hi
+I/flutter (30472): --------------------------
+I/flutter (30472): ========== URL GENERATION DETAILS ==========
+I/flutter (30472): Original prompt length: 6
+I/flutter (30472): Original prompt preview: say hi...
+I/flutter (30472): TextGenerationService: Sanitizing prompt text of length 6 for API request
+I/flutter (30472): TextGenerationService: First 6 chars before cleaning: say hi
+I/flutter (30472): FileProcessor: Cleaning text for API submission (length: 6)
+I/flutter (30472): TextGenerationService: Text cleaned for API submission, new length: 6
+I/flutter (30472): Final URL length: 264
+I/flutter (30472): URL preview: https://text.pollinations.ai/say%20hi?model=gpt-4o-mini&system=You%20are%20Aura,%20a%20helpful%20AI%...
+I/flutter (30472): ===========================================
+I/flutter (30472): url: https://text.pollinations.ai/say%20hi?model=gpt-4o-mini&system=You%20are%20Aura,%20a%20helpful%20AI%20assistant%20who%20answers%20questions%20based%20on%20knowledge%20and%20provided%20conversation%20history.%20Be%20concise%20but%20thorough%20in%20your%20responses.
+I/flutter (30472): HomePage build - isOfflineMode: false
+I/flutter (30472): HomePage build - isLocalModelActive: true
+I/flutter (30472): HomePage build - isLocalModelSelected: false
+I/flutter (30472): HomePage build - availableModels: 1
+I/flutter (30472): https://image.pollinations.ai/prompt/boy%20in%20yellow%20hat?width=1024&height=1024&nologo=true&enhance=true&safe=true&seed=42&model=flux
+I/flutter (30472): HomePage build - isOfflineMode: false
+I/flutter (30472): HomePage build - isLocalModelActive: true
+I/flutter (30472): HomePage build - isLocalModelSelected: false
+I/flutter (30472): HomePage build - availableModels: 1
+D/InputMethodManager(30472): showSoftInput() view=io.flutter.embedding.android.FlutterView{3f86507 VFE...... .F....ID 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/flutter (30472): 1. _submitMessage called.
+I/flutter (30472): 3. Loading started.
+I/flutter (30472): 4. User message added to chat.
+I/flutter (30472): Not in image mode.
+I/flutter (30472): Submitting message with:
+I/flutter (30472): - isWebSearch: false
+I/flutter (30472): - isOfflineMode: false
+I/flutter (30472): - isLocalModelActive: true
+I/flutter (30472): - isLocalModelSelected: false
+I/flutter (30472): - useWebSearch: false
+I/flutter (30472): Chat history before filtering:
+I/flutter (30472): [0] AI: Hey!
+I/flutter (30472):
+I/flutter (30472): Chat Service is Online. Ask Me Anything.
+I/flutter (30472):
+I/flutter (30472):  ...
+I/flutter (30472): Getting meaningful history: 1 → 1 messages
+I/flutter (30472): First meaningful message: 'Hey!
+I/flutter (30472):
+I/flutter (30472): Chat Service is Online....'
+I/flutter (30472):
+I/flutter (30472): getStreamingResponse called with:
+I/flutter (30472): - prompt: heyyyyy
+I/flutter (30472): - useWebSearch: false
+I/flutter (30472): - useLocalModel: false
+I/flutter (30472): - isOfflineMode: false
+I/flutter (30472): - history length: 1
+I/flutter (30472): Filtered chat history: 1 → 0 messages
+I/flutter (30472): - filtered history length: 0
+I/flutter (30472): Web search not requested or offline mode enabled
+I/flutter (30472): Using selected online model for generation: grok
+I/flutter (30472): TextGenerationService: Formatting prompt for mode: Simple
+I/flutter (30472): Original prompt length: ${formattedPrompt.length} characters
+I/flutter (30472): --- FULL PROMPT (ONLINE ---
+I/flutter (30472): heyyyyy
+I/flutter (30472): --------------------------
+I/flutter (30472): ========== URL GENERATION DETAILS ==========
+I/flutter (30472): Original prompt length: 7
+I/flutter (30472): Original prompt preview: heyyyyy...
+I/flutter (30472): TextGenerationService: Sanitizing prompt text of length 7 for API request
+I/flutter (30472): TextGenerationService: First 7 chars before cleaning: heyyyyy
+I/flutter (30472): FileProcessor: Cleaning text for API submission (length: 7)
+I/flutter (30472): TextGenerationService: Text cleaned for API submission, new length: 7
+I/flutter (30472): Final URL length: 279
+I/flutter (30472): URL preview: https://text.pollinations.ai/heyyyyy?model=grok&system=You%20are%20Aura,%20a%20helpful%20AI%20assist...
+I/flutter (30472): ===========================================
+I/flutter (30472): url: https://text.pollinations.ai/heyyyyy?model=grok&system=You%20are%20Aura,%20a%20helpful%20AI%20assistant%20who%20answers%20questions%20based%20on%20knowledge%20and%20provided%20conversation%20history.%20Be%20concise%20but%20thorough%20in%20your%20responses.&token=pO88lVFHApu3neFO
+I/flutter (30472): HomePage build - isOfflineMode: false
+I/flutter (30472): HomePage build - isLocalModelActive: true
+I/flutter (30472): HomePage build - isLocalModelSelected: false
+I/flutter (30472): HomePage build - availableModels: 1

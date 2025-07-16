@@ -7,8 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message.dart';
 import '../file_processing/file_processor.dart';
 
+import 'package:write4me/services/online_model_service.dart';
+
 class TextGenerationService {
   static const String baseUrl = 'https://text.pollinations.ai/';
+
+  final OnlineModelService _onlineModelService;
+
+  TextGenerationService(this._onlineModelService);
   static const String jinaSearchUrl = 'https://s.jina.ai/';
   static const String unwanted1 = 'Chat Service is Online. Ask Me Anything.';
   static const String unwanted2 =
@@ -225,7 +231,7 @@ $searchResults
 Based on these search results, please answer:
 $prompt
 ''';
-          final url = await _buildUrl(formattedPrompt, model!, system);
+          final url = await _buildUrl(formattedPrompt, model!, system, _onlineModelService.selectedOnlineModel?.tier);
           
           final response = await _dio.get(
             url.toString(),
@@ -324,7 +330,7 @@ $prompt
 
       if (kDebugMode) {        print("Original prompt length: \${formattedPrompt.length} characters");        debugPrint('--- FULL PROMPT (ONLINE ---\n$formattedPrompt\n--------------------------');      }
       
-      final url = await _buildUrl(formattedPrompt, selectedModel, system);
+      final url = await _buildUrl(formattedPrompt, selectedModel, system, _onlineModelService.selectedOnlineModel?.tier);
       debugPrint('url: $url');
       final response = await _dio.get(
         url.toString(),
@@ -349,7 +355,7 @@ $prompt
     }
   }
 
-  Future<Uri> _buildUrl(String prompt, String model, String system) async {
+  Future<Uri> _buildUrl(String prompt, String model, String system, String? modelTier) async {
     // Clean prompt before encoding to remove problematic characters
     if (kDebugMode) {
       print('\n========== URL GENERATION DETAILS ==========');
@@ -365,7 +371,7 @@ $prompt
     String urlString = '$baseUrl$encodedPrompt?model=$model&system=$system';
 
     // Conditionally add token for "seed" tier models
-    if (model.startsWith('seed')) {
+    if (modelTier == 'seed') {
       final token = await getPollinationApiKey();
       if (token.isNotEmpty) {
         urlString += '&token=$token';
