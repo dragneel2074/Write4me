@@ -62,9 +62,20 @@ class OnlineModelSelectionDialog extends ConsumerWidget {
                                 title: Row(
                                   children: [
                                     Expanded(
-                                      child: Text(
-                                        model.name,
-                                        overflow: TextOverflow.ellipsis,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              model.name,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          if (model.tier == 'seed') ...[
+                                            const SizedBox(width: 4),
+                                            const Icon(Icons.vpn_key, size: 16),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                     const SizedBox(width: 8),

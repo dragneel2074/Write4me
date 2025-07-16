@@ -225,7 +225,7 @@ $searchResults
 Based on these search results, please answer:
 $prompt
 ''';
-          final url = _buildUrl(formattedPrompt, model!, system);
+          final url = await _buildUrl(formattedPrompt, model!, system);
           
           final response = await _dio.get(
             url.toString(),
@@ -324,7 +324,7 @@ $prompt
 
       if (kDebugMode) {        print("Original prompt length: \${formattedPrompt.length} characters");        debugPrint('--- FULL PROMPT (ONLINE ---\n$formattedPrompt\n--------------------------');      }
       
-      final url = _buildUrl(formattedPrompt, selectedModel, system);
+      final url = await _buildUrl(formattedPrompt, selectedModel, system);
       debugPrint('url: $url');
       final response = await _dio.get(
         url.toString(),
@@ -349,7 +349,7 @@ $prompt
     }
   }
 
-  Uri _buildUrl(String prompt, String model, String system) {
+  Future<Uri> _buildUrl(String prompt, String model, String system) async {
     // Clean prompt before encoding to remove problematic characters
     if (kDebugMode) {
       print('\n========== URL GENERATION DETAILS ==========');
@@ -361,7 +361,18 @@ $prompt
     
     final cleanedPrompt = _sanitizeTextForUrl(prompt);
     final encodedPrompt = Uri.encodeComponent(cleanedPrompt);
-    final url = Uri.parse('$baseUrl$encodedPrompt?model=$model&system=$system');
+    
+    String urlString = '$baseUrl$encodedPrompt?model=$model&system=$system';
+
+    // Conditionally add token for "seed" tier models
+    if (model.startsWith('seed')) {
+      final token = await getPollinationApiKey();
+      if (token.isNotEmpty) {
+        urlString += '&token=$token';
+      }
+    }
+
+    final url = Uri.parse(urlString);
     
     if (kDebugMode) {
       print('Final URL length: ${url.toString().length}');
