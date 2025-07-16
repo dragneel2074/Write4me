@@ -56,20 +56,30 @@ class OnlineModelService extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String? _errorMessage;
-  String? get errorMessage => _errorMessage;
+  String? _textErrorMessage;
+  String? get textErrorMessage => _textErrorMessage;
+
+  String? _imageErrorMessage;
+  String? get imageErrorMessage => _imageErrorMessage;
 
   Future<void> fetchModels() async {
     _isLoading = true;
-    _errorMessage = null;
+    _textErrorMessage = null;
+    _imageErrorMessage = null;
     notifyListeners();
 
     try {
       await _fetchTextModels();
+    } catch (e) {
+      _textErrorMessage = 'Error fetching text models: $e';
+      debugPrint('Error fetching text models: $e');
+    }
+
+    try {
       await _fetchImageModels();
     } catch (e) {
-      _errorMessage = 'Error fetching models: $e';
-      debugPrint('Error fetching models: $e');
+      _imageErrorMessage = 'Error fetching image models: $e';
+      debugPrint('Error fetching image models: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

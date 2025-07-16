@@ -111,8 +111,10 @@ class SettingsDialog extends ConsumerWidget {
                     : null,
                 trailing: onlineModelService.isLoading
                     ? const CircularProgressIndicator()
-                    : onlineModelService.errorMessage != null
-                        ? Icon(Icons.error, color: Theme.of(context).colorScheme.error)
+                    : (onlineModelService.textErrorMessage != null ||
+                            onlineModelService.imageErrorMessage != null)
+                        ? Icon(Icons.error,
+                            color: Theme.of(context).colorScheme.error)
                         : null,
               ),
               TextButton.icon(

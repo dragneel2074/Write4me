@@ -4,7 +4,6 @@ import 'package:write4me/providers/service_providers.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_provider.dart';
-import '../providers/offline_mode_provider.dart';
 // import '../theme/chat_theme.dart';
 import 'chat_bubble.dart';
 import '../utils/message_utils.dart';

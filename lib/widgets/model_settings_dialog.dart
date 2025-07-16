@@ -35,8 +35,8 @@ class _ModelSettingsDialogState extends State<ModelSettingsDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: const Text(
+                const Expanded(
+                  child: Text(
                     'Changing anything might break the app',
                     style: TextStyle(
                       color: Colors.orange, // Or Colors.red, depending on desired emphasis
