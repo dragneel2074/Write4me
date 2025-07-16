@@ -231,11 +231,13 @@ class _HomePageState extends ConsumerState<HomePage>
     ref.read(uiStateProvider.notifier).setImageMode(true);
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
     if (pickedFile != null) {
       final imageFile = File(pickedFile.path);
       // Remove previous kontext image if any
       _imageMemories.removeWhere((m) => m.extractedText == 'Image for kontext');
-      
+
+      // Create the memory object first
       final imageMemory = ImageMemory(
         pickedFile.path.split('/').last,
         'Image for kontext', // Special marker
@@ -243,12 +245,51 @@ class _HomePageState extends ConsumerState<HomePage>
       );
       _addImageContent(imageMemory);
 
+      // Show notification that we are uploading
       if (mounted) {
         NotificationService.showTopNotification(
           context,
-          message: 'Image selected for editing',
+          message: 'Uploading image...',
         );
       }
+
+      try {
+        // Upload the image
+        final imageBytes = await imageFile.readAsBytes();
+        final imageUrl = await _fileUploadService.uploadImage(
+            imageBytes, imageMemory.name);
+        
+        if (imageUrl != null) {
+          // Update the memory object with the URL
+          setState(() {
+            imageMemory.imageUrl = imageUrl;
+          });
+          debugPrint('Uploaded image URL: $imageUrl');
+          if (mounted) {
+            NotificationService.showTopNotification(
+              context,
+              message: 'Image ready for editing.',
+              isError: false,
+            );
+          }
+        } else {
+          throw Exception('Image upload returned null URL');
+        }
+      } catch (e) {
+        debugPrint('Error uploading image: $e');
+        if (mounted) {
+          NotificationService.showTopNotification(
+            context,
+            message: 'Image upload failed. Please try again.',
+            isError: true,
+          );
+        }
+        // Remove the memory object if upload fails
+        setState(() {
+          _imageMemories.remove(imageMemory);
+        });
+      }
+
     } else {
       // Only turn off image mode if no image is selected and no other images are present for vision.
       final hasVisionImage = _imageMemories.any((m) => m.extractedText == 'Image for vision model');
@@ -428,8 +469,12 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _submitMessage() async {
+    debugPrint("1. _submitMessage called.");
     final message = _controller.text.trim();
-    if (message.isEmpty) return;
+    if (message.isEmpty) {
+      debugPrint("2. Message is empty, returning.");
+      return;
+    }
 
     final chatNotifier = ref.read(chatProvider.notifier);
     final chatState = ref.read(chatProvider);
@@ -441,6 +486,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
     _controller.clear();
     chatNotifier.startLoading();
+    debugPrint("3. Loading started.");
 
     try {
       // Check for API key if web search is enabled
@@ -481,10 +527,13 @@ class _HomePageState extends ConsumerState<HomePage>
         content: message,
         isUser: true,
       ));
+      debugPrint("4. User message added to chat.");
 
       if (uiState.isImageMode) {
+        debugPrint("5. In isImageMode block.");
         final isKontext =
             onlineModelService.selectedImageModel.toLowerCase() == 'kontext';
+        debugPrint("6. isKontext: $isKontext");
         ImageMemory? kontextImageMemory;
         for (final m in _imageMemories) {
           if (m.extractedText == 'Image for kontext') {
@@ -492,8 +541,10 @@ class _HomePageState extends ConsumerState<HomePage>
             break;
           }
         }
+        debugPrint("7. Found kontextImageMemory: ${kontextImageMemory != null}");
 
         if (isKontext && kontextImageMemory == null) {
+          debugPrint("8. No kontext image found, showing error.");
           chatNotifier.stopLoading();
           MessageUtils.showError(context, 'Please select an image to edit.');
           return;
@@ -506,12 +557,19 @@ class _HomePageState extends ConsumerState<HomePage>
           // timestamp: DateTime.now().millisecondsSinceEpoch,
         );
         chatNotifier.addMessage(placeholderMessage);
+        debugPrint("9. Placeholder message added.");
 
         String? imageUrl;
         if (isKontext) {
-          final imageBytes = await kontextImageMemory!.imageFile!.readAsBytes();
-          imageUrl = await _fileUploadService.uploadImage(
-              imageBytes, kontextImageMemory.name);
+          debugPrint("10. Using pre-uploaded image for kontext...");
+          imageUrl = kontextImageMemory?.imageUrl;
+          if (imageUrl == null) {
+            debugPrint("11. Image URL is null, showing error.");
+            MessageUtils.showError(context, 'Image has not been uploaded yet. Please wait or try re-selecting the image.');
+            chatNotifier.stopLoading();
+            return;
+          }
+          debugPrint('Using image URL: $imageUrl');
         }
 
         final imageData = await _imageGenService.generateImage(
@@ -552,6 +610,7 @@ class _HomePageState extends ConsumerState<HomePage>
           });
         }
       } else {
+        debugPrint("Not in image mode.");
         // Add initial placeholder message
         final placeholderMessage = ChatMessage(
           content: 'Generating response...',
@@ -636,6 +695,7 @@ class _HomePageState extends ConsumerState<HomePage>
         }
       }
     } catch (e) {
+      debugPrint("Error in _submitMessage: $e");
       final errorMessage = uiState.isImageMode ? _getImageError(e) : _getUserFriendlyError(e);
       chatNotifier.addMessage(ChatMessage(
         content: errorMessage,
@@ -643,6 +703,7 @@ class _HomePageState extends ConsumerState<HomePage>
         isError: true,
       ));
     } finally {
+      debugPrint("Finally block in _submitMessage.");
       if (mounted) {
         chatNotifier.stopLoading();
         chatNotifier.setGenerating(false);

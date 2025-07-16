@@ -1,100 +1,32 @@
-Temporary file hoster.
+import 'dart:io';
+import 'package:http/http.dart' as http;
 
-min_age = 30 days
-max_age = 1 year
-max_size = 512.0 MiB
-retention = min_age + (min_age - max_age) * pow((file_size / max_size - 1), 3)
+Future<void> uploadToUguu(String filePath) async {
+  var uri = Uri.parse('https://uguu.se/upload');
+  var request = http.MultipartRequest('POST', uri);
 
-   days
-    365 |  \
-        |   \
-        |    \
-        |     \
-        |      \
-        |       \
-        |        ..
-        |          \
-  197.5 | ----------..-------------------------------------------
-        |             ..
-        |               \
-        |                ..
-        |                  ...
-        |                     ..
-        |                       ...
-        |                          ....
-        |                              ......
-     30 |                                    ....................
-          0                      256.0                      512.0
-                                                              MiB
+  request.files.add(await http.MultipartFile.fromPath('files[]', filePath));
 
+  var response = await request.send();
+  var body = await response.stream.bytesToString();
 
-Uploading files
+  if (response.statusCode == 200) {
+    try {
+      var jsonResponse = jsonDecode(body);
+      var url = jsonResponse['files'][0]['url'];
+      print('✅ Uploaded: $url');
+    } catch (e) {
+      print('⚠️ Failed to parse response JSON: $e');
+      print('Response body: $body');
+    }
+  } else {
+    print('❌ Upload failed: ${response.statusCode}');
+    print('Response body: $body');
+  }
+}
 
-Send HTTP POST requests to https://0x0.st with data encoded as multipart/form-data
-
-Valid fields are:
-  ┌─────────┬────────────┬────────────────────────────────────────────────┐
-  │ field   │ content    │ remarks                                        │
-  ╞═════════╪════════════╪════════════════════════════════════════════════╡
-  │ file    │ data       │                                                │
-  ├─────────┼────────────┼────────────────────────────────────────────────┤
-  │ url     │ remote URL │ Mutually exclusive with “file”.                │
-  │         │            │ Remote site must return Content-Length header. │
-  ├─────────┼────────────┼────────────────────────────────────────────────┤
-  │ secret  │ (ignored)  │ If present, a longer, hard-to-guess URL        │
-  │         │            │ will be generated.                             │
-  ├─────────┼────────────┼────────────────────────────────────────────────┤
-  │ expires │ hours OR   │ Sets maximum file lifetime in hours OR         │
-  │         │ ms since   │ the time of expiration in milliseconds since   │
-  │         │ epoch      │ UNIX epoch.                                    │
-  └─────────┴────────────┴────────────────────────────────────────────────┘
-
-    
-cURL examples
-
-
-It is possible to append a custom file name to any URL:
-    https://0x0.st/aaa.jpg/image.jpeg
-
-File URLs are valid for at least 30 days and up to a year (see above).
-
-Expired files won’t be removed immediately but within the next minute.
-
-Maximum file size: 512.0 MiB
-
-
-Managing your files
-
-Whenever a file that does not already exist or has expired is uploaded,
-the HTTP response header includes an X-Token field. You can use this
-to perform management operations on the file by sending POST requests
-to the file URL.
-
-When using cURL, you can add the -i option to view the response header.
-
-Valid fields are:
-  ┌─────────┬────────────┬────────────────────────────────────────────────┐
-  │ field   │ content    │ remarks                                        │
-  ╞═════════╪════════════╪════════════════════════════════════════════════╡
-  │ token   │ management │ Returned after upload in X-Token HTTP header   │
-  │         │ token      │ field. Required.                               │
-  ├─────────┼────────────┼────────────────────────────────────────────────┤
-  │ delete  │ (ignored)  │ Removes the file.                              │
-  ├─────────┼────────────┼────────────────────────────────────────────────┤
-  │ expires │ hours OR   │ Sets maximum file lifetime in hours OR         │
-  │         │ ms since   │ the time of expiration in milliseconds since   │
-  │         │ epoch      │ UNIX epoch.                                    │
-  └─────────┴────────────┴────────────────────────────────────────────────┘
-
-    
-
-    
-cURL examples
-
-    Delete a file immediately:
-        curl -Ftoken=token_here -Fdelete= https://0x0.st/abc.txt
-    Change the expiration date (see above):
-        curl -Ftoken=token_here -Fexpires=3 https://0x0.st/abc.txt
-    
+void main() async {
+  await uploadToUguu('your_image.png');
+}
 
 https://image.pollinations.ai/prompt/change%20color%20to%20green?model=kontext&token=pO88lVFHApu3neFO&image=https://static.vecteezy.com/system/resources/thumbnails/012/705/555/small/men-s-shirts-mockup-design-template-mockup-free-photo.jpg
