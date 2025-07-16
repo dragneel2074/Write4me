@@ -29,4 +29,4 @@ void main() async {
   await uploadToUguu('your_image.png');
 }
 
-https://image.pollinations.ai/prompt/change%20color%20to%20green?model=kontext&token=pO88lVFHApu3neFO&image=https://static.vecteezy.com/system/resources/thumbnails/012/705/555/small/men-s-shirts-mockup-design-template-mockup-free-photo.jpg
+https://image.pollinations.ai/prompt/change%20color%20to%20green?model=kontext&token={user_token}&image=https://static.vecteezy.com/system/resources/thumbnails/012/705/555/small/men-s-shirts-mockup-design-template-mockup-free-photo.jpg

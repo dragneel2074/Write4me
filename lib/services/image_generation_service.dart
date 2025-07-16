@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ImageGenerationService {
   static const String baseUrl = 'https://image.pollinations.ai/prompt/';
@@ -42,13 +43,17 @@ class ImageGenerationService {
     return prompt;
   }
 
+  Future<String?> _getPollinationToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('pollination_api_key');
+  }
+
   Future<Uint8List?> generateImage({
     required String prompt,
     int width = 1024,
     int height = 1024,
     String? model = 'flux',
     String? image,
-    String? token,
   }) async {
     try {
       int? seed = 42;
@@ -62,14 +67,22 @@ class ImageGenerationService {
       // URL encode the filtered prompt
       final encodedPrompt = Uri.encodeComponent(filteredPrompt);
 
-      // Build the URL with parameters
       var url =
           '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed&model=$model';
-      if (image != null) {
-        url += '&image=$image';
-      }
-      if (token != null) {
-        url += '&token=$token';
+
+      if (model?.toLowerCase() == 'kontext') {
+        final token = await _getPollinationToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('Pollination API key not set.');
+        }
+        url = '$baseUrl$encodedPrompt?model=kontext&token=$token&nologo=$noLogo';
+        if (image != null) {
+          url += '&image=$image';
+        }
+      } else {
+        if (image != null) {
+          url += '&image=$image';
+        }
       }
       
       if (kDebugMode) {
