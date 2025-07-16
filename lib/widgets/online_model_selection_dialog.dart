@@ -122,11 +122,56 @@ class OnlineModelSelectionDialog extends ConsumerWidget {
                                   isSelected ? const Icon(Icons.check_circle) : null,
                               onTap: isGptImage
                                   ? null
-                                  : () {
-                                      onlineModelService
-                                          .setSelectedImageModel(modelName);
-                                      Navigator.pop(
-                                          context); // Close dialog after selection
+                                  : () async {
+                                      if (modelName.toLowerCase() == 'kontext') {
+                                        final hasKey = await onlineModelService.hasPollinationApiKey();
+                                        if (!hasKey) {
+                                          // Show dialog to prompt for API key
+                                          final TextEditingController _apiKeyController = TextEditingController();
+                                          // ignore: use_build_context_synchronously
+                                          await showDialog(
+                                            context: context,
+                                            builder: (BuildContext dialogContext) {
+                                              return AlertDialog(
+                                                title: const Text('Enter Pollination API Key'),
+                                                content: TextField(
+                                                  controller: _apiKeyController,
+                                                  decoration: const InputDecoration(
+                                                    hintText: 'API Key',
+                                                  ),
+                                                ),
+                                                actions: <Widget>[
+                                                  TextButton(
+                                                    child: const Text('Cancel'),
+                                                    onPressed: () {
+                                                      Navigator.of(dialogContext).pop();
+                                                    },
+                                                  ),
+                                                  TextButton(
+                                                    child: const Text('Save'),
+                                                    onPressed: () async {
+                                                      if (_apiKeyController.text.isNotEmpty) {
+                                                        await onlineModelService.setPollinationApiKey(_apiKeyController.text);
+                                                        // ignore: use_build_context_synchronously
+                                                        Navigator.of(dialogContext).pop();
+                                                        onlineModelService.setSelectedImageModel(modelName);
+                                                        // ignore: use_build_context_synchronously
+                                                        Navigator.pop(context); // Close main dialog
+                                                      }
+                                                    },
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        } else {
+                                          onlineModelService.setSelectedImageModel(modelName);
+                                          Navigator.pop(context); // Close dialog after selection
+                                        }
+                                      } else {
+                                        onlineModelService.setSelectedImageModel(modelName);
+                                        Navigator.pop(context); // Close dialog after selection
+                                      }
                                     },
                             ),
                           );

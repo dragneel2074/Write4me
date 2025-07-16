@@ -72,6 +72,16 @@ class OnlineModelService extends ChangeNotifier {
     return prefs.getString('pollination_api_key');
   }
 
+  Future<bool> hasPollinationApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('pollination_api_key')?.isNotEmpty ?? false;
+  }
+
+  Future<void> setPollinationApiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('pollination_api_key', key);
+  }
+
   Future<void> fetchModels() async {
     _isLoading = true;
     _textErrorMessage = null;

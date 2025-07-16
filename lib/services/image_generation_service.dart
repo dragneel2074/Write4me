@@ -101,13 +101,31 @@ class ImageGenerationService {
       }
     } on DioException catch (e) {
       debugPrint('Request failed: ${e.message}');
-      throw NetworkException('Request failed: ${e.message}');
+      throw Exception(_getUserFriendlyError(e));
     } on SocketException catch (e) {
       debugPrint('No internet connection. ${e.toString()}');
-      throw NetworkException('No internet connection.');
+      throw Exception(_getUserFriendlyError(e));
     } catch (e) {
-      throw Exception('Failed to generate image: $e');
+      throw Exception(_getUserFriendlyError(e));
     }
+  }
+
+  String _getUserFriendlyError(dynamic error) {
+    if (error is SocketException) {
+      return 'No internet connection. Please check your network and try again.';
+    } else if (error is DioException) {
+      if (error.type == DioExceptionType.receiveTimeout || error.type == DioExceptionType.sendTimeout) {
+        return 'Request took too long. Please try again.';
+      } else if (error.response?.statusCode == 401) {
+        return 'Pollination API key missing or invalid. Please add your key in settings.';
+      }
+      return 'Request failed: ${error.message}';
+    } else if (error is HttpException) {
+      return 'Temporary service issue. Please try again in a moment.';
+    } else if (error.toString().contains('Pollination API key not set.')) {
+      return 'Pollination API key missing. Please add your key in settings.';
+    }
+    return 'Failed to generate image: $error';
   }
 }
 
