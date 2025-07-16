@@ -3,7 +3,7 @@ import 'dart:io'; // For SocketException
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/text_utils.dart';
+
 import '../models/chat_message.dart';
 import '../file_processing/file_processor.dart';
 
@@ -180,7 +180,7 @@ Context (${context.length} relevant passages):
       // The context is now directly passed from AIService
 
       if (visionMessage != null) {
-        final selectedModel = model ?? 'gpt-4o-mini';
+
         final response = await _dio.post(
           'https://text.pollinations.ai/openai',
           data: visionMessage,
@@ -213,9 +213,11 @@ Context (${context.length} relevant passages):
           debugPrint('Jina search results: $searchResults');
           
           // Generate response with search results
-          final selectedModel = model ?? 'gpt-4o-mini'; // Use provided model or default
+   // Use provided model or default
           const system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
           
+          
+
           final formattedPrompt = '''
 Search Results:
 $searchResults
@@ -223,8 +225,7 @@ $searchResults
 Based on these search results, please answer:
 $prompt
 ''';
-
-          final url = _buildUrl(formattedPrompt, selectedModel, system);
+          final url = _buildUrl(formattedPrompt, model!, system);
           
           final response = await _dio.get(
             url.toString(),

@@ -1,54 +1,1069 @@
-Vision Capabilities (Image Input) 🖼️➡️📝
-Models: openai, openai-large, claude-hybridspace (check List Text Models for updates).
-How: Include image URLs or base64 data within the content array of a user message.
+D/InputMethodManager(26284): showSoftInput() view=io.flutter.embedding.android.FlutterView{643ef46 VFE...... .F....ID 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/flutter (26284): Submitting message with:
+I/flutter (26284): - isWebSearch: false
+I/flutter (26284): - isOfflineMode: false
+I/flutter (26284): - isLocalModelActive: true
+I/flutter (26284): - isLocalModelSelected: true
+I/flutter (26284): - useWebSearch: false
+I/flutter (26284): Chat history before filtering:
+I/flutter (26284): [0] AI: Hey!
+I/flutter (26284):
+I/flutter (26284): Chat Service is Online. Ask Me Anything.
+I/flutter (26284):
+I/flutter (26284):  ...
+I/flutter (26284): Getting meaningful history: 1 → 1 messages
+I/flutter (26284): First meaningful message: 'Hey!
+I/flutter (26284):
+I/flutter (26284): Chat Service is Online....'
+I/flutter (26284):
+I/flutter (26284): getStreamingResponse called with:
+I/flutter (26284): - prompt: summarise
+I/flutter (26284): - useWebSearch: false
+I/flutter (26284): - useLocalModel: true
+I/flutter (26284): - isOfflineMode: false
+I/flutter (26284): - history length: 1
+I/flutter (26284): Filtered chat history: 1 → 0 messages
+I/flutter (26284): - filtered history length: 0
+I/flutter (26284): Performing vector similarity search with 1 selected files
+I/flutter (26284): FileProcessor: Querying with: "summarise"
+I/flutter (26284): FileProcessor: Selected files: [bagale_prasant_resume.pdf]
+I/flutter (26284): FileProcessor: Result limit: 10
+I/flutter (26284): ChromaVectorStore: Getting collection info: {count: 5, collections: [default], lastUpdated: 2025-07-16T12:39:11.777510}
+I/flutter (26284): FileProcessor: Getting vector store stats - Document count: 5
+I/flutter (26284): FileProcessor: Vector store stats: {documentCount: 5, collections: [default], lastUpdated: 2025-07-16T12:39:11.777510, status: ok}
+I/flutter (26284): ChromaVectorStore: Running similarity search for query: 'summarise'
+I/flutter (26284): ChromaVectorStore: Document count in store: 5
+I/flutter (26284): ChromaVectorStore: Using filter: {file: [bagale_prasant_resume.pdf]}
+I/flutter (26284): ChromaVectorStore: Filtering 5 documents with filter: {file: [bagale_prasant_resume.pdf]}
+I/flutter (26284): ChromaVectorStore: After filtering, candidate count: 5
+I/flutter (26284): ChromaVectorStore: Generating embedding for query
+I/flutter (26284): FonnxEmbeddings: Embedding query text: 'summarise'
+I/flutter (26284): FonnxEmbeddings: Query text length: 9 characters
+I/flutter (26284): EmbeddingGenerator: Generating embedding for text: summarise
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): EmbeddingGenerator: Model loaded from: /data/user/0/com.kickerai.write4me2/files/models/miniLmL6V2.onnx
+I/flutter (26284): EmbeddingGenerator: Tokenized text into 5 tokens
+I/flutter (26284): EmbeddingGenerator: Embedding generated with length: 384
+I/flutter (26284): FonnxEmbeddings: Generated query embedding with length: 384
+I/flutter (26284): FonnxEmbeddings: First few values: [0.0496, 0.1227, -0.0034...]
+I/flutter (26284): ChromaVectorStore: Calculating similarity scores for 5 candidates
+I/flutter (26284): ChromaVectorStore: Returning 5 results
+I/flutter (26284): ChromaVectorStore: Top result score: 0.3011558067437546
+I/flutter (26284): FileProcessor: Vector search returned 5 results
+I/flutter (26284): Retrieved 5 relevant chunks via vector search
+I/flutter (26284): ==================== VECTOR SEARCH RESULTS ====================
+I/flutter (26284): Query: "summarise"
+I/flutter (26284): Number of chunks found: 5
+I/flutter (26284): --- CHUNK 1/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: FaceDemoDevelopedandfine-tunedMBartmodelforNepalilanguagetextsummarizationImplementedusingHuggingFaceTransformerslibraryNovelRecommendationSystemHuggingFaceDemoBuiltscalablerecommendationengineprocess...
+I/flutter (26284): Full content length: 500 characters
+I/flutter (26284): --- CHUNK 2/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: bleinsightsfromfloodanddiseasepatternsAI/MLDeveloper IcebrkrKathmandu NepalMar2024Aug2024Implementedend-to-endmachinelearningpipelinefordatacollection preprocessing andfeatureengineeringDevelopedandde...
+I/flutter (26284): Full content length: 500 characters
+I/flutter (26284): --- CHUNK 3/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: ectspeechbubblesandextractembeddedtext Education
+I/flutter (26284): BachelorofScienceinComputerScienceandInformationTechnologyIndreniCollege TribhuvanUniversityKathmandu NepalFinalYearProject ShopVia-AShoppingCompariso...
+I/flutter (26284): Full content length: 406 characters
+I/flutter (26284): --- CHUNK 4/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: PrasantBagaleKathmandu Nepalprasantbagale78@gmail com|977-9846863875|Website|LinkedIn|GitHubProfessionalSummary
+I/flutter (26284): MachineLearningEngineerwithexpertiseinNaturalLanguageProcessing (NLP) andComputerVision...
+I/flutter (26284): Full content length: 500 characters
+I/flutter (26284): --- CHUNK 5/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: sionControlCoreCompetencies MachineLearning DeepLearning NaturalLanguageProcessing ComputerVisionSpecializedSkills DataPreprocessing ModelEvaluation LargeLanguageModelFine-tuning RecommenderSystemsPro...
+I/flutter (26284): Full content length: 500 characters
+I/flutter (26284): ================================================================
+I/flutter (26284): File distribution in results: {bagale_prasant_resume.pdf: 5}
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 1/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 3 of 5)
+I/flutter (26284): FaceDemoDevelopedandfine-tunedMBartmodelforNepalilang...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 547)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 3 of 5) FaceDemoDevelopedandfine-tunedMBartmodelforNepalilang...
+I/flutter (26284): Length change: 547 → 547 (+0 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 2/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 2 of 5)
+I/flutter (26284): bleinsightsfromfloodanddiseasepatternsAI/MLDeveloper ...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 547)
+I/flutter (26284): FileProcessor: Text length changed: 547 → 546 (1 chars removed)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 2 of 5) bleinsightsfromfloodanddiseasepatternsAI/MLDeveloper ...
+I/flutter (26284): Length change: 547 → 546 (-1 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 3/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 4 of 5)
+I/flutter (26284): ectspeechbubblesandextractembeddedtext Education
+I/flutter (26284): Bac...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 453)
+I/flutter (26284): FileProcessor: Text length changed: 453 → 450 (3 chars removed)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 4 of 5) ectspeechbubblesandextractembeddedtext Education Bach...
+I/flutter (26284): Length change: 453 → 450 (-3 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 4/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 0 of 5)
+I/flutter (26284): PrasantBagaleKathmandu Nepalprasantbagale78@gmail com...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 547)
+I/flutter (26284): FileProcessor: Text length changed: 547 → 544 (3 chars removed)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 0 of 5) PrasantBagaleKathmandu Nepalprasantbagale78@gmail com...
+I/flutter (26284): Length change: 547 → 544 (-3 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 5/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 1 of 5)
+I/flutter (26284): sionControlCoreCompetencies MachineLearning DeepLearn...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 547)
+I/flutter (26284): FileProcessor: Text length changed: 547 → 546 (1 chars removed)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 1 of 5) sionControlCoreCompetencies MachineLearning DeepLearn...
+I/flutter (26284): Length change: 547 → 546 (-1 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ChromaVectorStore: Getting collection info: {count: 5, collections: [default], lastUpdated: 2025-07-16T12:39:11.777510}
+I/flutter (26284): FileProcessor: Getting vector store stats - Document count: 5
+I/flutter (26284): Vector store stats: {documentCount: 5, collections: [default], lastUpdated: 2025-07-16T12:39:11.777510, status: ok}
+I/flutter (26284): Web search not requested or offline mode enabled
+I/flutter (26284): Using local model for generation (Offline Mode: false, Local Model Selected: true)
+I/flutter (26284): Search results available: false
+I/flutter (26284): _generateLocalResponse called with:
+I/flutter (26284): - prompt: summarise
+I/flutter (26284): - searchResults: null...
+I/flutter (26284): - context length: 5
+I/flutter (26284): Reduced context from 5 to 5 chunks
+I/flutter (26284): Approximate tokens: ~658 (limit: 1024)
+I/flutter (26284): - limited context length: 5
+I/flutter (26284): Generating prompt for mode: Document
+I/flutter (26284): Estimated base prompt tokens (excluding RAG context): 66
+I/flutter (26284): Remaining tokens for RAG context: 958
+I/flutter (26284): --- FULL PROMPT (OFFLINE) ---
+I/flutter (26284): You are a document assistant analyzing and answering questions based on specific information.
+I/flutter (26284):
+I/flutter (26284): DOCUMENT CONTEXT:
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 3 of 5) FaceDemoDevelopedandfine-tunedMBartmodelforNepalilanguagetextsummarizationImplementedusingHuggingFaceTransformerslibraryNovelRecommendationSystemHuggingFaceDemoBuiltscalablerecommendationengineprocessing15 000+bookrecordsImplementedusingHuggingFaceembeddings FAISSforsimilaritysearch andFastAPINoyakuPlaystoreBuiltaFlutter-basedmobileapplicationfortranslatingKoreanandChinesecomicsintoEnglish IntegratedalocalLargeLanguageModel (LLM) toperformofflinetexttranslation AppliedOpenCVandOCRtechniquestodet
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 2 of 5) bleinsightsfromfloodanddiseasepatternsAI/MLDeveloper IcebrkrKathmandu NepalMar2024Aug2024Implementedend-to-endmachinelearningpipelinefordatacollection preprocessing andfeatureengineeringDevelopedanddeployedclassificationmodelsusingRandomForestandSupportVectorMachine (SVM) algorithmsSuccessfullyfine-tunedBERTmodelfortextclassificationtasksandPhi-3modelfortextsummarizationOptimizedmodelperformancethroughiterativetestingandhyperparametertuningNotableProjects NepaliTextSummarizationwithMBartHugging
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 4 of 5) ectspeechbubblesandextractembeddedtext Education BachelorofScienceinComputerScienceandInformationTechnologyIndreniCollege TribhuvanUniversityKathmandu NepalFinalYearProject ShopVia-AShoppingComparisonAppCertifications GenerativeAIwithLargeLanguageModels (Coursera) CertificateNaturalLanguageProcessingwithClassificationandVectorSpaces (Coursera) CertificateLanguages Nepali (Native) English (Proficient)
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 0 of 5) PrasantBagaleKathmandu Nepalprasantbagale78@gmail com|977-9846863875|Website|LinkedIn|GitHubProfessionalSummary MachineLearningEngineerwithexpertiseinNaturalLanguageProcessing (NLP) andComputerVision specializingindevelopinganddeployingAIsolutionsforreal-worldapplications TechnicalSkills ProgrammingLanguages Python (Intermediate) Dart (Intermediate) MachineLearning&AI PyTorch TensorFlow Scikit-Learn LangChain spaCy OpenCVDevelopment Flask FastAPI Flutter RESTfulAPIsDevOps&Tools Docker Git Ver
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 1 of 5) sionControlCoreCompetencies MachineLearning DeepLearning NaturalLanguageProcessing ComputerVisionSpecializedSkills DataPreprocessing ModelEvaluation LargeLanguageModelFine-tuning RecommenderSystemsProfessionalExperience MLEngineer OmdenaRemoteSep2024Dec2024Engineereddatapipelineprocessing1TB+ofdailyweather flood anddiseasedatafrommultiplesourcesImplementedrobustdatapreprocessingtechniquestohandlemissingvaluesandensuredataqualityConductedcomprehensiveexploratorydataanalysis (EDA) toderiveactiona
+I/flutter (26284): ---
+I/flutter (26284):
+I/flutter (26284): QUESTION: summarise
+I/flutter (26284):
+I/flutter (26284): INSTRUCTIONS:
+I/flutter (26284): 1. Answer based ONLY on the provided document context above
+I/flutter (26284): 2. Be concise but thorough in your response
+I/flutter (26284):
+I/flutter (26284): ANSWER:
+I/flutter (26284):
+I/flutter (26284): --------------------------
+I/flutter (26284): [fllama] Using built-in chat template: {%- if tools %}
+I/flutter (26284):     {{- '<|im_start|>system\n' }}
+I/flutter (26284):     {%- if messages[0]['role'] == 'system' %}
+I/flutter (26284):         {{- messages[0]['content'] }}
+I/flutter (26284):     {%- else %}
+I/flutter (26284):         {{- 'You are Qwen, created by Alibaba Cloud. You are a helpful assistant.' }}
+I/flutter (26284):     {%- endif %}
+I/flutter (26284):     {{- "\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>" }}
+I/flutter (26284):     {%- for tool in tools %}
+I/flutter (26284):         {{- "\n" }}
+I/flutter (26284):         {{- tool | tojson }}
+I/flutter (26284):     {%- endfor %}
+I/flutter (26284):     {{- "\n</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{{\"name\": <function-name>, \"arguments\": <args-json-object>}}\n</tool_call><|im_end|>\n" }}
+I/flutter (26284): {%- else %}
+I/flutter (26284):     {%- if messages[0]['role'] == 'system' %}
+I/flutter (26284):         {{- '<|im_start|>system\n' + messages[0]['content'] + '<|im_end|>\n' }}
+I/flutter (26284):     {%- else %}
+I/flutter (26284):         {{- '<|im_start|>system\nYou are Qwen, cr
+I/flutter (26284): [fllama] No tools were specified. No grammar will be enforced.
+I/flutter (26284): Response generation took 1.07 seconds
+I/flutter (26284): Generation completed, cleaning up
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): [llama.cpp] Initialized llama logger.
+I/flutter (26284): [llama.cpp] Initializing llama model...
+I/flutter (26284): [llama.cpp] llama_model_loader: loaded meta data with 26 key-value pairs and 291 tensors from /data/user/0/com.kickerai.write4me2/app_flutter/qwen2.5-0.5b-instruct-q8_0.gguf (version GGUF V3 (latest))
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv   0:                       general.architecture str              = qwen2
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv   3:                            general.version str              = v0.1
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv   7:                       qwen2.context_length u32              = 327
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv   9:                  qwen2.feed_forward_length u32
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv  12:                       qwen2.rope.freq_base f32              = 10
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv  13:     qwen2.attention.layer_norm_rms_epsilon f32              = 0.000001
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv  16:                         tokenizer.ggml.pre str              = qwen2
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv  17:                      tokenizer.ggml.tokens arr[str,151936]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv  18:                  tokenizer.ggml.token_type arr[i32,151936]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+I/flutter (26284):
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv  21:            tokenizer.ggml.padding_token_id u32              = 151643
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv  21:            tokenizer.ggml.padding_token_id u32              = 151643
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] pK-q}
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] print_info: file size   = 638.74 MiB (8.50 BPW)
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: file size   = 638.74 MiB (8.50 BPW)
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: file size   = 638.74 MiB (8.50 BPW)
+I/flutter (26284):
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] load: control token: 151659 '<|fim_prefix|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151651 '<|quad_end|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151646 '<|object_ref_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151644 '<|im_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151644 '<|im_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151644 '<|im_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151661 '<|fim_suffix|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: control token: 151660 '<|fim_middle|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151654 '<|vision_pad|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151650 '<|quad_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: sp
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] print_info: n_embd           = 896
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: n_head_kv        = 2
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: n_embd_head_v    = 64
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: f_norm_eps       = 0.0e+00
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: f_max_alibi_bias = 0.0e+00
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: n_expert_used    = 0
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: rope type        = 2
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: freq_scale_train = 1
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: ssm_d_conv       = 0
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: ssm_dt_rank      = 0
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: model params     = 630.17 M
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] load_tensors: tensor 'token_embd.weight' (q8_0) (and 290 others) cannot be used with preferred buffer type CPU_AARCH64, using CPU instead
+I/flutter (26284):
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] llama_init_from_model: n_batch       = 1024
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] Ph>!}
+I/flutter (26284): [llama.cpp] Ph>!}
+I/flutter (26284): [llama.cpp] Ph>!}
+I/flutter (26284): [llama.cpp] Ph>!}
+I/flutter (26284): [llama.cpp] Ph>!}
+I/flutter (26284): [llama.cpp] Ph>!}
+I/flutter (26284): [llama.cpp] Ph>!}
+I/flutter (26284): [llama.cpp] Ph>!}
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] llama_kv_cache_init:        CPU KV buffer size =    12.00 MiB
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] n
+I/flutter (26284): [llama.cpp] a
+I/flutter (26284): [llama.cpp] l
+I/flutter (26284): [llama.cpp] a
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] Initialized model.
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] Input tokens: 720
+I/flutter (26284): [llama.cpp] [D
+I/flutter (26284): [llama.cpp] Input tokens: 720
+I/flutter (26284): [llama.cpp] Input tokens: 720
+I/flutter (26284): [llama.cpp] [DEBUG] add_tokens_to_context start
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] [DEBUG] about to call llama_batch_get_one
+I/flutter (26284): [llama.cpp] P	2
+I/flutter (26284): [llama.cpp] P	2
+I/flutter (26284): [llama.cpp] [DEBUG] about to decode batch
+I/flutter (26284): [llama.cpp] [DEBUG] decode successful
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] Added input to context.
+I/flutter (26284): [llama.cpp] Initializing sampling context...
+I/flutter (26284): [llama.cpp] Sampling context initialized.
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] [DEBUG] starting token generation loop
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): [llama.cpp] [DEBUG] end of generation detected
+I/flutter (26284): [llama.cpp] [DEBUG] token generation loop complete
+I/flutter (26284): [llama.cpp] [DEBUG] Invoking final callback
+I/flutter (26284): [llama.cpp] [DEBUG] Final callback invoked
+I/flutter (26284): [llama.cpp] About to write speed of generation
+I/flutter (26284): [llama.cpp] Generated 148 tokens in 10.710000 s, speed: 13.818861 t/s.
+I/flutter (26284): [llama.cpp] Wrote speed of generation.
+I/flutter (26284): [llama.cpp] Freeing resources...
+I/flutter (26284): [llama.cpp] Freed resources.
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/SurfaceView@d9889bd(26284): onWindowVisibilityChanged(8) false io.flutter.embedding.android.FlutterSurfaceView{d9889bd V.E...... ........ 0,0-1080,2400} of ViewRootImpl@fbc0f4f[MainActivity]
+I/SurfaceView@d9889bd(26284): surfaceDestroyed callback.size 1 #2 io.flutter.embedding.android.FlutterSurfaceView{d9889bd V.E...... ........ 0,0-1080,2400}
+I/SurfaceView@d9889bd(26284): windowStopped(true) false io.flutter.embedding.android.FlutterSurfaceView{d9889bd V.E...... ........ 0,0-1080,2400} of ViewRootImpl@fbc0f4f[MainActivity]
+I/SurfaceView@d9889bd(26284): onWindowVisibilityChanged(0) false io.flutter.embedding.android.FlutterSurfaceView{d9889bd V.E...... ......ID 0,0-1080,2400} of ViewRootImpl@fbc0f4f[MainActivity]
+I/SurfaceView@d9889bd(26284): windowStopped(false) true io.flutter.embedding.android.FlutterSurfaceView{d9889bd V.E...... ......ID 0,0-1080,2400} of ViewRootImpl@fbc0f4f[MainActivity]
+I/SurfaceView@d9889bd(26284): surfaceCreated 1 #1 io.flutter.embedding.android.FlutterSurfaceView{d9889bd V.E...... ......ID 0,0-1080,2400}
+I/SurfaceView@d9889bd(26284): surfaceChanged (1080,2400) 1 #1 io.flutter.embedding.android.FlutterSurfaceView{d9889bd V.E...... ......ID 0,0-1080,2400}
+D/InputMethodManager(26284): showSoftInput() view=io.flutter.embedding.android.FlutterView{643ef46 VFE...... .F....ID 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+W/WindowOnBackDispatcher(26284): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@38ee404
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+W/WindowOnBackDispatcher(26284): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@38ee404
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+D/InputMethodManager(26284): showSoftInput() view=io.flutter.embedding.android.FlutterView{643ef46 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/flutter (26284): Submitting message with:
+I/flutter (26284): - isWebSearch: false
+I/flutter (26284): - isOfflineMode: false
+I/flutter (26284): - isLocalModelActive: true
+I/flutter (26284): - isLocalModelSelected: true
+I/flutter (26284): - useWebSearch: false
+I/flutter (26284): Chat history before filtering:
+I/flutter (26284): [0] AI: Hey!
+I/flutter (26284):
+I/flutter (26284): Chat Service is Online. Ask Me Anything.
+I/flutter (26284):
+I/flutter (26284):  ...
+I/flutter (26284): [1] USER: summarise...
+I/flutter (26284): [2] AI:
+I/flutter (26284): In a concise and thorough response, I can summari...
+I/flutter (26284): Getting meaningful history: 3 → 2 messages
+I/flutter (26284): First meaningful message: 'summarise...'
+I/flutter (26284):
+I/flutter (26284): getStreamingResponse called with:
+I/flutter (26284): - prompt: summarise
+I/flutter (26284): - useWebSearch: false
+I/flutter (26284): - useLocalModel: true
+I/flutter (26284): - isOfflineMode: false
+I/flutter (26284): - history length: 2
+I/flutter (26284): Filtered chat history: 2 → 2 messages
+I/flutter (26284): - filtered history length: 2
+I/flutter (26284): Performing vector similarity search with 1 selected files
+I/flutter (26284): FileProcessor: Querying with: "summarise"
+I/flutter (26284): FileProcessor: Selected files: [bagale_prasant_resume.pdf]
+I/flutter (26284): FileProcessor: Result limit: 10
+I/flutter (26284): ChromaVectorStore: Getting collection info: {count: 5, collections: [default], lastUpdated: 2025-07-16T12:39:11.777510}
+I/flutter (26284): FileProcessor: Getting vector store stats - Document count: 5
+I/flutter (26284): FileProcessor: Vector store stats: {documentCount: 5, collections: [default], lastUpdated: 2025-07-16T12:39:11.777510, status: ok}
+I/flutter (26284): ChromaVectorStore: Running similarity search for query: 'summarise'
+I/flutter (26284): ChromaVectorStore: Document count in store: 5
+I/flutter (26284): ChromaVectorStore: Using filter: {file: [bagale_prasant_resume.pdf]}
+I/flutter (26284): ChromaVectorStore: Filtering 5 documents with filter: {file: [bagale_prasant_resume.pdf]}
+I/flutter (26284): ChromaVectorStore: After filtering, candidate count: 5
+I/flutter (26284): ChromaVectorStore: Generating embedding for query
+I/flutter (26284): FonnxEmbeddings: Embedding query text: 'summarise'
+I/flutter (26284): FonnxEmbeddings: Query text length: 9 characters
+I/flutter (26284): EmbeddingGenerator: Generating embedding for text: summarise
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): EmbeddingGenerator: Model loaded from: /data/user/0/com.kickerai.write4me2/files/models/miniLmL6V2.onnx
+I/flutter (26284): EmbeddingGenerator: Tokenized text into 5 tokens
+I/flutter (26284): EmbeddingGenerator: Embedding generated with length: 384
+I/flutter (26284): FonnxEmbeddings: Generated query embedding with length: 384
+I/flutter (26284): FonnxEmbeddings: First few values: [0.0496, 0.1227, -0.0034...]
+I/flutter (26284): ChromaVectorStore: Calculating similarity scores for 5 candidates
+I/flutter (26284): ChromaVectorStore: Returning 5 results
+I/flutter (26284): ChromaVectorStore: Top result score: 0.3011558067437546
+I/flutter (26284): FileProcessor: Vector search returned 5 results
+I/flutter (26284): Retrieved 5 relevant chunks via vector search
+I/flutter (26284): ==================== VECTOR SEARCH RESULTS ====================
+I/flutter (26284): Query: "summarise"
+I/flutter (26284): Number of chunks found: 5
+I/flutter (26284): --- CHUNK 1/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: FaceDemoDevelopedandfine-tunedMBartmodelforNepalilanguagetextsummarizationImplementedusingHuggingFaceTransformerslibraryNovelRecommendationSystemHuggingFaceDemoBuiltscalablerecommendationengineprocess...
+I/flutter (26284): Full content length: 500 characters
+I/flutter (26284): --- CHUNK 2/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: bleinsightsfromfloodanddiseasepatternsAI/MLDeveloper IcebrkrKathmandu NepalMar2024Aug2024Implementedend-to-endmachinelearningpipelinefordatacollection preprocessing andfeatureengineeringDevelopedandde...
+I/flutter (26284): Full content length: 500 characters
+I/flutter (26284): --- CHUNK 3/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: ectspeechbubblesandextractembeddedtext Education
+I/flutter (26284): BachelorofScienceinComputerScienceandInformationTechnologyIndreniCollege TribhuvanUniversityKathmandu NepalFinalYearProject ShopVia-AShoppingCompariso...
+I/flutter (26284): Full content length: 406 characters
+I/flutter (26284): --- CHUNK 4/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: PrasantBagaleKathmandu Nepalprasantbagale78@gmail com|977-9846863875|Website|LinkedIn|GitHubProfessionalSummary
+I/flutter (26284): MachineLearningEngineerwithexpertiseinNaturalLanguageProcessing (NLP) andComputerVision...
+I/flutter (26284): Full content length: 500 characters
+I/flutter (26284): --- CHUNK 5/5 (Source: bagale_prasant_resume.pdf, Score: N/A) ---
+I/flutter (26284): First 200 chars: sionControlCoreCompetencies MachineLearning DeepLearning NaturalLanguageProcessing ComputerVisionSpecializedSkills DataPreprocessing ModelEvaluation LargeLanguageModelFine-tuning RecommenderSystemsPro...
+I/flutter (26284): Full content length: 500 characters
+I/flutter (26284): ================================================================
+I/flutter (26284): File distribution in results: {bagale_prasant_resume.pdf: 5}
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 1/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 3 of 5)
+I/flutter (26284): FaceDemoDevelopedandfine-tunedMBartmodelforNepalilang...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 547)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 3 of 5) FaceDemoDevelopedandfine-tunedMBartmodelforNepalilang...
+I/flutter (26284): Length change: 547 → 547 (+0 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 2/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 2 of 5)
+I/flutter (26284): bleinsightsfromfloodanddiseasepatternsAI/MLDeveloper ...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 547)
+I/flutter (26284): FileProcessor: Text length changed: 547 → 546 (1 chars removed)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 2 of 5) bleinsightsfromfloodanddiseasepatternsAI/MLDeveloper ...
+I/flutter (26284): Length change: 547 → 546 (-1 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 3/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 4 of 5)
+I/flutter (26284): ectspeechbubblesandextractembeddedtext Education
+I/flutter (26284): Bac...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 453)
+I/flutter (26284): FileProcessor: Text length changed: 453 → 450 (3 chars removed)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 4 of 5) ectspeechbubblesandextractembeddedtext Education Bach...
+I/flutter (26284): Length change: 453 → 450 (-3 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 4/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 0 of 5)
+I/flutter (26284): PrasantBagaleKathmandu Nepalprasantbagale78@gmail com...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 547)
+I/flutter (26284): FileProcessor: Text length changed: 547 → 544 (3 chars removed)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 0 of 5) PrasantBagaleKathmandu Nepalprasantbagale78@gmail com...
+I/flutter (26284): Length change: 547 → 544 (-3 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ----------- CLEANING CONTEXT CHUNK 5/5 -----------
+I/flutter (26284): Before cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 1 of 5)
+I/flutter (26284): sionControlCoreCompetencies MachineLearning DeepLearn...
+I/flutter (26284): FileProcessor: Cleaning text for API submission (length: 547)
+I/flutter (26284): FileProcessor: Text length changed: 547 → 546 (1 chars removed)
+I/flutter (26284): After cleaning (first 100 chars): From: bagale_prasant_resume.pdf (chunk 1 of 5) sionControlCoreCompetencies MachineLearning DeepLearn...
+I/flutter (26284): Length change: 547 → 546 (-1 chars)
+I/flutter (26284): ----------------------------------------------------------
+I/flutter (26284): ChromaVectorStore: Getting collection info: {count: 5, collections: [default], lastUpdated: 2025-07-16T12:39:11.777510}
+I/flutter (26284): FileProcessor: Getting vector store stats - Document count: 5
+I/flutter (26284): Vector store stats: {documentCount: 5, collections: [default], lastUpdated: 2025-07-16T12:39:11.777510, status: ok}
+I/flutter (26284): Web search not requested or offline mode enabled
+I/flutter (26284): Using local model for generation (Offline Mode: false, Local Model Selected: true)
+I/flutter (26284): Search results available: false
+I/flutter (26284): _generateLocalResponse called with:
+I/flutter (26284): - prompt: summarise
+I/flutter (26284): - searchResults: null...
+I/flutter (26284): - context length: 6
+I/flutter (26284): Reduced context from 6 to 6 chunks
+I/flutter (26284): Approximate tokens: ~919 (limit: 1024)
+I/flutter (26284): - limited context length: 6
+I/flutter (26284): Generating prompt for mode: Document
+I/flutter (26284): Estimated base prompt tokens (excluding RAG context): 264
+I/flutter (26284): Remaining tokens for RAG context: 760
+I/flutter (26284): --- FULL PROMPT (OFFLINE) ---
+I/flutter (26284): You are a document assistant analyzing and answering questions based on specific information.
+I/flutter (26284):
+I/flutter (26284): DOCUMENT CONTEXT:
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 3 of 5) FaceDemoDevelopedandfine-tunedMBartmodelforNepalilanguagetextsummarizationImplementedusingHuggingFaceTransformerslibraryNovelRecommendationSystemHuggingFaceDemoBuiltscalablerecommendationengineprocessing15 000+bookrecordsImplementedusingHuggingFaceembeddings FAISSforsimilaritysearch andFastAPINoyakuPlaystoreBuiltaFlutter-basedmobileapplicationfortranslatingKoreanandChinesecomicsintoEnglish IntegratedalocalLargeLanguageModel (LLM) toperformofflinetexttranslation AppliedOpenCVandOCRtechniquestodet
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 2 of 5) bleinsightsfromfloodanddiseasepatternsAI/MLDeveloper IcebrkrKathmandu NepalMar2024Aug2024Implementedend-to-endmachinelearningpipelinefordatacollection preprocessing andfeatureengineeringDevelopedanddeployedclassificationmodelsusingRandomForestandSupportVectorMachine (SVM) algorithmsSuccessfullyfine-tunedBERTmodelfortextclassificationtasksandPhi-3modelfortextsummarizationOptimizedmodelperformancethroughiterativetestingandhyperparametertuningNotableProjects NepaliTextSummarizationwithMBartHugging
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 4 of 5) ectspeechbubblesandextractembeddedtext Education BachelorofScienceinComputerScienceandInformationTechnologyIndreniCollege TribhuvanUniversityKathmandu NepalFinalYearProject ShopVia-AShoppingComparisonAppCertifications GenerativeAIwithLargeLanguageModels (Coursera) CertificateNaturalLanguageProcessingwithClassificationandVectorSpaces (Coursera) CertificateLanguages Nepali (Native) English (Proficient)
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 0 of 5) PrasantBagaleKathmandu Nepalprasantbagale78@gmail com|977-9846863875|Website|LinkedIn|GitHubProfessionalSummary MachineLearningEngineerwithexpertiseinNaturalLanguageProcessing (NLP) andComputerVision specializingindevelopinganddeployingAIsolutionsforreal-worldapplications TechnicalSkills ProgrammingLanguages Python (Intermediate) Dart (Intermediate) MachineLearning&AI PyTorch TensorFlow Scikit-Learn LangChain spaCy OpenCVDevelopment Flask FastAPI Flutter RESTfulAPIsDevOps&Tools Docker Git Ver
+I/flutter (26284): ---
+I/flutter (26284): From: bagale_prasant_resume.pdf (chunk 1 of 5) sionControlCoreCompetencies MachineLearning DeepLearning NaturalLanguageProcessing ComputerVisionSpecializedSkills DataPreprocessing ModelEvaluation LargeLanguageModelFine-tuning RecommenderSystemsProfessionalExperience MLEngineer OmdenaRemoteSep2024Dec2024Engineereddatapipelineprocessing1TB+ofdailyweather flood anddiseasedatafrommultiplesourcesImplementedrobustdatapreprocessingtechniquestohandlemissingvaluesandensuredataqualityConductedcomprehensiveexploratorydataanalysis (EDA) toderiveactiona
+I/flutter (26284): ---
+I/flutter (26284): From: Image: scaled_1000023384.jpg
+I/flutter (26284): Level: Masters
+I/flutter (26284): Year: 1t
+I/flutter (26284): Program: MDS
+I/flutter (26284): Tune 06.30-08.00
+I/flutter (26284): Day
+I/flutter (26284): Tribhuvan University
+I/flutter (26284): Sun MDS 555 (RRG)
+I/flutter (26284): Wed
+I/flutter (26284): Institute of Science and Technology
+I/flutter (26284): Mon MDS 552 (RA)
+I/flutter (26284): Thu
+I/flutter (26284): SCHOOL OF MATHEMATICAL SCIENCES
+I/flutter (26284): Tue MDS 552 (RA)
+I/flutter (26284): MDS 554
+I/flutter (26284): PMB/NPP)
+I/flutter (26284): Fri
+I/flutter (26284): Sat
+I/flutter (26284): N
+I/flutter (26284): 4.
+I/flutter (26284): MDS 553 (MPB)
+I/flutter (26284): MDS 552 (RA)
+I/flutter (26284): MDS 551 (NRP)
+I/flutter (26284): 08.00-09.30
+I/flutter (26284): MDS 555 (RRG)
+I/flutter (26284): MS 554 (NPP)
+I/flutter (26284): Naweraj Paudel
+I/flutter (26284): MDS 554 (PMB)
+I/flutter (26284): Director
+I/flutter (26284): MDS 551 (NRP)
+I/flutter (26284): MDS 553 (MPB)
+I/flutter (26284): MDS 555 (RRG)
+I/flutter (26284): Programming with Python (MDS 551)
+I/flutter (26284): |2. Applicd Machine Leaning (MDS 552)
+I/flutter (26284): MDS 551 (NRP)
+I/flutter (26284): 3. Staistical Methods for Data Science (MIDS 5$3)
+I/flutter (26284): Subjects
+I/flutter (26284): Multivariable Calculus for Data Science (MDS
+I/flutter (26284): 5. Natural Language Processing (MDS555)
+I/flutter (26284): 09.30 -
+I/flutter (26284): MDS S54)
+I/flutter (26284): 10. 00
+I/flutter (26284): B
+I/flutter (26284): R
+I/flutter (26284): E
+I/flutter (26284): K
+I/flutter (26284): Date: 2082-03-27
+I/flutter (26284): Batch: 2081
+I/flutter (26284): Semester: 2nd
+I/flutter (26284): Effective Date: 2082-03-30
+I/flutter (26284): 10.00-11.30
+I/flutter (26284): MDS 553 (MPB)
+I/flutter (26284): Facultics
+I/flutter (26284): Nawaraj Paudel (NRP)
+I/flutter (26284): Rajan Adhikari (RA)
+I/flutter (26284): Madhab Prasad Bharta (MPB)
+I/flutter (26284): Prof. Dr. Prukash Muni Bajracharya (PMRB)
+I/flutter (26284): Prof. Dr. Narayan Prasad Pahari (NPP)
+I/flutter (26284): Rupak Raj Ghimire (RRG)
+I/flutter (26284): 9 Balkhu, Katmandu, Nepal e 015314073 sms.u.du.np ba info@sms tu.edunp
+I/flutter (26284): ---
+I/flutter (26284):
+I/flutter (26284): QUESTION: summarise
+I/flutter (26284):
+I/flutter (26284): INSTRUCTIONS:
+I/flutter (26284): 1. Answer based ONLY on the provided document context above
+I/flutter (26284): 2. Be concise but thorough in your response
+I/flutter (26284):
+I/flutter (26284): ANSWER:
+I/flutter (26284):
+I/flutter (26284): --------------------------
+I/flutter (26284): [fllama] Using built-in chat template: {%- if tools %}
+I/flutter (26284):     {{- '<|im_start|>system\n' }}
+I/flutter (26284):     {%- if messages[0]['role'] == 'system' %}
+I/flutter (26284):         {{- messages[0]['content'] }}
+I/flutter (26284):     {%- else %}
+I/flutter (26284):         {{- 'You are Qwen, created by Alibaba Cloud. You are a helpful assistant.' }}
+I/flutter (26284):     {%- endif %}
+I/flutter (26284):     {{- "\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>" }}
+I/flutter (26284):     {%- for tool in tools %}
+I/flutter (26284):         {{- "\n" }}
+I/flutter (26284):         {{- tool | tojson }}
+I/flutter (26284):     {%- endfor %}
+I/flutter (26284):     {{- "\n</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{{\"name\": <function-name>, \"arguments\": <args-json-object>}}\n</tool_call><|im_end|>\n" }}
+I/flutter (26284): {%- else %}
+I/flutter (26284):     {%- if messages[0]['role'] == 'system' %}
+I/flutter (26284):         {{- '<|im_start|>system\n' + messages[0]['content'] + '<|im_end|>\n' }}
+I/flutter (26284):     {%- else %}
+I/flutter (26284):         {{- '<|im_start|>system\nYou are Qwen, cr
+I/flutter (26284): [fllama] No tools were specified. No grammar will be enforced.
+I/flutter (26284): Response generation took 0.19 seconds
+I/flutter (26284): Generation completed, cleaning up
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
+I/flutter (26284): [llama.cpp] Initialized llama logger.
+I/flutter (26284): [llama.cpp] Initializing llama model...
+I/flutter (26284): [llama.cpp] ["!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", "@", "A", "B", "C", "D", "E", "F",
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] ;{
+I/flutter (26284): [llama.cpp] llama_model_loader: - kv  17:                      tokenizer.ggml.tokens arr[str,151936]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] ĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠ ĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠĠ
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] Ġ
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] n
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] load: control token: 151649 '<|box_end|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151644 '<|im_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151644 '<|im_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151644 '<|im_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151661 '<|fim_suffix|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151647 '<|object_ref_end|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: co
+I/flutter (26284): [llama.cpp] load: control token: 151660 '<|fim_middle|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151654 '<|vision_pad|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load: control token: 151650 '<|quad_start|>' is not marked as EOG
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] print_info: n_embd_head_k    = 64
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_in
+I/flutter (26284): [llama.cpp] print_info: f_norm_eps       = 0.0e+00
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: f_max_alibi_bias = 0.0e+00
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: n_expert         = 0
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: pooling type     = 0
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: freq_base_train  = 1000000.0
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: ssm_d_conv       = 0
+I/flutter (26284): 
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: ssm_dt_b_c_rms   = 0
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] print_info: general.name     = qwen2.5-0.5b-instruct
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] load_tensors: tensor 'token_embd.weight' (q8_0) (and 290 others) cannot be used with preferred buffer type CPU_AARCH64, using CPU instead
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] load_tensors:   CPU_Mapped model buffer size =   638.74 MiB
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_init_from_model: n_seq_max     = 1
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_init_from_model: n_ubatch      = 512
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_init_from_model: freq_base     = 1000000.0
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_init_from_model: n_ctx_per_seq (1024) < n_ctx_train (32768) -- the full capacity of the model will not be utilized
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 7: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 9: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 14: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 15: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 19: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 21: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_kv_cache_init: layer 23: n_embd_k_gqa = 128, n_embd_v_gqa = 128
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] llama_kv_cache_init:        CPU KV buffer size =    12.00 MiB
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_init_from_model:        CPU  output buffer size =     0.58 MiB
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] p
+I/flutter (26284): [llama.cpp] ggml_gallocr_reserve_n: reallocating CPU buffer from size 0.00 MiB to 298.50 MiB
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] llama_init_from_model: graph nodes  = 846
+I/flutter (26284):
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] Initialized model.
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] Input token count: 1407
+I/flutter (26284): [llama.cpp] Adding input to context...length: 4977
+I/flutter (26284): [llama.cpp] Context size: 1024
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] Input tokens: 1407
+I/flutter (26284): [llama.cpp] Input tokens: 1407
+I/flutter (26284): [llama.cpp] [DEBUG] add_tokens_to_context start
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] [DEBUG] about to call llama_batch_get_one
+I/flutter (26284): [llama.cpp] 
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] context size exceeded
+I/flutter (26284): [llama.cpp] Added input to context.
+I/flutter (26284): [llama.cpp] Initializing sampling context...
+I/flutter (26284): [llama.cpp] Sampling context initialized.
+I/flutter (26284): [llama.cpp]
+I/flutter (26284): [llama.cpp] [DEBUG] starting token generation loop
+I/flutter (26284): [llama.cpp] llama_get_logits_ith: invalid logits id -1, reason: negative index out of range [0, 0)
+I/flutter (26284):
+I/flutter (26284): HomePage build - isOfflineMode: false
+I/flutter (26284): HomePage build - isLocalModelActive: true
+I/flutter (26284): HomePage build - isLocalModelSelected: true
+I/flutter (26284): HomePage build - availableModels: 1
 
-{
-  "model": "openai",
-  "messages": [
-    {
-      "role": "user",
-      "content": [
-        { "type": "text", "text": "Describe this image:" },
-        {
-          "type": "image_url",
-          "image_url": { "url": "data:image/jpeg;base64,{base64_string}" }
-        }
-      ]
-    }
-  ],
-  "max_tokens": 300
-}
-
-    Details: This functionality mirrors the OpenAI Vision API. See OpenAI Vision Guide for full specifications.
-    Return: Standard OpenAI chat completion JSON response containing the text analysis.
-
-Code Examples: Vision (Image Input)
-
-CURL (using URL):
-
-# Get JSON response with image analysis
-curl https://text.pollinations.ai/openai \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "openai",
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          {"type": "text", "text": "What is in this image?"},
-          {"type": "image_url", "image_url": {"url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/1024px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"}}
-        ]
-      }
-    ],
-    "max_tokens": 300
-  }'
-
-
-https://image.pollinations.ai/models
-
-["flux","kontext","turbo","gptimage"]
-
-
-https://text.pollinations.ai/models
-
-[{"name":"deepseek","description":"DeepSeek V3","maxInputChars":9000,"provider":"azure","tier":"flower","community":false,"aliases":"deepseek-v3","input_modalities":["text"],"output_modalities":["text"],"tools":false,"vision":false,"audio":false},{"name":"deepseek-reasoning","description":"DeepSeek R1 0528","maxInputChars":9000,"reasoning":true,"provider":"azure","tier":"flower","community":false,"aliases":"deepseek-r1-0528","input_modalities":["text"],"output_modalities":["text"],"tools":false,"vision":false,"audio":false},{"name":"grok","description":"xAI Grok-3 Mini","provider":"azure","tier":"seed","community":false,"aliases":"grok-3-mini","input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"llama-fast-roblox","description":"Llama 3.2 11B Vision (Cloudflare)","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"llama-3.2-11b-vision-instruct","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"llama-roblox","description":"Llama 3.1 8B FP8 (Cloudflare)","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"llama-3.1-8b-instruct-fp8","input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"llamascout","description":"Llama 4 Scout 17B","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"llama-4-scout-17b-16e-instruct","input_modalities":["text"],"output_modalities":["text"],"tools":false,"vision":false,"audio":false},{"name":"mistral","description":"Mistral Small 3.1 24B","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"mistral-small-3.1-24b-instruct","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"mistral-roblox","description":"Mistral Small 3.1 24B (Cloudflare)","provider":"cloudflare","tier":"anonymous","community":false,"aliases":"mistral-small-cloudflare","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"openai","description":"OpenAI GPT-4o Mini","provider":"azure","tier":"anonymous","community":false,"aliases":"gpt-4o-mini","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"openai-audio","description":"OpenAI GPT-4o Mini Audio Preview","maxInputChars":5000,"voices":["alloy","echo","fable","onyx","nova","shimmer","coral","verse","ballad","ash","sage","amuch","dan"],"provider":"azure","tier":"seed","community":false,"aliases":"gpt-4o-mini-audio-preview","input_modalities":["text","image","audio"],"output_modalities":["audio","text"],"tools":true,"vision":true,"audio":true},{"name":"openai-fast","description":"OpenAI GPT-4.1 Nano","provider":"azure","tier":"anonymous","community":false,"aliases":"gpt-4.1-nano","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"openai-large","description":"OpenAI GPT-4.1","maxInputChars":9000,"provider":"azure","tier":"flower","community":false,"aliases":"gpt-4.1","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"openai-reasoning","description":"OpenAI O3 (provided by hcap.ai - https://discord.gg/hTwkYTry)","reasoning":true,"provider":"chatwithmono.xyz","tier":"anonymous","community":false,"aliases":"o3","input_modalities":["text","image"],"output_modalities":["text"],"vision":true,"audio":false},{"name":"openai-roblox","description":"OpenAI GPT-4.1 Mini (Roblox)","provider":"azure","tier":"nectar","community":false,"aliases":"gpt-4.1-mini-roblox","input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"phi","description":"Phi-4 Mini Instruct","provider":"azure","tier":"anonymous","community":false,"aliases":"phi-4-mini-instruct","input_modalities":["text","image","audio"],"output_modalities":["text"],"tools":false,"vision":true,"audio":true},{"name":"qwen-coder","description":"Qwen 2.5 Coder 32B","provider":"scaleway","tier":"anonymous","community":false,"aliases":"qwen2.5-coder-32b-instruct","input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"bidara","description":"BIDARA (Biomimetic Designer and Research Assistant by NASA)","provider":"azure","tier":"anonymous","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"elixposearch","description":"Elixpo Search","provider":"scaleway","tier":"anonymous","community":true,"input_modalities":["text"],"output_modalities":["text"],"tools":false,"vision":false,"audio":false},{"name":"evil","description":"Evil","provider":"cloudflare","uncensored":true,"tier":"seed","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"hypnosis-tracy","description":"Hypnosis Tracy","provider":"azure","tier":"seed","community":true,"input_modalities":["text","audio"],"output_modalities":["audio","text"],"tools":true,"vision":false,"audio":true},{"name":"midijourney","description":"MIDIjourney","provider":"azure","tier":"anonymous","community":true,"input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"mirexa","description":"Mirexa AI Companion","provider":"azure","tier":"seed","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"rtist","description":"Rtist","provider":"azure","tier":"seed","community":true,"input_modalities":["text"],"output_modalities":["text"],"tools":true,"vision":false,"audio":false},{"name":"sur","description":"Sur AI Assistant","provider":"cloudflare","tier":"seed","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false},{"name":"unity","description":"Unity Unrestricted Agent","provider":"cloudflare","uncensored":true,"tier":"seed","community":true,"input_modalities":["text","image"],"output_modalities":["text"],"tools":true,"vision":true,"audio":false}]

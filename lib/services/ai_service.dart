@@ -162,7 +162,7 @@ class AIService extends ChangeNotifier {
     // Take most relevant chunks first (assumed to be ordered by relevance)
     for (final chunk in context) {
       totalChars += chunk.length;
-      if (totalChars > maxTokens * 4) break;
+      if (totalChars > maxTokens * 2.5) break;
       reducedContext.add(chunk);
     }
     

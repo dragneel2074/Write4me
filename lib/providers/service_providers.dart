@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ai_service.dart';
 import '../services/pdf_service.dart';
+import '../services/image_service.dart';
 import 'file_processor_provider.dart';
 import '../services/online_model_service.dart'; // Import the new service
 
@@ -32,6 +33,12 @@ final pdfServiceProvider = Provider<PDFService>((ref) {
   final fileProcessor = ref.read(fileProcessorProvider);
   final offlineModelService = ref.read(legacy_providers.offlineModelServiceProvider);
   return PDFService(fileProcessor, offlineModelService);
+});
+
+/// Provider for ImageService that depends on FileProcessor
+final imageServiceProvider = Provider<ImageService>((ref) {
+  final fileProcessor = ref.read(fileProcessorProvider);
+  return ImageService(fileProcessor);
 });
 
 /// Provider for OnlineModelService

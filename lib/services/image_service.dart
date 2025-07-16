@@ -7,10 +7,15 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 
+import '../file_processing/file_processor.dart';
+
 class ImageService {
   final _textRecognizer = TextRecognizer();
   final _picker = ImagePicker();
+  final FileProcessor _fileProcessor;
   bool _isRequestingPermission = false;
+
+  ImageService(this._fileProcessor);
 
   Future<bool> _requestPermission(Permission permission) async {
     if (_isRequestingPermission) return false;
@@ -92,6 +97,8 @@ class ImageService {
       if (recognizedText.text.isEmpty) {
         throw Exception('No text found in image');
       }
+
+      await _fileProcessor.processText(recognizedText.text, 'Image: ${pickedFile.name}');
 
       return ImageMemory(
         'Image: ${pickedFile.name}',

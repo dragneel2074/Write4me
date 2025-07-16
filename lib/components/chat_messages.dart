@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/image_service.dart';
+import 'package:write4me/providers/service_providers.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_provider.dart';
 import '../providers/offline_mode_provider.dart';
@@ -26,9 +27,10 @@ class ChatMessages extends ConsumerWidget {
   //   }
   // }
 
-  Future<void> _saveImage(BuildContext context, Uint8List imageData) async {
+  Future<void> _saveImage(BuildContext context, WidgetRef ref, Uint8List imageData) async {
     try {
-      await ImageService().saveImage(imageData);
+      final imageService = ref.read(imageServiceProvider);
+      await imageService.saveImage(imageData);
       if (context.mounted) {
         MessageUtils.showSuccess(context, 'Image saved to gallery');
       }
@@ -172,7 +174,7 @@ class ChatMessages extends ConsumerWidget {
             message: message,
             isLast: index == chatState.messages.length - 1,
             onCopyText: (text) => _copyText(context, text),
-            onSaveImage: (imageData) => _saveImage(context, imageData),
+            onSaveImage: (imageData) => _saveImage(context, ref, imageData),
           );
         },
       );
@@ -210,7 +212,7 @@ class ChatMessages extends ConsumerWidget {
           message: message,
           isLast: index == chatState.messages.length - 1,
           onCopyText: (text) => _copyText(context, text),
-          onSaveImage: (imageData) => _saveImage(context, imageData),
+          onSaveImage: (imageData) => _saveImage(context, ref, imageData),
         );
       },
     );

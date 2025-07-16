@@ -15,9 +15,9 @@ import 'models/chat_message.dart';
 import 'models/pdf_memory.dart';
 import 'models/image_memory.dart';
 import 'services/image_generation_service.dart';
-import 'services/image_service.dart';
+
 import 'services/notification_service.dart';
-import 'services/web_service.dart';
+
 import 'utils/dialog_manager.dart';
 import 'widgets/intro_drawer.dart';
 import 'services/chat_storage_service.dart';
@@ -52,8 +52,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
   // Services are now accessed through providers
   final ImageGenerationService _imageGenService = ImageGenerationService();
-  final WebService _webService = WebService();
-  final ImageService _imageService = ImageService();
+  
   final ChatStorageService _chatStorage = ChatStorageService();
 
   // Move this to a StateNotifier
@@ -273,30 +272,7 @@ class _HomePageState extends ConsumerState<HomePage>
     });
   }
 
-  Future<void> _processWebContent() async {
-    final url = await DialogManager.showURLInputDialog(context);
-    if (url != null) {
-      try {
-        PDFMemory? webMemory = await _webService.processWebContent(url);
-        if (webMemory != null) {
-          _addPdfContent(webMemory);
-          if (!mounted) return;
-          NotificationService.showTopNotification(
-            context,
-            message: 'Web content processed: ${webMemory.name}',
-          );
-        }
-      } catch (e) {
-        if (!mounted) return;
-
-        NotificationService.showTopNotification(
-          context,
-          message: 'Error processing web content: ${e.toString()}',
-          isError: true,
-        );
-      }
-    }
-  }
+  
 
   Future<void> _processImageContent() async {
     final chatNotifier = ref.read(chatProvider.notifier);
@@ -305,8 +281,9 @@ class _HomePageState extends ConsumerState<HomePage>
     final source = await DialogManager.showImageSourceDialog(context);
     if (source != null) {
       try {
+        final imageService = ref.read(imageServiceProvider);
         ImageMemory? imageMemory =
-            await _imageService.processImageContent(source);
+            await imageService.processImageContent(source);
         if (imageMemory != null) {
           _addImageContent(imageMemory);
 
@@ -371,13 +348,7 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  void _showExtractedText(dynamic memory) {
-    DialogManager.showExtractedText(
-      context,
-      memory.name,
-      memory.extractedText,
-    );
-  }
+  
 
   Future<void> _clearChat() async {
     final aiService = ref.read(aiServiceProvider);

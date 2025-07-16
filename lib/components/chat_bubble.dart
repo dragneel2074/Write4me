@@ -9,7 +9,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/message_utils.dart';
 
-class ChatBubble extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class ChatBubble extends ConsumerWidget {
   final ChatMessage message;
   final bool isLast;
   final Function(String)? onCopyText;
@@ -237,7 +239,7 @@ class ChatBubble extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final chatTheme = Theme.of(context).extension<ChatThemeExtension>()!;
     
     // Double sanitization: first clean the text, then clean markdown
