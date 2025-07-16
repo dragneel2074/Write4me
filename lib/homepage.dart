@@ -49,7 +49,7 @@ class _HomePageState extends ConsumerState<HomePage>
   final TextEditingController _controller = TextEditingController();
   late final ScrollController _scrollController;
   bool _isProcessingRAG = false; // New state variable
-  File? _kontextImageFile;
+  
 
   // Move these to a new StateNotifier
   // final bool _isImageMode = false;
@@ -228,17 +228,32 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Future<void> _pickImageForKontext() async {
+    ref.read(uiStateProvider.notifier).setImageMode(true);
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _kontextImageFile = File(pickedFile.path);
-      });
+      final imageFile = File(pickedFile.path);
+      // Remove previous kontext image if any
+      _imageMemories.removeWhere((m) => m.extractedText == 'Image for kontext');
+      
+      final imageMemory = ImageMemory(
+        pickedFile.path.split('/').last,
+        'Image for kontext', // Special marker
+        imageFile: imageFile,
+      );
+      _addImageContent(imageMemory);
+
       if (mounted) {
         NotificationService.showTopNotification(
           context,
           message: 'Image selected for editing',
         );
+      }
+    } else {
+      // Only turn off image mode if no image is selected and no other images are present for vision.
+      final hasVisionImage = _imageMemories.any((m) => m.extractedText == 'Image for vision model');
+      if (!hasVisionImage) {
+        ref.read(uiStateProvider.notifier).setImageMode(false);
       }
     }
   }
@@ -470,7 +485,15 @@ class _HomePageState extends ConsumerState<HomePage>
       if (uiState.isImageMode) {
         final isKontext =
             onlineModelService.selectedImageModel.toLowerCase() == 'kontext';
-        if (isKontext && _kontextImageFile == null) {
+        ImageMemory? kontextImageMemory;
+        for (final m in _imageMemories) {
+          if (m.extractedText == 'Image for kontext') {
+            kontextImageMemory = m;
+            break;
+          }
+        }
+
+        if (isKontext && kontextImageMemory == null) {
           chatNotifier.stopLoading();
           MessageUtils.showError(context, 'Please select an image to edit.');
           return;
@@ -486,9 +509,9 @@ class _HomePageState extends ConsumerState<HomePage>
 
         String? imageUrl;
         if (isKontext) {
-          final imageBytes = await _kontextImageFile!.readAsBytes();
+          final imageBytes = await kontextImageMemory!.imageFile!.readAsBytes();
           imageUrl = await _fileUploadService.uploadImage(
-              imageBytes, _kontextImageFile!.path.split('/').last);
+              imageBytes, kontextImageMemory.name);
         }
 
         final imageData = await _imageGenService.generateImage(
@@ -525,7 +548,7 @@ class _HomePageState extends ConsumerState<HomePage>
         }
         if (isKontext) {
           setState(() {
-            _kontextImageFile = null;
+            _imageMemories.remove(kontextImageMemory);
           });
         }
       } else {

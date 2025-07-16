@@ -28,6 +28,13 @@ class UIState {
 class UIStateNotifier extends StateNotifier<UIState> {
   UIStateNotifier() : super(const UIState());
 
+  void setImageMode(bool value) {
+    state = state.copyWith(
+      isImageMode: value,
+      isWebSearch: value ? false : state.isWebSearch,
+    );
+  }
+
   void toggleImageMode() {
     state = state.copyWith(
       isImageMode: !state.isImageMode,

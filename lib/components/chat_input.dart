@@ -115,19 +115,21 @@ class ChatInput extends ConsumerWidget {
             runSpacing: 8,
             children: [
               if (!isOfflineMode) ...[
-                _buildActionButton(
-                  context: context,
-                  icon: isImageMode ? Icons.image : Icons.image_outlined,
-                  onPressed: onToggleImage,
-                  isActive: isImageMode,
-                  label: isKontext ? 'Edit Image' : 'Generate Image',
-                ),
-                if (isImageMode && isKontext)
+                if (isKontext)
                   _buildActionButton(
                     context: context,
                     icon: Icons.add_photo_alternate_outlined,
                     onPressed: onAddImageForKontext,
-                    label: 'Add Image',
+                    isActive: isImageMode,
+                    label: 'Edit Image',
+                  )
+                else
+                  _buildActionButton(
+                    context: context,
+                    icon: isImageMode ? Icons.image : Icons.image_outlined,
+                    onPressed: onToggleImage,
+                    isActive: isImageMode,
+                    label: 'Generate Image',
                   ),
                 _buildActionButton(
                   context: context,
