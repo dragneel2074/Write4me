@@ -31,6 +31,8 @@ import '../providers/ui_state_provider.dart';
 import 'providers/service_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/selected_documents_provider.dart';
+import 'package:write4me/services/file_upload_service.dart';
+
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -39,6 +41,7 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
+
 class _HomePageState extends ConsumerState<HomePage>
     with SingleTickerProviderStateMixin {
   final List<PDFMemory> _pdfMemories = [];
@@ -46,12 +49,14 @@ class _HomePageState extends ConsumerState<HomePage>
   final TextEditingController _controller = TextEditingController();
   late final ScrollController _scrollController;
   bool _isProcessingRAG = false; // New state variable
+  File? _kontextImageFile;
 
   // Move these to a new StateNotifier
   // final bool _isImageMode = false;
 
   // Services are now accessed through providers
   final ImageGenerationService _imageGenService = ImageGenerationService();
+  final FileUploadService _fileUploadService = FileUploadService();
   
   final ChatStorageService _chatStorage = ChatStorageService();
 
@@ -171,6 +176,8 @@ class _HomePageState extends ConsumerState<HomePage>
     final isOffline = offlineModeState.isOfflineMode;
     final onlineModel = ref.read(onlineModelServiceProvider).selectedOnlineModel;
     final hasVision = onlineModel?.vision ?? false;
+    final isKontext = ref.read(onlineModelServiceProvider).selectedImageModel.toLowerCase() == 'kontext';
+    final isImageMode = ref.read(uiStateProvider).isImageMode;
 
     showModalBottomSheet(
       context: context,
@@ -178,35 +185,62 @@ class _HomePageState extends ConsumerState<HomePage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf),
-              title: const Text('Add PDF'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickPDFAndCreateRAG();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.image),
-              title: const Text('Add Image (OCR)'),
-              onTap: () {
-                Navigator.pop(context);
-                _processImageContent();
-              },
-            ),
-            if (!isOffline && hasVision)
+            if (isImageMode && isKontext)
               ListTile(
-                leading: const Icon(Icons.image_search),
-                title: const Text('Add Image (Vision)'),
+                leading: const Icon(Icons.add_photo_alternate_outlined),
+                title: const Text('Select Image to Edit'),
                 onTap: () {
                   Navigator.pop(context);
-                  _processImageVision();
+                  _pickImageForKontext();
+                },
+              )
+            else ...[
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf),
+                title: const Text('Add PDF'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickPDFAndCreateRAG();
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text('Add Image (OCR)'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _processImageContent();
+                },
+              ),
+              if (!isOffline && hasVision)
+                ListTile(
+                  leading: const Icon(Icons.image_search),
+                  title: const Text('Add Image (Vision)'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _processImageVision();
+                  },
+                ),
+            ]
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _pickImageForKontext() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _kontextImageFile = File(pickedFile.path);
+      });
+      if (mounted) {
+        NotificationService.showTopNotification(
+          context,
+          message: 'Image selected for editing',
+        );
+      }
+    }
   }
 
    Future<void> _pickPDFAndCreateRAG() async {
@@ -434,6 +468,14 @@ class _HomePageState extends ConsumerState<HomePage>
       ));
 
       if (uiState.isImageMode) {
+        final isKontext =
+            onlineModelService.selectedImageModel.toLowerCase() == 'kontext';
+        if (isKontext && _kontextImageFile == null) {
+          chatNotifier.stopLoading();
+          MessageUtils.showError(context, 'Please select an image to edit.');
+          return;
+        }
+
         // Add placeholder message
         final placeholderMessage = ChatMessage(
           content: "Generating image... Please wait.",
@@ -442,9 +484,17 @@ class _HomePageState extends ConsumerState<HomePage>
         );
         chatNotifier.addMessage(placeholderMessage);
 
+        String? imageUrl;
+        if (isKontext) {
+          final imageBytes = await _kontextImageFile!.readAsBytes();
+          imageUrl = await _fileUploadService.uploadImage(
+              imageBytes, _kontextImageFile!.path.split('/').last);
+        }
+
         final imageData = await _imageGenService.generateImage(
           prompt: message,
           model: onlineModelService.selectedImageModel,
+          image: imageUrl,
         )
           .catchError((e) {
             final userMessage = _getImageError(e);
@@ -472,6 +522,11 @@ class _HomePageState extends ConsumerState<HomePage>
               // timestamp: DateTime.now().millisecondsSinceEpoch,
             ),
           );
+        }
+        if (isKontext) {
+          setState(() {
+            _kontextImageFile = null;
+          });
         }
       } else {
         // Add initial placeholder message
@@ -740,6 +795,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                   .toggleWebSearch(),
                           onToggleImage: () =>
                               ref.read(uiStateProvider.notifier).toggleImageMode(),
+                          onAddImageForKontext: _pickImageForKontext,
                           isWebSearchDisabled: _pdfMemories.isNotEmpty ||
                               _imageMemories.isNotEmpty ||
                               offlineModeState.isOfflineMode,

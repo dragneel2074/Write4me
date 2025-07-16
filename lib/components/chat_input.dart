@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:write4me/providers/service_providers.dart';
 
 class ChatInput extends ConsumerWidget {
   final TextEditingController controller;
@@ -12,6 +12,7 @@ class ChatInput extends ConsumerWidget {
   final VoidCallback onAddContent;
   final VoidCallback? onToggleWebSearch;
   final VoidCallback onToggleImage;
+  final VoidCallback onAddImageForKontext;
   final bool isWebSearchDisabled;
   final bool isOfflineMode;
 
@@ -26,15 +27,15 @@ class ChatInput extends ConsumerWidget {
     required this.onAddContent,
     required this.onToggleWebSearch,
     required this.onToggleImage,
+    required this.onAddImageForKontext,
     required this.isWebSearchDisabled,
     required this.isOfflineMode,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    
-    
-    
+    final onlineModelService = ref.watch(onlineModelServiceProvider);
+    final isKontext = onlineModelService.selectedImageModel.toLowerCase() == 'kontext';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
@@ -105,8 +106,8 @@ class ChatInput extends ConsumerWidget {
               child: Text(
                 'Offline Mode - Using Local Model',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
               ),
             ),
           Wrap(
@@ -119,8 +120,15 @@ class ChatInput extends ConsumerWidget {
                   icon: isImageMode ? Icons.image : Icons.image_outlined,
                   onPressed: onToggleImage,
                   isActive: isImageMode,
-                  label: 'Generate Image',
+                  label: isKontext ? 'Edit Image' : 'Generate Image',
                 ),
+                if (isImageMode && isKontext)
+                  _buildActionButton(
+                    context: context,
+                    icon: Icons.add_photo_alternate_outlined,
+                    onPressed: onAddImageForKontext,
+                    label: 'Add Image',
+                  ),
                 _buildActionButton(
                   context: context,
                   icon: isWebSearch ? Icons.language : Icons.language_outlined,
@@ -183,4 +191,3 @@ class ChatInput extends ConsumerWidget {
     );
   }
 }
-

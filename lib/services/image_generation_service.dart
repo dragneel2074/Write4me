@@ -47,6 +47,8 @@ class ImageGenerationService {
     int width = 1024,
     int height = 1024,
     String? model = 'flux',
+    String? image,
+    String? token,
   }) async {
     try {
       int? seed = 42;
@@ -61,8 +63,14 @@ class ImageGenerationService {
       final encodedPrompt = Uri.encodeComponent(filteredPrompt);
 
       // Build the URL with parameters
-      final url =
+      var url =
           '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed&model=$model';
+      if (image != null) {
+        url += '&image=$image';
+      }
+      if (token != null) {
+        url += '&token=$token';
+      }
       
       if (kDebugMode) {
         print(url);
