@@ -1034,6 +1034,10 @@ class _HomePageState extends ConsumerState<HomePage>
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('jina_api_key', jinaController.text.trim());
               await prefs.setString('pollination_api_key', pollinationController.text.trim());
+              
+              // Refresh models after saving the key
+              await ref.read(onlineModelServiceProvider).fetchModels();
+
               if (context.mounted) {
                 Navigator.pop(context);
                 MessageUtils.showSuccess(context, 'API keys saved');

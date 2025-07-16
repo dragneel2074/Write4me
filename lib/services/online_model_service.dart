@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OnlineModel {
   final String name;
@@ -65,6 +66,11 @@ class OnlineModelService extends ChangeNotifier {
   String? _imageErrorMessage;
   String? get imageErrorMessage => _imageErrorMessage;
 
+  Future<String?> _getPollinationToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('pollination_api_key');
+  }
+
   Future<void> fetchModels() async {
     _isLoading = true;
     _textErrorMessage = null;
@@ -93,11 +99,15 @@ class OnlineModelService extends ChangeNotifier {
     final response = await http.get(Uri.parse(_textModelsUrl));
 
     if (response.statusCode == 200) {
+      final token = await _getPollinationToken();
+      final bool hasToken = token != null && token.isNotEmpty;
+
       final List<dynamic> jsonList = json.decode(response.body);
       _availableTextModels = jsonList.map((json) => OnlineModel.fromJson(json)).where((model) {
         final hasZeroTextInput = model.inputModalities.contains('0 text');
         final hasZeroTextOutput = model.outputModalities.contains('0 text');
-        return !hasZeroTextInput && !hasZeroTextOutput && model.tier == "anonymous";
+        final isAllowedTier = model.tier == "anonymous" || (hasToken && model.tier == "seed");
+        return !hasZeroTextInput && !hasZeroTextOutput && isAllowedTier;
       }).toList();
       
       if (_availableTextModels.isNotEmpty && _selectedOnlineModel == null) {
