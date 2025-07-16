@@ -42,15 +42,7 @@ class FileProcessor {
       print("FileProcessor: Split content into ${chunks.length} chunks");
     }
 
-    // Check if truncation is needed and invoke callback
-    if (chunks.length * defaultChunkSize > 1500) { // Assuming 1500 is a rough token limit for context
-      final originalLength = cleanedContent.length;
-      // This is a very rough estimate, a more accurate tokenization would be better
-      final truncatedLength = (1500 / (1000 / 700)).round(); // Convert tokens back to characters roughly
-      if (onTruncation != null) {
-        onTruncation('Content for $fileName was truncated from ${originalLength} characters to approximately ${truncatedLength} characters to fit model context.');
-      }
-    }
+    
     
     // Process chunks in smaller batches to prevent memory issues
     const int batchSize = 20;

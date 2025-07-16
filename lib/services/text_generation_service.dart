@@ -224,8 +224,7 @@ Based on these search results, please answer:
 $prompt
 ''';
 
-          final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt);
-          final url = _buildUrl(trimmedPrompt, selectedModel, system);
+          final url = _buildUrl(formattedPrompt, selectedModel, system);
           
           final response = await _dio.get(
             url.toString(),
@@ -322,23 +321,9 @@ $prompt
 '''
           : _formatPrompt(prompt, context, useWebSearch, history); // Pass context directly
 
-      // If we have multiple context chunks, increase the word limit to ensure we don't lose content
-      final wordLimit = (context.length > 1) ? 4000 : 2000; // Changed condition
+      if (kDebugMode) {        print("Original prompt length: \${formattedPrompt.length} characters");        debugPrint('--- FULL PROMPT (ONLINE ---\n$formattedPrompt\n--------------------------');      }
       
-      if (kDebugMode) {
-        print("Using word limit of $wordLimit for ${context.length} context chunks"); // Changed context?.length to context.length
-        print("Original prompt length: ${formattedPrompt.length} characters");
-      }
-      
-      final trimmedPrompt = TextUtils.trimToWordLimit(formattedPrompt, limit: wordLimit);
-      
-      if (kDebugMode && trimmedPrompt.length != formattedPrompt.length) {
-        if (kDebugMode) {
-          print("Prompt was trimmed from ${formattedPrompt.length} to ${trimmedPrompt.length} characters");
-        }
-      }
-      
-      final url = _buildUrl(trimmedPrompt, selectedModel, system);
+      final url = _buildUrl(formattedPrompt, selectedModel, system);
       debugPrint('url: $url');
       final response = await _dio.get(
         url.toString(),

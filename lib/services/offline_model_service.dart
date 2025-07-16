@@ -481,7 +481,9 @@ class OfflineModelService extends ChangeNotifier {
         _buildSimplePrompt(fullPrompt, prompt, context ?? []);
       }
 
-      messages.add(Message(Role.user, fullPrompt.toString()));
+      final truncatedPrompt = _truncateFullPrompt(fullPrompt.toString(), modelParameters.contextSize);
+      debugPrint('--- FULL PROMPT (OFFLINE) ---\n$truncatedPrompt\n--------------------------');
+      messages.add(Message(Role.user, truncatedPrompt));
 
       for (final msg in recentHistory) {
         messages.add(Message(
@@ -582,10 +584,9 @@ class OfflineModelService extends ChangeNotifier {
         'You are a document assistant analyzing and answering questions based on specific information.');
 
     buffer.writeln('\nDOCUMENT CONTEXT:');
-    final truncatedContext = _truncateContext(context, maxContextTokens);
-    for (int i = 0; i < truncatedContext.length; i++) {
+    for (int i = 0; i < context.length; i++) {
       buffer.writeln('---');
-      buffer.writeln(truncatedContext[i]);
+      buffer.writeln(context[i]);
     }
     buffer.writeln('---');
 
@@ -607,10 +608,9 @@ class OfflineModelService extends ChangeNotifier {
 
     if (context.isNotEmpty) {
       buffer.writeln('\nADDITIONAL DOCUMENT CONTEXT:');
-      final truncatedContext = _truncateContext(context, maxContextTokens);
-      for (int i = 0; i < truncatedContext.length; i++) {
+      for (int i = 0; i < context.length; i++) {
         buffer.writeln('---');
-        buffer.writeln(truncatedContext[i]);
+        buffer.writeln(context[i]);
       }
       buffer.writeln('---');
     }
@@ -631,8 +631,7 @@ class OfflineModelService extends ChangeNotifier {
         'You are an image analysis assistant. Analyze the provided image content and answer questions based on it.');
 
     buffer.writeln('\nIMAGE CONTEXT:');
-    final truncatedContext = _truncateContext(context, maxContextTokens);
-    for (var entry in truncatedContext) {
+    for (var entry in context) {
       if (entry.startsWith("From: Image:")) {
         buffer.writeln('---');
         buffer.writeln(entry.replaceFirst("From: Image:", ""));
@@ -680,38 +679,15 @@ class OfflineModelService extends ChangeNotifier {
     return (text.length / 4).ceil();
   }
 
-  List<String> _truncateContext(List<String> context, int maxTokens) {
-    final List<String> truncated = [];
-    int currentTokens = 0;
-    // Using a more robust token estimation for context truncation
-    // This is a heuristic, actual tokenization can vary.
-    // A common ratio is 4 characters per token for English text.
-    const double charsPerToken = 4.0;
-
-    for (final entry in context) {
-      final entryTokens = (entry.length / charsPerToken).ceil();
-
-      if (currentTokens + entryTokens <= maxTokens) {
-        truncated.add(entry);
-        currentTokens += entryTokens;
-      } else {
-        final remainingTokens = maxTokens - currentTokens;
-        if (remainingTokens > 0) {
-          // Calculate how many characters can fit into the remaining tokens
-          final charsToTake = (remainingTokens * charsPerToken).floor();
-          if (charsToTake > 0) {
-            // Ensure we don't go out of bounds
-            final truncatedEntry = entry.substring(0, charsToTake.clamp(0, entry.length));
-            truncated.add('$truncatedEntry...');
-            _truncationMessage = 'Context truncated: Original length ${context.length} entries, truncated to ${truncated.length} entries.';
-            debugPrint(_truncationMessage!);
-            notifyListeners();
-          }
-        }
-        break;
-      }
+  String _truncateFullPrompt(String prompt, int maxTokens) {
+    // Simple truncation based on character count as a proxy for tokens
+    final maxChars = maxTokens * 4; // Approximate
+    if (prompt.length > maxChars) {
+      _truncationMessage = 'Prompt truncated to fit model context.';
+      notifyListeners();
+      return prompt.substring(0, maxChars);
     }
-    return truncated;
+    return prompt;
   }
 }
 

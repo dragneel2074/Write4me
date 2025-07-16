@@ -242,7 +242,8 @@ class AIService extends ChangeNotifier {
               limit: 10, // Increased for better RAG context
             );
             
-            debugPrint('Retrieved ${relevantDocs.length} relevant chunks via vector search');
+            debugPrint('Retrieved \${relevantDocs.length} relevant chunks via vector search');
+            debugPrint('Passing \${relevantDocs.length} chunks to the model.');
             
             // DEBUG: Print document chunks content for debugging
             if (kDebugMode) {
