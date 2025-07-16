@@ -53,6 +53,9 @@ class OnlineModelService extends ChangeNotifier {
   OnlineModel? _selectedOnlineModel;
   OnlineModel? get selectedOnlineModel => _selectedOnlineModel;
 
+  String _selectedImageModel = 'flux';
+  String get selectedImageModel => _selectedImageModel;
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -118,6 +121,11 @@ class OnlineModelService extends ChangeNotifier {
 
   void setSelectedOnlineModel(OnlineModel? model) {
     _selectedOnlineModel = model;
+    notifyListeners();
+  }
+
+  void setSelectedImageModel(String modelName) {
+    _selectedImageModel = modelName;
     notifyListeners();
   }
 }

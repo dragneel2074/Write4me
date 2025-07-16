@@ -80,10 +80,28 @@ class OnlineModelSelectionDialog extends ConsumerWidget {
                       ),
                     ),
                   ...onlineModelService.availableImageModels.map((modelName) {
+                    final isSelected =
+                        onlineModelService.selectedImageModel == modelName;
+                    final isGptImage = modelName.toLowerCase() == 'gptimage';
                     return Card(
                       margin: const EdgeInsets.only(top: 8, bottom: 8),
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primaryContainer
+                          : isGptImage
+                              ? Theme.of(context).disabledColor
+                              : null,
                       child: ListTile(
                         title: Text(modelName),
+                        trailing:
+                            isSelected ? const Icon(Icons.check_circle) : null,
+                        onTap: isGptImage
+                            ? null
+                            : () {
+                                onlineModelService
+                                    .setSelectedImageModel(modelName);
+                                Navigator.pop(
+                                    context); // Close dialog after selection
+                              },
                       ),
                     );
                   }),

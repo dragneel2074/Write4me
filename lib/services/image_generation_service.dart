@@ -61,7 +61,8 @@ class ImageGenerationService {
       final encodedPrompt = Uri.encodeComponent(filteredPrompt);
 
       // Build the URL with parameters
-      final url = '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed';
+      final url =
+          '$baseUrl$encodedPrompt?width=$width&height=$height&nologo=$noLogo&enhance=$enhance&safe=$safe&seed=$seed&model=$model';
       
       if (kDebugMode) {
         print(url);

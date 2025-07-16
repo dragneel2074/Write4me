@@ -442,7 +442,10 @@ class _HomePageState extends ConsumerState<HomePage>
         );
         chatNotifier.addMessage(placeholderMessage);
 
-        final imageData = await _imageGenService.generateImage(prompt: message)
+        final imageData = await _imageGenService.generateImage(
+          prompt: message,
+          model: onlineModelService.selectedImageModel,
+        )
           .catchError((e) {
             final userMessage = _getImageError(e);
             // Replace placeholder with error message
