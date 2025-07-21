@@ -127,7 +127,7 @@ class OnlineModelSelectionDialog extends ConsumerWidget {
                                         final hasKey = await onlineModelService.hasPollinationApiKey();
                                         if (!hasKey) {
                                           // Show dialog to prompt for API key
-                                          final TextEditingController _apiKeyController = TextEditingController();
+                                          final TextEditingController apiKeyController = TextEditingController();
                                           // ignore: use_build_context_synchronously
                                           await showDialog(
                                             context: context,
@@ -135,7 +135,7 @@ class OnlineModelSelectionDialog extends ConsumerWidget {
                                               return AlertDialog(
                                                 title: const Text('Enter Pollination API Key'),
                                                 content: TextField(
-                                                  controller: _apiKeyController,
+                                                  controller: apiKeyController,
                                                   decoration: const InputDecoration(
                                                     hintText: 'API Key',
                                                   ),
@@ -150,8 +150,8 @@ class OnlineModelSelectionDialog extends ConsumerWidget {
                                                   TextButton(
                                                     child: const Text('Save'),
                                                     onPressed: () async {
-                                                      if (_apiKeyController.text.isNotEmpty) {
-                                                        await onlineModelService.setPollinationApiKey(_apiKeyController.text);
+                                                      if (apiKeyController.text.isNotEmpty) {
+                                                        await onlineModelService.setPollinationApiKey(apiKeyController.text);
                                                         // ignore: use_build_context_synchronously
                                                         Navigator.of(dialogContext).pop();
                                                         onlineModelService.setSelectedImageModel(modelName);

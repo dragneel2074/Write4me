@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/chat_message.dart';
-import 'package:flutter/foundation.dart';
+import '../models/image_memory.dart';
+
+const _sentinel = Object();
 
 // Chat state class to hold all chat-related state
 class ChatState {
@@ -11,6 +14,7 @@ class ChatState {
   final bool isGenerating;
   final String? error;
   final File? selectedImage;
+  final List<ImageMemory> imageMemories;
 
   ChatState({
     this.messages = const [],
@@ -18,21 +22,24 @@ class ChatState {
     this.isGenerating = false,
     this.error,
     this.selectedImage,
+    this.imageMemories = const [],
   });
 
   ChatState copyWith({
     List<ChatMessage>? messages,
     bool? isLoading,
     bool? isGenerating,
-    String? error,
-    File? selectedImage,
+    Object? error = _sentinel,
+    Object? selectedImage = _sentinel,
+    List<ImageMemory>? imageMemories,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
       isGenerating: isGenerating ?? this.isGenerating,
-      error: error ?? this.error,
-      selectedImage: selectedImage ?? this.selectedImage,
+      error: error == _sentinel ? this.error : error as String?,
+      selectedImage: selectedImage == _sentinel ? this.selectedImage : selectedImage as File?,
+      imageMemories: imageMemories ?? this.imageMemories,
     );
   }
   
@@ -142,7 +149,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
       error: null,
       isLoading: false,
       isGenerating: false,
+      selectedImage: null,
+      imageMemories: [], // Clear image memories
     );
+  }
+
+  void addImageMemory(ImageMemory memory) {
+    state = state.copyWith(
+      imageMemories: [...state.imageMemories, memory],
+    );
+  }
+
+  void clearImageMemories() {
+    state = state.copyWith(imageMemories: []);
   }
 
   void startLoading() {
@@ -195,6 +214,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
   void removeMessage(ChatMessage message) {
     state = state.copyWith(
       messages: state.messages.where((m) => m != message).toList(),
+    );
+  }
+
+  void removeImageMemory(ImageMemory memory) {
+    state = state.copyWith(
+      imageMemories: state.imageMemories.where((m) => m != memory).toList(),
     );
   }
 

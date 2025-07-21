@@ -1,251 +1,193 @@
-✓ Built build\app\outputs\flutter-apk\app-debug.apk
-I/flutter ( 2541): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(61)] Using the Impeller rendering backend (Vulkan).
-I/flutter ( 2541): Models refreshed:
-I/flutter ( 2541): - Available models: 0
-I/flutter ( 2541): - Current selected model:
-I/flutter ( 2541): - Current local model usage: false
-I/flutter ( 2541): Initialized OfflineModeNotifier:
-I/flutter ( 2541): - Models available: 0
-I/flutter ( 2541): - Is offline mode: false
-I/flutter ( 2541): - Use local model: false
-I/flutter ( 2541): - Local model selected: false
-I/flutter ( 2541): - Selected model:
-I/flutter ( 2541): Initialization complete
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): Available models: 0
-I/flutter ( 2541): Loaded downloaded URLs: {}
-I/flutter ( 2541): No model parameters found, initializing empty map.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-W/WindowOnBackDispatcher( 2541): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@38ee404
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): Models refreshed:
-I/flutter ( 2541): - Available models: 0
-I/flutter ( 2541): - Current selected model:
-I/flutter ( 2541): - Current local model usage: false
-I/flutter ( 2541): Initialized OfflineModeNotifier:
-I/flutter ( 2541): - Models available: 0
-I/flutter ( 2541): - Is offline mode: false
-I/flutter ( 2541): - Use local model: false
-I/flutter ( 2541): - Local model selected: false
-I/flutter ( 2541): - Selected model:
-I/flutter ( 2541): Offline mode initialized
-I/flutter ( 2541): TextGenerationService: Formatting prompt for mode: Simple
-I/flutter ( 2541): Original prompt length: ${formattedPrompt.length} characters
-I/flutter ( 2541): --- FULL PROMPT (ONLINE ---
-I/flutter ( 2541): say hi
-I/flutter ( 2541): --------------------------
-I/flutter ( 2541): ========== URL GENERATION DETAILS ==========
-I/flutter ( 2541): Original prompt length: 6
-I/flutter ( 2541): Original prompt preview: say hi...
-I/flutter ( 2541): TextGenerationService: Sanitizing prompt text of length 6 for API request
-I/flutter ( 2541): TextGenerationService: First 6 chars before cleaning: say hi
-I/flutter ( 2541): FileProcessor: Cleaning text for API submission (length: 6)
-I/flutter ( 2541): TextGenerationService: Text cleaned for API submission, new length: 6
-I/flutter ( 2541): Final URL length: 264
-I/flutter ( 2541): URL preview: https://text.pollinations.ai/say%20hi?model=gpt-4o-mini&system=You%20are%20Aura,%20a%20helpful%20AI%...
-I/flutter ( 2541): ===========================================
-I/flutter ( 2541): url: https://text.pollinations.ai/say%20hi?model=gpt-4o-mini&system=You%20are%20Aura,%20a%20helpful%20AI%20assistant%20who%20answers%20questions%20based%20on%20knowledge%20and%20provided%20conversation%20history.%20Be%20concise%20but%20thorough%20in%20your%20responses.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): https://image.pollinations.ai/prompt/boy%20in%20yellow%20hat?width=1024&height=1024&nologo=true&enhance=true&safe=true&seed=42&model=flux
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F....ID 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-I/flutter ( 2541): 1. _submitMessage called.
-I/flutter ( 2541): 3. Loading started.
-I/flutter ( 2541): 4. User message added to chat.
-I/flutter ( 2541): Not in image mode.
-I/flutter ( 2541): Submitting message with:
-I/flutter ( 2541): - isWebSearch: false
-I/flutter ( 2541): - isOfflineMode: false
-I/flutter ( 2541): - isLocalModelActive: false
-I/flutter ( 2541): - isLocalModelSelected: false
-I/flutter ( 2541): - useWebSearch: false
-I/flutter ( 2541): Chat history before filtering:
-I/flutter ( 2541): [0] AI: Hey!
-I/flutter ( 2541):
-I/flutter ( 2541): Chat Service is Online. Ask Me Anything.
-I/flutter ( 2541):
-I/flutter ( 2541):  ...
-I/flutter ( 2541): Getting meaningful history: 1 → 1 messages
-I/flutter ( 2541): First meaningful message: 'Hey!
-I/flutter ( 2541):
-I/flutter ( 2541): Chat Service is Online....'
-I/flutter ( 2541):
-I/flutter ( 2541): getStreamingResponse called with:
-I/flutter ( 2541): - prompt: hi
-I/flutter ( 2541): - useWebSearch: false
-I/flutter ( 2541): - useLocalModel: false
-I/flutter ( 2541): - isOfflineMode: false
-I/flutter ( 2541): - history length: 1
-I/flutter ( 2541): Filtered chat history: 1 → 0 messages
-I/flutter ( 2541): - filtered history length: 0
-I/flutter ( 2541): Web search not requested or offline mode enabled
-I/flutter ( 2541): Using default online service for generation
-I/flutter ( 2541): TextGenerationService: Formatting prompt for mode: Simple
-I/flutter ( 2541): Original prompt length: ${formattedPrompt.length} characters
-I/flutter ( 2541): --- FULL PROMPT (ONLINE ---
-I/flutter ( 2541): hi
-I/flutter ( 2541): --------------------------
-I/flutter ( 2541): ========== URL GENERATION DETAILS ==========
-I/flutter ( 2541): Original prompt length: 2
-I/flutter ( 2541): Original prompt preview: hi...
-I/flutter ( 2541): TextGenerationService: Sanitizing prompt text of length 2 for API request
-I/flutter ( 2541): TextGenerationService: First 2 chars before cleaning: hi
-I/flutter ( 2541): FileProcessor: Cleaning text for API submission (length: 2)
-I/flutter ( 2541): TextGenerationService: Text cleaned for API submission, new length: 2
-I/flutter ( 2541): Final URL length: 258
-I/flutter ( 2541): URL preview: https://text.pollinations.ai/hi?model=gpt-4o-mini&system=You%20are%20Aura,%20a%20helpful%20AI%20assi...
-I/flutter ( 2541): ===========================================
-I/flutter ( 2541): url: https://text.pollinations.ai/hi?model=gpt-4o-mini&system=You%20are%20Aura,%20a%20helpful%20AI%20assistant%20who%20answers%20questions%20based%20on%20knowledge%20and%20provided%20conversation%20history.%20Be%20concise%20but%20thorough%20in%20your%20responses.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): Generation completed, cleaning up
-I/flutter ( 2541): Finally block in _submitMessage.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-W/WindowOnBackDispatcher( 2541): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@38ee404
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-I/flutter ( 2541): 1. _submitMessage called.
-I/flutter ( 2541): 3. Loading started.
-I/flutter ( 2541): 4. User message added to chat.
-I/flutter ( 2541): 5. In isImageMode block.
-I/flutter ( 2541): 6. isKontext: false
-I/flutter ( 2541): 7. Found kontextImageMemory: false
-I/flutter ( 2541): 9. Placeholder message added.
-I/flutter ( 2541): https://image.pollinations.ai/prompt/bikini%20girl%20on%20beach?width=1024&height=1024&nologo=true&enhance=true&safe=true&seed=42&model=flux
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): Finally block in _submitMessage.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-W/WindowOnBackDispatcher( 2541): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@38ee404
-I/flutter ( 2541): 1. _submitMessage called.
-I/flutter ( 2541): 3. Loading started.
-I/flutter ( 2541): 4. User message added to chat.
-I/flutter ( 2541): 5. In isImageMode block.
-I/flutter ( 2541): 6. isKontext: false
-I/flutter ( 2541): 7. Found kontextImageMemory: false
-I/flutter ( 2541): 9. Placeholder message added.
-I/flutter ( 2541): https://image.pollinations.ai/prompt/topless%20girl%20in%20beach?width=1024&height=1024&nologo=true&enhance=true&safe=true&seed=42&model=turbo
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): Request failed: This exception was thrown because the response has a status code of 500 and RequestOptions.validateStatus was configured to throw for this status code.
-I/flutter ( 2541): The status code of 500 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
-I/flutter ( 2541): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-I/flutter ( 2541): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
-I/flutter ( 2541):
-I/flutter ( 2541): Finally block in _submitMessage.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-I/flutter ( 2541): 1. _submitMessage called.
-I/flutter ( 2541): 3. Loading started.
-I/flutter ( 2541): 4. User message added to chat.
-I/flutter ( 2541): 5. In isImageMode block.
-I/flutter ( 2541): 6. isKontext: false
-I/flutter ( 2541): 7. Found kontextImageMemory: false
-I/flutter ( 2541): 9. Placeholder message added.
-I/flutter ( 2541): https://image.pollinations.ai/prompt/guys%20Hiking?width=1024&height=1024&nologo=true&enhance=true&safe=true&seed=42&model=turbo
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): Finally block in _submitMessage.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-W/WindowOnBackDispatcher( 2541): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@38ee404
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-I/flutter ( 2541): Image Upoading Response is 200
-I/flutter ( 2541): Uploaded image URL: https://o.uguu.se/rtxJfMNC.jpg
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-W/WindowOnBackDispatcher( 2541): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@38ee404
-I/flutter ( 2541): 1. _submitMessage called.
-I/flutter ( 2541): 3. Loading started.
-I/flutter ( 2541): 4. User message added to chat.
-I/flutter ( 2541): 5. In isImageMode block.
-I/flutter ( 2541): 6. isKontext: true
-I/flutter ( 2541): 7. Found kontextImageMemory: true
-I/flutter ( 2541): 9. Placeholder message added.
-I/flutter ( 2541): 10. Using pre-uploaded image for kontext...
-I/flutter ( 2541): Using image URL: https://o.uguu.se/rtxJfMNC.jpg
-I/flutter ( 2541): Finally block in _submitMessage.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-I/flutter ( 2541): Image Upoading Response is 200
-I/flutter ( 2541): Uploaded image URL: https://n.uguu.se/qeMCNzXw.jpg
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
-D/InputMethodManager( 2541): showSoftInput() view=io.flutter.embedding.android.FlutterView{f804f21 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-I/flutter ( 2541): 1. _submitMessage called.
-I/flutter ( 2541): 3. Loading started.
-I/flutter ( 2541): 4. User message added to chat.
-I/flutter ( 2541): 5. In isImageMode block.
-I/flutter ( 2541): 6. isKontext: true
-I/flutter ( 2541): 7. Found kontextImageMemory: true
-I/flutter ( 2541): 9. Placeholder message added.
-I/flutter ( 2541): 10. Using pre-uploaded image for kontext...
-I/flutter ( 2541): Using image URL: https://n.uguu.se/qeMCNzXw.jpg
-I/flutter ( 2541): Finally block in _submitMessage.
-I/flutter ( 2541): HomePage build - isOfflineMode: false
-I/flutter ( 2541): HomePage build - isLocalModelActive: false
-I/flutter ( 2541): HomePage build - isLocalModelSelected: false
-I/flutter ( 2541): HomePage build - availableModels: 0
+D/InputMethodManager( 6021): showSoftInput() view=io.flutter.embedding.android.FlutterView{f3e0ac2 VFE...... .F....ID 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/flutter ( 6021): 1. _submitMessage called.
+I/flutter ( 6021): 3. Loading started.
+I/flutter ( 6021): 4. User message added to chat.
+I/flutter ( 6021): Not in image mode.
+I/flutter ( 6021): Submitting message with:
+I/flutter ( 6021): - isWebSearch: false
+I/flutter ( 6021): - isOfflineMode: false
+I/flutter ( 6021): - isLocalModelActive: false
+I/flutter ( 6021): - isLocalModelSelected: false
+I/flutter ( 6021): - useWebSearch: false
+I/flutter ( 6021): Chat history before filtering:
+I/flutter ( 6021): [0] AI: Hey!
+I/flutter ( 6021):
+I/flutter ( 6021): Chat Service is Online. Ask Me Anything.
+I/flutter ( 6021):
+I/flutter ( 6021):  ...
+I/flutter ( 6021): Getting meaningful history: 1 → 1 messages
+I/flutter ( 6021): First meaningful message: 'Hey!
+I/flutter ( 6021):
+I/flutter ( 6021): Chat Service is Online....'
+I/flutter ( 6021):
+I/flutter ( 6021): getStreamingResponse called with:
+I/flutter ( 6021): - prompt: hi
+I/flutter ( 6021): - useWebSearch: false
+I/flutter ( 6021): - useLocalModel: false
+I/flutter ( 6021): - isOfflineMode: false
+I/flutter ( 6021): - history length: 1
+I/flutter ( 6021): Filtered chat history: 1 → 0 messages
+I/flutter ( 6021): - filtered history length: 0
+I/flutter ( 6021): Web search not requested or offline mode enabled
+I/flutter ( 6021): Using selected online model for generation: openai
+I/flutter ( 6021): TextGenerationService: Formatting prompt for mode: Simple
+I/flutter ( 6021): Original prompt length: ${formattedPrompt.length} characters
+I/flutter ( 6021): --- FULL PROMPT (ONLINE ---
+I/flutter ( 6021): hi
+I/flutter ( 6021): --------------------------
+I/flutter ( 6021): ========== URL GENERATION DETAILS ==========
+I/flutter ( 6021): Original prompt length: 2
+I/flutter ( 6021): Original prompt preview: hi...
+I/flutter ( 6021): TextGenerationService: Sanitizing prompt text of length 2 for API request
+I/flutter ( 6021): TextGenerationService: First 2 chars before cleaning: hi
+I/flutter ( 6021): FileProcessor: Cleaning text for API submission (length: 2)
+I/flutter ( 6021): TextGenerationService: Text cleaned for API submission, new length: 2
+I/flutter ( 6021): Final URL length: 253
+I/flutter ( 6021): URL preview: https://text.pollinations.ai/hi?model=openai&system=You%20are%20Aura,%20a%20helpful%20AI%20assistant...
+I/flutter ( 6021): ===========================================
+I/flutter ( 6021): url: https://text.pollinations.ai/hi?model=openai&system=You%20are%20Aura,%20a%20helpful%20AI%20assistant%20who%20answers%20questions%20based%20on%20knowledge%20and%20provided%20conversation%20history.%20Be%20concise%20but%20thorough%20in%20your%20responses.
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+I/flutter ( 6021): Generation completed, cleaning up
+I/flutter ( 6021): Finally block in _submitMessage.
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+D/InputMethodManager( 6021): showSoftInput() view=io.flutter.embedding.android.FlutterView{f3e0ac2 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+W/WindowOnBackDispatcher( 6021): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@7acb999
+I/flutter ( 6021): 1. _submitMessage called.
+I/flutter ( 6021): 3. Loading started.
+I/flutter ( 6021): 4. User message added to chat.
+I/flutter ( 6021): Not in image mode.
+I/flutter ( 6021): Submitting message with:
+I/flutter ( 6021): - isWebSearch: false
+I/flutter ( 6021): - isOfflineMode: false
+I/flutter ( 6021): - isLocalModelActive: false
+I/flutter ( 6021): - isLocalModelSelected: false
+I/flutter ( 6021): - useWebSearch: false
+I/flutter ( 6021): Chat history before filtering:
+I/flutter ( 6021):
+I/flutter ( 6021): getStreamingResponse called with:
+I/flutter ( 6021): - prompt: yo
+I/flutter ( 6021): - useWebSearch: false
+I/flutter ( 6021): - useLocalModel: false
+I/flutter ( 6021): - isOfflineMode: false
+I/flutter ( 6021): - history length: 0
+I/flutter ( 6021): - filtered history length: 0
+I/flutter ( 6021): Web search not requested or offline mode enabled
+I/flutter ( 6021): Using selected online model for generation: openai
+I/flutter ( 6021): TextGenerationService: Formatting prompt for mode: Simple
+I/flutter ( 6021): Original prompt length: ${formattedPrompt.length} characters
+I/flutter ( 6021): --- FULL PROMPT (ONLINE ---
+I/flutter ( 6021): yo
+I/flutter ( 6021): --------------------------
+I/flutter ( 6021): ========== URL GENERATION DETAILS ==========
+I/flutter ( 6021): Original prompt length: 2
+I/flutter ( 6021): Original prompt preview: yo...
+I/flutter ( 6021): TextGenerationService: Sanitizing prompt text of length 2 for API request
+I/flutter ( 6021): TextGenerationService: First 2 chars before cleaning: yo
+I/flutter ( 6021): FileProcessor: Cleaning text for API submission (length: 2)
+I/flutter ( 6021): TextGenerationService: Text cleaned for API submission, new length: 2
+I/flutter ( 6021): Final URL length: 253
+I/flutter ( 6021): URL preview: https://text.pollinations.ai/yo?model=openai&system=You%20are%20Aura,%20a%20helpful%20AI%20assistant...
+I/flutter ( 6021): ===========================================
+I/flutter ( 6021): url: https://text.pollinations.ai/yo?model=openai&system=You%20are%20Aura,%20a%20helpful%20AI%20assistant%20who%20answers%20questions%20based%20on%20knowledge%20and%20provided%20conversation%20history.%20Be%20concise%20but%20thorough%20in%20your%20responses.
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+I/flutter ( 6021): Generation completed, cleaning up
+I/flutter ( 6021): Finally block in _submitMessage.
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+D/InputMethodManager( 6021): showSoftInput() view=io.flutter.embedding.android.FlutterView{f3e0ac2 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+W/WindowOnBackDispatcher( 6021): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@7acb999
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+D/InputMethodManager( 6021): showSoftInput() view=io.flutter.embedding.android.FlutterView{f3e0ac2 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/flutter ( 6021): 1. _submitMessage called.
+I/flutter ( 6021): 3. Loading started.
+I/flutter ( 6021): 4. User message added to chat.
+I/flutter ( 6021): Not in image mode.
+I/flutter ( 6021): Submitting message with:
+I/flutter ( 6021): - isWebSearch: false
+I/flutter ( 6021): - isOfflineMode: false
+I/flutter ( 6021): - isLocalModelActive: false
+I/flutter ( 6021): - isLocalModelSelected: false
+I/flutter ( 6021): - useWebSearch: false
+I/flutter ( 6021): Chat history before filtering:
+I/flutter ( 6021): [0] USER: yo...
+I/flutter ( 6021): [1] AI: Hello! How can I assist you today?...
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+I/flutter ( 6021): Getting meaningful history: 2 → 2 messages
+I/flutter ( 6021): First meaningful message: 'yo...'
+I/flutter ( 6021):
+I/flutter ( 6021): getStreamingResponse called with:
+I/flutter ( 6021): - prompt: summarise
+I/flutter ( 6021): - useWebSearch: false
+I/flutter ( 6021): - useLocalModel: false
+I/flutter ( 6021): - isOfflineMode: false
+I/flutter ( 6021): - history length: 2
+I/flutter ( 6021): Filtered chat history: 2 → 2 messages
+I/flutter ( 6021): - filtered history length: 2
+I/flutter ( 6021): Web search not requested or offline mode enabled
+I/flutter ( 6021): Using selected online model for generation: openai
+I/flutter ( 6021): Generation completed, cleaning up
+I/flutter ( 6021): Finally block in _submitMessage.
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+D/InputMethodManager( 6021): showSoftInput() view=io.flutter.embedding.android.FlutterView{f3e0ac2 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+W/WindowOnBackDispatcher( 6021): sendCancelIfRunning: isInProgress=falsecallback=io.flutter.embedding.android.FlutterActivity$1@7acb999
+D/InputMethodManager( 6021): showSoftInput() view=io.flutter.embedding.android.FlutterView{f3e0ac2 VFE...... .F...... 0,0-1080,2400 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/flutter ( 6021): 1. _submitMessage called.
+I/flutter ( 6021): 3. Loading started.
+I/flutter ( 6021): 4. User message added to chat.
+I/flutter ( 6021): Not in image mode.
+I/flutter ( 6021): Submitting message with:
+I/flutter ( 6021): - isWebSearch: false
+I/flutter ( 6021): - isOfflineMode: false
+I/flutter ( 6021): - isLocalModelActive: false
+I/flutter ( 6021): - isLocalModelSelected: false
+I/flutter ( 6021): - useWebSearch: false
+I/flutter ( 6021): Chat history before filtering:
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0
+I/flutter ( 6021):
+I/flutter ( 6021): getStreamingResponse called with:
+I/flutter ( 6021): - prompt: summarise
+I/flutter ( 6021): - useWebSearch: false
+I/flutter ( 6021): - useLocalModel: false
+I/flutter ( 6021): - isOfflineMode: false
+I/flutter ( 6021): - history length: 0
+I/flutter ( 6021): - filtered history length: 0
+I/flutter ( 6021): Web search not requested or offline mode enabled
+I/flutter ( 6021): Using selected online model for generation: openai
+I/flutter ( 6021): Generation completed, cleaning up
+I/flutter ( 6021): Error in _submitMessage: Null check operator used on a null value
+I/flutter ( 6021): Finally block in _submitMessage.
+I/flutter ( 6021): HomePage build - isOfflineMode: false
+I/flutter ( 6021): HomePage build - isLocalModelActive: false
+I/flutter ( 6021): HomePage build - isLocalModelSelected: false
+I/flutter ( 6021): HomePage build - availableModels: 0

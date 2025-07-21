@@ -32,6 +32,7 @@ import 'providers/service_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/selected_documents_provider.dart';
 import 'package:write4me/services/file_upload_service.dart';
+import 'package:collection/collection.dart'; // For firstWhereOrNull
 
 
 class HomePage extends ConsumerStatefulWidget {
@@ -45,7 +46,6 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage>
     with SingleTickerProviderStateMixin {
   final List<PDFMemory> _pdfMemories = [];
-  final List<ImageMemory> _imageMemories = [];
   final TextEditingController _controller = TextEditingController();
   late final ScrollController _scrollController;
   bool _isProcessingRAG = false; // New state variable
@@ -235,7 +235,15 @@ class _HomePageState extends ConsumerState<HomePage>
     if (pickedFile != null) {
       final imageFile = File(pickedFile.path);
       // Remove previous kontext image if any
-      _imageMemories.removeWhere((m) => m.extractedText == 'Image for kontext');
+      final chatNotifier = ref.read(chatProvider.notifier);
+      final chatState = ref.read(chatProvider);
+
+      final existingKontextImage = chatState.imageMemories.firstWhereOrNull(
+        (m) => m.extractedText == 'Image for kontext',
+      );
+      if (existingKontextImage != null) {
+        chatNotifier.removeImageMemory(existingKontextImage);
+      }
 
       // Create the memory object first
       final imageMemory = ImageMemory(
@@ -243,7 +251,7 @@ class _HomePageState extends ConsumerState<HomePage>
         'Image for kontext', // Special marker
         imageFile: imageFile,
       );
-      _addImageContent(imageMemory);
+      chatNotifier.addImageMemory(imageMemory);
 
       // Show notification that we are uploading
       if (mounted) {
@@ -261,9 +269,11 @@ class _HomePageState extends ConsumerState<HomePage>
         
         if (imageUrl != null) {
           // Update the memory object with the URL
-          setState(() {
-            imageMemory.imageUrl = imageUrl;
-          });
+          // Find the memory in the chat state and update it
+          final updatedImageMemory = imageMemory.copyWith(imageUrl: imageUrl);
+          chatNotifier.removeImageMemory(imageMemory);
+          chatNotifier.addImageMemory(updatedImageMemory);
+
           debugPrint('Uploaded image URL: $imageUrl');
           if (mounted) {
             NotificationService.showTopNotification(
@@ -285,14 +295,13 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         }
         // Remove the memory object if upload fails
-        setState(() {
-          _imageMemories.remove(imageMemory);
-        });
+        chatNotifier.removeImageMemory(imageMemory);
       }
 
     } else {
       // Only turn off image mode if no image is selected and no other images are present for vision.
-      final hasVisionImage = _imageMemories.any((m) => m.extractedText == 'Image for vision model');
+      final chatState = ref.read(chatProvider);
+      final hasVisionImage = chatState.imageMemories.any((m) => m.extractedText == 'Image for vision model');
       if (!hasVisionImage) {
         ref.read(uiStateProvider.notifier).setImageMode(false);
       }
@@ -356,14 +365,6 @@ class _HomePageState extends ConsumerState<HomePage>
     });
   }
 
-  void _addImageContent(ImageMemory memory) {
-    setState(() {
-      _imageMemories.add(memory);
-    });
-  }
-
-  
-
   Future<void> _processImageContent() async {
     final chatNotifier = ref.read(chatProvider.notifier);
     chatNotifier.setGenerating(true); // Set generating to true
@@ -375,7 +376,7 @@ class _HomePageState extends ConsumerState<HomePage>
         ImageMemory? imageMemory =
             await imageService.processImageContent(source);
         if (imageMemory != null) {
-          _addImageContent(imageMemory);
+          chatNotifier.addImageMemory(imageMemory); // Use chatNotifier
 
           if (!mounted) return;
 
@@ -415,7 +416,7 @@ class _HomePageState extends ConsumerState<HomePage>
         'Image for vision model',
         imageFile: imageFile,
       );
-      _addImageContent(imageMemory);
+      chatNotifier.addImageMemory(imageMemory);
 
       if (mounted) {
         NotificationService.showTopNotification(
@@ -438,20 +439,19 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  
-
   Future<void> _clearChat() async {
     final aiService = ref.read(aiServiceProvider);
     aiService.stopGeneration();
 
     final chatNotifier = ref.read(chatProvider.notifier);
     chatNotifier.clearMessages();
+    chatNotifier.clearImageMemories();
+    chatNotifier.setSelectedImage(null);
 
     ref.read(uiStateProvider.notifier).resetModes();
     _controller.clear();
     setState(() {
       _pdfMemories.clear();
-      _imageMemories.clear();
     });
 
     if (mounted) {
@@ -535,7 +535,7 @@ class _HomePageState extends ConsumerState<HomePage>
             onlineModelService.selectedImageModel.toLowerCase() == 'kontext';
         debugPrint("6. isKontext: $isKontext");
         ImageMemory? kontextImageMemory;
-        for (final m in _imageMemories) {
+        for (final m in chatState.imageMemories) {
           if (m.extractedText == 'Image for kontext') {
             kontextImageMemory = m;
             break;
@@ -605,9 +605,7 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         }
         if (isKontext) {
-          setState(() {
-            _imageMemories.remove(kontextImageMemory);
-          });
+          ref.read(chatProvider.notifier).removeImageMemory(kontextImageMemory!); // Use chatNotifier
         }
       } else {
         debugPrint("Not in image mode.");
@@ -663,7 +661,7 @@ class _HomePageState extends ConsumerState<HomePage>
           await aiService.getStreamingResponse(
             message,
             _pdfMemories,
-            _imageMemories,
+            chatState.imageMemories, // Pass imageMemories from chatState
             (response, done) {
               if (mounted) {
                 chatNotifier.updateLastMessage(response);
@@ -689,9 +687,10 @@ class _HomePageState extends ConsumerState<HomePage>
         }
         if (visionMessage != null) {
           chatNotifier.setSelectedImage(null);
-          setState(() {
-            _imageMemories.removeWhere((memory) => memory.extractedText == 'Image for vision model');
-          });
+          final visionImageMemory = chatState.imageMemories.firstWhereOrNull((memory) => memory.extractedText == 'Image for vision model');
+          if (visionImageMemory != null) {
+            chatNotifier.removeImageMemory(visionImageMemory);
+          }
         }
       }
     } catch (e) {
@@ -849,19 +848,19 @@ class _HomePageState extends ConsumerState<HomePage>
                           isOfflineMode: offlineModeState.isOfflineMode,
                         ),
                         DocumentListContainer(
-                          documents: [..._pdfMemories, ..._imageMemories],
+                          documents: [..._pdfMemories, ...chatState.imageMemories],
                           onSelectionChanged: () => setState(() {}),
                           onLongPress: _showPreview,
                           onRemove: (memory) {
                             final offlineModelService = ref.read(offlineModelServiceProvider);
                             offlineModelService.clearTruncationMessage();
-                            setState(() {
-                              if (memory is PDFMemory) {
+                            if (memory is PDFMemory) {
+                              setState(() {
                                 _pdfMemories.remove(memory);
-                              } else if (memory is ImageMemory) {
-                                _imageMemories.remove(memory);
-                              }
-                            });
+                              });
+                            } else if (memory is ImageMemory) {
+                              ref.read(chatProvider.notifier).removeImageMemory(memory);
+                            }
                           },
                         ),
                         ChatInput( // Moved ChatInput here
@@ -881,7 +880,7 @@ class _HomePageState extends ConsumerState<HomePage>
                               ref.read(uiStateProvider.notifier).toggleImageMode(),
                           onAddImageForKontext: _pickImageForKontext,
                           isWebSearchDisabled: _pdfMemories.isNotEmpty ||
-                              _imageMemories.isNotEmpty ||
+                              chatState.imageMemories.isNotEmpty ||
                               offlineModeState.isOfflineMode,
                           isOfflineMode: offlineModeState.isOfflineMode,
                         ),
@@ -928,9 +927,6 @@ class _HomePageState extends ConsumerState<HomePage>
   Future<void> _saveCurrentChat() async {
     final chatState = ref.read(chatProvider);
     if (chatState.messages.isEmpty) {
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(content: Text('No messages to save')),
-      // );
         MessageUtils.showInfo(context, 'No messages to save');
       return;
     }
@@ -939,11 +935,11 @@ class _HomePageState extends ConsumerState<HomePage>
     _loadSavedChats();
 
     if (mounted) {
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(content: Text('Chat saved successfully')),
-      // );
         MessageUtils.showInfo(context, 'Started new chat');
     }
+    
+    // Clear the chat after saving
+    await _clearChat();
   }
 
   Future<void> _deleteChat(String id) async {
