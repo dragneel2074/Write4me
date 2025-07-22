@@ -19,6 +19,8 @@ upload-keystore.jks
 write4me-keystore.jks
 output.txt
 logs.txt
+ARCHITECTURE.md
+MODELS.md
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
