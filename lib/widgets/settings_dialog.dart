@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:write4me/utils/message_utils.dart';
 import 'package:write4me/widgets/model_download_dialog.dart';
 import '../providers/theme_provider.dart';
@@ -153,9 +154,11 @@ class SettingsDialog extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.info),
               title: const Text('About'),
-              onTap: () {
-                Navigator.pop(context);
-                onShowInfo();
+              onTap: () async {
+                final Uri url = Uri.parse('https://github.com/dragneel2074/Write4me');
+                if (!await launchUrl(url)) {
+                  throw Exception('Could not launch $url');
+                }
               },
             ),
             
@@ -215,4 +218,4 @@ class SettingsDialog extends ConsumerWidget {
       ),
     );
   }
-} 
+}

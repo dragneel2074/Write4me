@@ -983,7 +983,7 @@ class _HomePageState extends ConsumerState<HomePage>
             TextField(
               controller: pollinationController,
               decoration: const InputDecoration(
-                labelText: 'Pollination API Key (Image Edit)',
+                labelText: 'Pollination API Key (Advanced LLMs & Image Edit)',
                 hintText: 'Enter Pollination API key',
                 border: OutlineInputBorder(),
               ),
