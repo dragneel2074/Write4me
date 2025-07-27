@@ -263,7 +263,7 @@ class DialogManager {
       ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      hoverColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+      hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
     );
   }
 }

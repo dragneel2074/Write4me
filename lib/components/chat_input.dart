@@ -43,7 +43,7 @@ class ChatInput extends ConsumerWidget {
         color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.05),
+            color: Theme.of(context).dividerColor.withValues(alpha:0.05),
           ),
         ),
       ),
@@ -165,7 +165,7 @@ class ChatInput extends ConsumerWidget {
             ? Theme.of(context).primaryColor
             : onPressed == null
                 ? Theme.of(context).disabledColor
-                : Theme.of(context).iconTheme.color?.withOpacity(0.7),
+                : Theme.of(context).iconTheme.color?.withValues(alpha:0.7),
       ),
       label: label != null
           ? Text(
@@ -176,7 +176,7 @@ class ChatInput extends ConsumerWidget {
                     ? Theme.of(context).primaryColor
                     : onPressed == null
                         ? Theme.of(context).disabledColor
-                        : Theme.of(context).iconTheme.color?.withOpacity(0.7),
+                        : Theme.of(context).iconTheme.color?.withValues(alpha:0.7),
               ),
             )
           : const SizedBox.shrink(),
