@@ -310,8 +310,8 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "5330251efc16b2631f13758f1462f729443b8d48"
-      url: "https://github.com/Telosnex/fllama.git"
+      resolved-ref: "15638c72c50d8aabcaed684fbed0ba2424cdbde0"
+      url: "https://github.com/dragneel2074/fllama.git"
     source: git
     version: "0.0.1"
   flutter:
