@@ -1,5 +1,5 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'dart:io';
 import '../models/pdf_memory.dart';

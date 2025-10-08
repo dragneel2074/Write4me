@@ -507,7 +507,7 @@ class OfflineModelService extends ChangeNotifier {
 
       await fllamaChat(
         request,
-        (response, done) {
+        (response, openaiResponseJsonString, done) {
           if (firstResponse && response.trim().isNotEmpty) {
             firstResponse = false;
           }
