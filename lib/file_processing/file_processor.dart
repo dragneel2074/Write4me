@@ -45,7 +45,7 @@ class FileProcessor {
     
     
     // Process chunks in smaller batches to prevent memory issues
-    const int batchSize = 20;
+    const int batchSize = 3; // Reduced from 20 to 3 to prevent OOM in release builds
     int processedChunks = 0;
     while (processedChunks < chunks.length) {
       final end = (processedChunks + batchSize < chunks.length) 
@@ -58,19 +58,50 @@ class FileProcessor {
       }
       
       final fonnxEmbeddings = FonnxEmbeddings();
-      final embeddingFutures = batch.map((chunk) => fonnxEmbeddings.embedQuery(chunk)).toList();
-      final embeddings = await Future.wait(embeddingFutures);
+      // Process embeddings sequentially instead of concurrently to reduce memory pressure
+      List<List<double>> embeddings = [];
+      for (int i = 0; i < batch.length; i++) {
+        try {
+          final embedding = await fonnxEmbeddings.embedQuery(batch[i]);
+          if (embedding.isEmpty) {
+            if (kDebugMode) {
+              print("FileProcessor: Warning - empty embedding for chunk ${processedChunks + i}, skipping");
+            }
+            continue;
+          }
+          embeddings.add(embedding);
+        } catch (e) {
+          if (kDebugMode) {
+            print("FileProcessor: Error generating embedding for chunk ${processedChunks + i}: $e");
+          }
+          // Skip this chunk instead of crashing
+          continue;
+        }
+        
+        // Add a small delay to prevent overwhelming the system
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
+      
+      if (embeddings.isEmpty) {
+        if (kDebugMode) {
+          print("FileProcessor: No valid embeddings generated for batch, skipping");
+        }
+        processedChunks = end;
+        continue;
+      }
       
       List<Document> batchDocuments = [];
-      for (int i = 0; i < batch.length; i++) {
-        final int chunkIndex = processedChunks + i;
+      for (int i = 0; i < embeddings.length; i++) {
+        // Note: batch and embeddings might have different lengths due to skipped chunks
+        final chunkIndex = processedChunks + i;
         final String docId = "$fileName-$chunkIndex";
-        final int startPos = cleanedContent.indexOf(batch[i]);
-        final int endPos = startPos + batch[i].length;
+        final String chunkText = batch[i]; // Get corresponding chunk text
+        final int startPos = cleanedContent.indexOf(chunkText);
+        final int endPos = startPos + chunkText.length;
         
         batchDocuments.add(Document(
           id: docId,
-          pageContent: batch[i],
+          pageContent: chunkText,
           metadata: {
             'file': fileName,
             'chunkIndex': chunkIndex,

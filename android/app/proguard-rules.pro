@@ -1,3 +1,15 @@
+# ONNX Runtime rules
+-keep class ai.onnxruntime.** { *; }
+-dontwarn ai.onnxruntime.**
+
+# Fonnx related rules
+-keep class com.telosnex.fonnx.** { *; }
+-dontwarn com.telosnex.fonnx.**
+
+# Keep MiniLM model classes
+-keep class * extends ai.onnxruntime.OrtSession { *; }
+-keep class * extends ai.onnxruntime.OnnxTensor { *; }
+
 # Suppress warnings for missing ML Kit Text Recognition classes
 -dontwarn com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions$Builder
 -dontwarn com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions

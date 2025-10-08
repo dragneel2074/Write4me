@@ -13,6 +13,7 @@ import 'components/chat_messages.dart';
 import 'components/document_list_container.dart';
 import 'models/chat_message.dart';
 import 'models/pdf_memory.dart';
+import 'embedding_generator.dart';
 import 'models/image_memory.dart';
 import 'services/image_generation_service.dart';
 
@@ -453,9 +454,12 @@ class _HomePageState extends ConsumerState<HomePage>
     setState(() {
       _pdfMemories.clear();
     });
+    
+    // Clean up ONNX model cache to free memory
+    EmbeddingGenerator.dispose();
 
     if (mounted) {
-        MessageUtils.showInfo(context, 'No messages to save');
+        MessageUtils.showInfo(context, 'Chat cleared and memory freed');
       // ScaffoldMessenger.of(context).showSnackBar(
       //   const SnackBar(content: Text('No messages to save')),
       // );

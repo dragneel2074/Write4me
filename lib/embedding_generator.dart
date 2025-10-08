@@ -7,6 +7,9 @@ import 'package:flutter/foundation.dart';
 
 /// A utility class to generate text embeddings using the MiniLmL6V2 model and fonnx package.
 class EmbeddingGenerator {
+  static MiniLmL6V2? _cachedModel;
+  static String? _cachedModelPath;
+  
   /// Generates an embedding for the given [text].
   ///
   /// Returns a [Future] that resolves to a list of doubles representing the embedding.
@@ -18,11 +21,41 @@ class EmbeddingGenerator {
     // Get the model file path, ensuring it's copied locally from assets if necessary.
     final modelPath = await getModelPath();
     if (kDebugMode) {
-      print("EmbeddingGenerator: Model loaded from: $modelPath");
+      print("EmbeddingGenerator: Model path: $modelPath");
     }
     
-    // Load the MiniLmL6V2 model.
-    final model = MiniLmL6V2.load(modelPath);
+    // Load or reuse the MiniLmL6V2 model.
+    MiniLmL6V2 model;
+    try {
+      if (_cachedModel != null && _cachedModelPath == modelPath) {
+        model = _cachedModel!;
+        if (kDebugMode) {
+          print("EmbeddingGenerator: Reusing cached model");
+        }
+      } else {
+        if (kDebugMode) {
+          print("EmbeddingGenerator: Loading new model from: $modelPath");
+        }
+        // Clear previous model if it exists
+        if (_cachedModel != null) {
+          _cachedModel = null;
+          if (kDebugMode) {
+            print("EmbeddingGenerator: Cleared previous cached model");
+          }
+        }
+        model = MiniLmL6V2.load(modelPath);
+        _cachedModel = model;
+        _cachedModelPath = modelPath;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("EmbeddingGenerator: Error loading model: $e");
+      }
+      // Clear cache on error and rethrow
+      _cachedModel = null;
+      _cachedModelPath = null;
+      rethrow;
+    }
     
     // Tokenize the input text.
     final tokens = MiniLmL6V2.tokenizer.tokenize(text).first.tokens;
@@ -38,6 +71,15 @@ class EmbeddingGenerator {
     }
     
     return embedding;
+  }
+
+  /// Dispose of the cached model to free memory
+  static void dispose() {
+    _cachedModel = null;
+    _cachedModelPath = null;
+    if (kDebugMode) {
+      print("EmbeddingGenerator: Model cache cleared");
+    }
   }
 
   /// Public method to get the model path

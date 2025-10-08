@@ -6,6 +6,7 @@
 
 #include "generated_plugin_registrant.h"
 
+#include <disk_space_2/disk_space_2_plugin.h>
 #include <file_selector_windows/file_selector_windows.h>
 #include <fonnx/fonnx_plugin_c_api.h>
 #include <gal/gal_plugin_c_api.h>
@@ -14,6 +15,8 @@
 #include <url_launcher_windows/url_launcher_windows.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
+  DiskSpace_2PluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("DiskSpace_2Plugin"));
   FileSelectorWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FileSelectorWindows"));
   FonnxPluginCApiRegisterWithRegistrar(

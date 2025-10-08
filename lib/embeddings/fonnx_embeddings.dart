@@ -17,16 +17,24 @@ class FonnxEmbeddings implements Embeddings {
       }
     }
     
-    final embedding = await EmbeddingGenerator.generateEmbedding(cleanedText);
-    
-    if (kDebugMode) {
-      print("FonnxEmbeddings: Generated query embedding with length: ${embedding.length}");
-      if (embedding.isNotEmpty) {
-        print("FonnxEmbeddings: First few values: [${embedding.take(3).map((e) => e.toStringAsFixed(4)).join(', ')}...]");
+    try {
+      final embedding = await EmbeddingGenerator.generateEmbedding(cleanedText);
+      
+      if (kDebugMode) {
+        print("FonnxEmbeddings: Generated query embedding with length: ${embedding.length}");
+        if (embedding.isNotEmpty) {
+          print("FonnxEmbeddings: First few values: [${embedding.take(3).map((e) => e.toStringAsFixed(4)).join(', ')}...]");
+        }
       }
+      
+      return embedding;
+    } catch (e) {
+      if (kDebugMode) {
+        print("FonnxEmbeddings: Error generating embedding: $e");
+      }
+      // Return empty embedding on error to prevent crashes
+      return [];
     }
-    
-    return embedding;
   }
 
   @override

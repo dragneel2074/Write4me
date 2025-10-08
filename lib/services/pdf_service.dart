@@ -96,12 +96,25 @@ class PDFService {
   }
 
   Future<String> _extractPDFContent(FilePickerResult result) async {
-    if (kIsWeb) {
-      return _extractTextFromPDFBytes(result.files.first.bytes!);
-    } else {
-      String? filePath = result.files.single.path;
-      return _extractTextFromPDF(filePath!);
+    // Prefer in-memory bytes when available to avoid SAF/file path issues on Android release
+    final pickedFile = result.files.first;
+    final bytes = pickedFile.bytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      if (kDebugMode) {
+        print("PDFService: Using in-memory bytes for PDF extraction (size: ${bytes.length})");
+      }
+      return _extractTextFromPDFBytes(bytes);
     }
+
+    // Fallback to file path when bytes are not provided
+    final String? filePath = pickedFile.path;
+    if (filePath == null || filePath.isEmpty) {
+      throw Exception("PDFService: No bytes or valid file path returned by FilePicker");
+    }
+    if (kDebugMode) {
+      print("PDFService: Using file path for PDF extraction: $filePath");
+    }
+    return _extractTextFromPDF(filePath);
   }
 
   Future<String> _extractTextFromPDF(String filePath) async {
