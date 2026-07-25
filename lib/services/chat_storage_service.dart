@@ -7,16 +7,20 @@ class ChatStorageService {
   late Box<SavedChat> _box;
 
   Future<void> init() async {
-    await Hive.initFlutter();
-    Hive.registerAdapter(SavedChatAdapter());
-    _box = await Hive.openBox<SavedChat>(_boxName);
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(SavedChatAdapter());
+    }
+    _box = Hive.isBoxOpen(_boxName)
+        ? Hive.box<SavedChat>(_boxName)
+        : await Hive.openBox<SavedChat>(_boxName);
   }
 
-  Future<void> saveChat(List<ChatMessage> messages) async {
-    if (messages.isEmpty) return;
-    
-    final savedChat = SavedChat.fromMessages(messages);
+  Future<SavedChat?> saveChat(List<ChatMessage> messages, {String? id}) async {
+    if (messages.isEmpty) return null;
+
+    final savedChat = SavedChat.fromMessages(messages, id: id);
     await _box.put(savedChat.id, savedChat);
+    return savedChat;
   }
 
   List<SavedChat> getAllChats() {
@@ -31,4 +35,4 @@ class ChatStorageService {
   SavedChat? getChat(String id) {
     return _box.get(id);
   }
-} 
+}

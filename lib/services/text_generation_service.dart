@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/chat_message.dart';
-import '../file_processing/file_processor.dart';
 
 import 'package:write4me/services/online_model_service.dart';
 
@@ -38,25 +37,30 @@ class TextGenerationService {
     // Determine which mode we're in
     final bool hasDocuments = context != null && context.isNotEmpty;
     final bool hasWebSearch = useWebSearch;
-    
+
     if (kDebugMode) {
-      print('TextGenerationService: Formatting prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : "Simple"}');
+      print(
+          'TextGenerationService: Formatting prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : "Simple"}');
     }
 
     // Choose appropriate prompt based on mode
     if (hasWebSearch) {
-      _buildWebSearchPrompt(formattedPrompt, prompt, history, cleanText, context ?? []);
+      _buildWebSearchPrompt(
+          formattedPrompt, prompt, history, cleanText, context ?? []);
     } else if (hasDocuments) {
-      _buildDocumentPrompt(formattedPrompt, prompt, context, history, cleanText);
+      _buildDocumentPrompt(
+          formattedPrompt, prompt, context, history, cleanText);
     } else {
-      _buildSimplePrompt(formattedPrompt, prompt, history, cleanText, context ?? []);
+      _buildSimplePrompt(
+          formattedPrompt, prompt, history, cleanText, context ?? []);
     }
 
     return formattedPrompt.toString();
   }
-  
+
   /// Builds a prompt for simple QA mode (no documents, no web search)
-  void _buildSimplePrompt(StringBuffer buffer, String prompt, List<ChatMessage> history, Function cleanText, List<String> context) {
+  void _buildSimplePrompt(StringBuffer buffer, String prompt,
+      List<ChatMessage> history, Function cleanText, List<String> context) {
     // Add conversation history for simple queries
     if (history.isNotEmpty) {
       buffer.writeln('Previous conversation:');
@@ -83,16 +87,17 @@ class TextGenerationService {
     // Add the current query
     buffer.write(prompt);
   }
-  
+
   /// Builds a prompt for document QA mode
-  void _buildDocumentPrompt(StringBuffer buffer, String prompt, List<String> context, List<ChatMessage> history, Function cleanText) {
+  void _buildDocumentPrompt(StringBuffer buffer, String prompt,
+      List<String> context, List<ChatMessage> history, Function cleanText) {
     // For documents, we focus more on the context than conversation history
-    
+
     // Enhanced formatting for multiple context chunks
     if (kDebugMode) {
       print('Formatting ${context.length} context chunks for API request');
     }
-    
+
     buffer.write('''
 Query: Answer based on the context about: 
 $prompt
@@ -102,11 +107,11 @@ Context (${context.length} relevant passages):
 
     // Add each context chunk with clear separators
     for (int i = 0; i < context.length; i++) {
-      buffer.writeln('----- PASSAGE ${i+1}/${context.length} -----');
+      buffer.writeln('----- PASSAGE ${i + 1}/${context.length} -----');
       buffer.writeln(context[i]);
       buffer.writeln('-----------------------------');
     }
-    
+
     // Add limited history for document queries if available
     if (history.isNotEmpty) {
       buffer.writeln('\nPrevious relevant conversation:');
@@ -116,13 +121,15 @@ Context (${context.length} relevant passages):
       }
     }
   }
-  
+
   /// Builds a prompt for web search QA mode
-  void _buildWebSearchPrompt(StringBuffer buffer, String prompt, List<ChatMessage> history, Function cleanText, List<String> context) {
+  void _buildWebSearchPrompt(StringBuffer buffer, String prompt,
+      List<ChatMessage> history, Function cleanText, List<String> context) {
     // For web search, we focus entirely on the current query
     // History is typically not included for web search to keep the prompt clean
-    
-    buffer.write('Search the internet and provide accurate information about: $prompt');
+
+    buffer.write(
+        'Search the internet and provide accurate information about: $prompt');
 
     // Add document context if available
     if (context.isNotEmpty) {
@@ -133,7 +140,7 @@ Context (${context.length} relevant passages):
       }
       buffer.writeln('---');
     }
-    
+
     // We could add limited history here if needed in the future
   }
 
@@ -145,8 +152,9 @@ Context (${context.length} relevant passages):
 
     try {
       final now = DateTime.now();
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      
+      final dateStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final enhancedQuery = '''$query $dateStr''';
       debugPrint(enhancedQuery);
 
@@ -186,13 +194,20 @@ Context (${context.length} relevant passages):
       // The context is now directly passed from AIService
 
       if (visionMessage != null) {
+        final config = _onlineModelService.activeProviderConfig;
+        final key = await _onlineModelService
+            .getApiKey(_onlineModelService.activeProvider);
+        if (key == null || key.isEmpty) {
+          throw MissingApiKeyException(config.label);
+        }
 
         final response = await _dio.post(
-          'https://text.pollinations.ai/openai',
+          config.chatUrl,
           data: visionMessage,
           options: Options(
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': 'Bearer $key',
             },
           ),
         );
@@ -200,7 +215,8 @@ Context (${context.length} relevant passages):
         if (response.statusCode == 200) {
           onResponse(response.data['choices'][0]['message']['content'], true);
         } else {
-          throw HttpException('Failed to generate text: ${response.statusCode}');
+          throw HttpException(
+              'Failed to generate text: ${response.statusCode}');
         }
         return;
       }
@@ -208,21 +224,20 @@ Context (${context.length} relevant passages):
       if (useWebSearch) {
         // Show searching status
         onResponse('Searching the web...', false);
-        
+
         try {
           debugPrint('prompt in generateText: $prompt');
           final searchResults = await searchWithJina(prompt);
-          
+
           // Show search complete status
           onResponse('Search results found. Generating response...', false);
-          
+
           debugPrint('Jina search results: $searchResults');
-          
+
           // Generate response with search results
-   // Use provided model or default
-          const system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
-          
-          
+          // Use provided model or default
+          const system =
+              'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
 
           final formattedPrompt = '''
 Search Results:
@@ -231,23 +246,8 @@ $searchResults
 Based on these search results, please answer:
 $prompt
 ''';
-          final url = await _buildUrl(formattedPrompt, model!, system, _onlineModelService.selectedOnlineModel?.tier);
-          
-          final response = await _dio.get(
-            url.toString(),
-            options: Options(
-              responseType: ResponseType.plain,
-              sendTimeout: const Duration(seconds: 30),
-              receiveTimeout: const Duration(seconds: 30),
-            ),
-          );
-
-          if (response.statusCode == 200) {
-            onResponse(response.data.toString(), true);
-          } else {
-            throw HttpException('Failed to generate text: ${response.statusCode}');
-          }
-          
+          final text = await _chatCompletion(system, formattedPrompt, model!);
+          onResponse(text, true);
         } catch (e) {
           debugPrint('Error during web search or response generation: $e');
           rethrow;
@@ -277,12 +277,17 @@ $prompt
       return 'Request took too long. Please try again.';
     } else if (error is HttpException) {
       return 'Temporary service issue. Please try again in a moment.';
+    } else if (error is MissingApiKeyException) {
+      return 'No API key for ${error.providerLabel}. Add it in Settings.';
+    } else if (error is DioException &&
+        (error.response?.statusCode == 401 ||
+            error.response?.statusCode == 403)) {
+      return 'Invalid or unauthorized API key. Check your key in Settings.';
     } else if (error.toString().contains('Jina API key')) {
       return 'API key missing. Please add your Jina API key in settings.';
     }
     return 'Oops! Something went wrong. Please try again.';
   }
-
 
   Future<String> generateText(
     String prompt, {
@@ -305,16 +310,25 @@ $prompt
         }
       }
 
-      final selectedModel = model ?? 'gpt-4o-mini'; // Use provided model or default
-      
+      final selectedModel =
+          model ?? _onlineModelService.selectedOnlineModel?.name;
+      if (selectedModel == null || selectedModel.isEmpty) {
+        throw Exception(
+            'No text model selected for ${_onlineModelService.activeProviderConfig.label}');
+      }
+
       // Customize system prompts based on the mode
       final String system;
       if (useWebSearch) {
-        system = 'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
-      } else if (context.isNotEmpty) { // Changed condition to check context.isNotEmpty
-        system = 'You are Aura, a helpful AI assistant who answers concisely based on the provided context documents. Be sure to consider ALL provided context passages before answering.';
+        system =
+            'You are Aura, a helpful AI assistant. Use the provided search results to answer the question accurately. First look for latest date and when answering mention the date if available.';
+      } else if (context.isNotEmpty) {
+        // Changed condition to check context.isNotEmpty
+        system =
+            'You are Aura, a helpful AI assistant who answers concisely based on the provided context documents. Be sure to consider ALL provided context passages before answering.';
       } else {
-        system = 'You are Aura, a helpful AI assistant who answers questions based on knowledge and provided conversation history. Be concise but thorough in your responses.';
+        system =
+            'You are Aura, a helpful AI assistant who answers questions based on knowledge and provided conversation history. Be concise but thorough in your responses.';
       }
 
       // Format prompt with search results if available
@@ -326,116 +340,83 @@ $searchResults
 Based on these search results, please answer:
 $prompt
 '''
-          : _formatPrompt(prompt, context, useWebSearch, history); // Pass context directly
+          : _formatPrompt(prompt, context, useWebSearch, const []);
 
-      if (kDebugMode) {        print("Original prompt length: \${formattedPrompt.length} characters");        debugPrint('--- FULL PROMPT (ONLINE ---\n$formattedPrompt\n--------------------------');      }
-      
-      final url = await _buildUrl(formattedPrompt, selectedModel, system, _onlineModelService.selectedOnlineModel?.tier);
-      debugPrint('url: $url');
-      final response = await _dio.get(
-        url.toString(),
-        options: Options(
-          responseType: ResponseType.plain,
-          sendTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
-        ),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => throw TimeoutException('Request timed out'),
-      );
-
-      if (response.statusCode == 200) {
-        return response.data.toString();
-      } else {
-        throw HttpException('Failed to generate text: ${response.statusCode}');
+      if (kDebugMode) {
+        print("Original prompt length: \${formattedPrompt.length} characters");
+        debugPrint(
+            '--- FULL PROMPT (ONLINE ---\n$formattedPrompt\n--------------------------');
       }
+
+      return await _chatCompletion(
+        system,
+        formattedPrompt,
+        selectedModel,
+        history: history,
+      );
     } catch (e) {
       debugPrint('Error generating text: $e');
       rethrow;
     }
   }
 
-  Future<Uri> _buildUrl(String prompt, String model, String system, String? modelTier) async {
-    // Clean prompt before encoding to remove problematic characters
-    if (kDebugMode) {
-      print('\n========== URL GENERATION DETAILS ==========');
-      print('Original prompt length: ${prompt.length}');
-      // Show a preview of the prompt
-      final previewLength = prompt.length > 50 ? 50 : prompt.length;
-      print('Original prompt preview: ${prompt.substring(0, previewLength)}...');
-    }
-    
-    final cleanedPrompt = _sanitizeTextForUrl(prompt);
-    final encodedPrompt = Uri.encodeComponent(cleanedPrompt);
-    
-    String urlString = '$baseUrl$encodedPrompt?model=$model&system=$system';
+  /// Unified OpenAI-compatible chat completion against the active provider
+  /// (Pollinations / Google / OpenRouter). Non-streaming: returns the full text.
+  Future<String> _chatCompletion(
+      String system, String userContent, String model,
+      {List<ChatMessage> history = const []}) async {
+    final provider = _onlineModelService.activeProvider;
+    final config = _onlineModelService.activeProviderConfig;
+    final key = await _onlineModelService.getApiKey(provider);
 
-    // Conditionally add token for "seed" tier models
-    if (modelTier == 'seed') {
-      final token = await getPollinationApiKey();
-      if (token.isNotEmpty) {
-        urlString += '&token=$token';
-      }
+    if (key == null || key.isEmpty) {
+      throw MissingApiKeyException(config.label);
     }
 
-    final url = Uri.parse(urlString);
-    
-    if (kDebugMode) {
-      print('Final URL length: ${url.toString().length}');
-      print('URL preview: ${url.toString().substring(0, url.toString().length > 100 ? 100 : url.toString().length)}...');
-      print('===========================================\n');
+    final response = await _dio
+        .post(
+          config.chatUrl,
+          data: {
+            'model': model,
+            'max_tokens': 384,
+            'messages': [
+              {'role': 'system', 'content': system},
+              ..._recentHistory(history).map((message) => {
+                    'role': message.isUser ? 'user' : 'assistant',
+                    'content': message.content,
+                  }),
+              {'role': 'user', 'content': userContent},
+            ],
+          },
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $key',
+            },
+            sendTimeout: const Duration(seconds: 60),
+            receiveTimeout: const Duration(seconds: 60),
+          ),
+        )
+        .timeout(
+          const Duration(seconds: 60),
+          onTimeout: () => throw TimeoutException('Request timed out'),
+        );
+
+    if (response.statusCode == 200) {
+      final content = response.data['choices']?[0]?['message']?['content'];
+      if (content is String) return content;
+      throw HttpException('Unexpected response from ${config.label}');
+    } else {
+      throw HttpException('Failed to generate text: ${response.statusCode}');
     }
-    
-    return url;
   }
-  
-  // Private method to sanitize text before URL encoding
-  String _sanitizeTextForUrl(String text) {
-    if (text.isEmpty) return text;
-    
-    if (kDebugMode) {
-      print('TextGenerationService: Sanitizing prompt text of length ${text.length} for API request');
-      // Print a small sample of the text before cleaning
-      final previewLength = text.length > 100 ? 100 : text.length;
-      print('TextGenerationService: First $previewLength chars before cleaning: ${text.substring(0, previewLength)}');
-    }
-    
-    // Import the cleaning function if not already imported
-    try {
-      // Try to use the FileProcessor's method if available
-      final cleanedText = FileProcessor.cleanTextForApiSubmission(text);
-      
-      if (kDebugMode) {
-        print('TextGenerationService: Text cleaned for API submission, new length: ${cleanedText.length}');
-        if (cleanedText.length != text.length) {
-          print('TextGenerationService: Text length changed during cleaning (${text.length} -> ${cleanedText.length})');
-        }
-      }
-      
-      return cleanedText;
-    } catch (e) {
-      // Fallback implementation if the FileProcessor method is not available
-      if (kDebugMode) {
-        print('TextGenerationService: Using fallback text cleaning method: $e');
-      }
-      
-      // Remove problematic sequences like $1, $2, etc.
-      String cleaned = text.replaceAll(RegExp(r'\$\d+'), '');
-      
-      // Strip non-printable ASCII characters
-      cleaned = cleaned.replaceAll(RegExp(r'[^\x20-\x7E\n\r]'), '');
-      
-      // Normalize whitespace
-      cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
-      
-      if (kDebugMode && cleaned.length != text.length) {
-        if (kDebugMode) {
-          print('TextGenerationService: Text length changed during fallback cleaning (${text.length} -> ${cleaned.length})');
-        }
-      }
-      
-      return cleaned;
-    }
+
+  List<ChatMessage> _recentHistory(List<ChatMessage> history) {
+    final meaningful =
+        history.where((message) => message.content.trim().isNotEmpty).toList();
+    return meaningful.length <= 12
+        ? meaningful
+        : meaningful.sublist(meaningful.length - 12);
   }
 
   Future<String> getJinaApiKey() async {
@@ -451,4 +432,12 @@ $prompt
   void dispose() {
     _dio.close();
   }
+}
+
+/// Thrown when the active online provider has no API key configured.
+class MissingApiKeyException implements Exception {
+  final String providerLabel;
+  MissingApiKeyException(this.providerLabel);
+  @override
+  String toString() => 'Missing API key for $providerLabel';
 }

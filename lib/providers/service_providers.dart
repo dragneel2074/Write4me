@@ -10,28 +10,37 @@ import 'service_provider.dart' as legacy_providers;
 // Import offline_mode_provider.dart to re-export its provider
 
 // Re-export providers from service_provider to make migration easier
-export 'service_provider.dart' show offlineModelServiceProvider, offlineModelInitProvider, initializedOfflineModelProvider;
+export 'service_provider.dart'
+    show
+        offlineModelServiceProvider,
+        offlineModelInitProvider,
+        initializedOfflineModelProvider;
 // Re-export offlineModeProvider
 export 'offline_mode_provider.dart' show offlineModeProvider;
 
 /// Provider for TextGenerationService
-final textGenerationServiceProvider = legacy_providers.textGenerationServiceProvider;
+final textGenerationServiceProvider =
+    legacy_providers.textGenerationServiceProvider;
 
 /// Provider for AIService that depends on TextGenerationService and OfflineModelService
 final aiServiceProvider = ChangeNotifierProvider<AIService>((ref) {
-  final textGenService = ref.read(legacy_providers.textGenerationServiceProvider);
+  final textGenService =
+      ref.read(legacy_providers.textGenerationServiceProvider);
   // Important: Use the same offlineModelService instance that's used by offlineModeProvider
-  final offlineModelService = ref.read(legacy_providers.offlineModelServiceProvider);
+  final offlineModelService =
+      ref.read(legacy_providers.offlineModelServiceProvider);
   final fileProcessor = ref.read(fileProcessorProvider);
   final onlineModelService = ref.read(onlineModelServiceProvider);
-  
-  return AIService(textGenService, offlineModelService, fileProcessor, onlineModelService);
+
+  return AIService(
+      textGenService, offlineModelService, fileProcessor, onlineModelService);
 });
 
 /// Provider for PDFService that depends on FileProcessor
 final pdfServiceProvider = Provider<PDFService>((ref) {
   final fileProcessor = ref.read(fileProcessorProvider);
-  final offlineModelService = ref.read(legacy_providers.offlineModelServiceProvider);
+  final offlineModelService =
+      ref.read(legacy_providers.offlineModelServiceProvider);
   return PDFService(fileProcessor, offlineModelService);
 });
 
@@ -42,9 +51,10 @@ final imageServiceProvider = Provider<ImageService>((ref) {
 });
 
 /// Provider for OnlineModelService
-final onlineModelServiceProvider = ChangeNotifierProvider<OnlineModelService>((ref) {
+final onlineModelServiceProvider =
+    ChangeNotifierProvider<OnlineModelService>((ref) {
   final service = OnlineModelService();
-  // Fetch models when the service is initialized
-  service.fetchModels();
+  // Restore only the provider. Model catalogs are loaded explicitly by the user.
+  service.loadActiveProvider();
   return service;
-}); 
+});

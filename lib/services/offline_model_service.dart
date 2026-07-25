@@ -9,7 +9,10 @@ import 'package:http/http.dart' as http;
 import 'package:write4me/models/chat_message.dart';
 import 'package:write4me/models/model_parameters.dart';
 import 'package:write4me/utils/exceptions.dart';
-import 'package:fllama/fllama.dart';
+import 'package:llama_flutter_android/llama_flutter_android.dart'
+    hide ChatMessage;
+import 'package:llama_flutter_android/llama_flutter_android.dart' as llama
+    show ChatMessage;
 
 class CancelException implements Exception {
   final String message;
@@ -47,6 +50,87 @@ class CancelableCompleter {
 
 class OfflineModelService extends ChangeNotifier {
   CancelableCompleter? _downloadCancel;
+
+  // Local LLM engine (llama_flutter_android). Unlike fllama's stateless
+  // per-call inference, LlamaController is stateful: load the model once,
+  // then stream generations. We reload only when the selected model changes.
+  LlamaController? _llama;
+  String? _loadedModelPath;
+  int? _loadedContextSize;
+  int? _loadedGpuLayers;
+  Timer? _autoUnloadTimer;
+
+  Future<LlamaController> _ensureModelLoaded(
+      String path, int contextSize, int gpuLayers) async {
+    _autoUnloadTimer?.cancel();
+    if (_llama != null &&
+        _loadedModelPath == path &&
+        _loadedContextSize == contextSize &&
+        _loadedGpuLayers == gpuLayers) {
+      return _llama!;
+    }
+    // Model changed (or first use): tear down any previous context first.
+    if (_llama != null) {
+      await _llama!.dispose();
+      _llama = null;
+      _loadedModelPath = null;
+      _loadedContextSize = null;
+      _loadedGpuLayers = null;
+    }
+    final controller = LlamaController();
+    await controller.loadModel(
+      modelPath: path,
+      contextSize: contextSize,
+      gpuLayers: gpuLayers,
+    );
+    _llama = controller;
+    _loadedModelPath = path;
+    _loadedContextSize = contextSize;
+    _loadedGpuLayers = gpuLayers;
+    return controller;
+  }
+
+  /// Interrupt an in-progress on-device generation. The active `generate()`
+  /// stream terminates, ending the `await for` in [generateStreamingResponse].
+  Future<void> stopGeneration() async {
+    await _llama?.stop();
+  }
+
+  Future<void> unloadModel() async {
+    _autoUnloadTimer?.cancel();
+    _autoUnloadTimer = null;
+    final controller = _llama;
+    _llama = null;
+    _loadedModelPath = null;
+    _loadedContextSize = null;
+    _loadedGpuLayers = null;
+    if (controller != null) {
+      await controller.stop();
+      await controller.dispose();
+      debugPrint('Local model unloaded from memory');
+      notifyListeners();
+    }
+  }
+
+  void _scheduleAutoUnload(int seconds) {
+    _autoUnloadTimer?.cancel();
+    if (seconds <= 0 || _llama == null) return;
+    _autoUnloadTimer = Timer(
+      Duration(seconds: seconds),
+      () => unawaited(unloadModel()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _autoUnloadTimer?.cancel();
+    _llama?.dispose();
+    _llama = null;
+    _loadedModelPath = null;
+    _loadedContextSize = null;
+    _loadedGpuLayers = null;
+    super.dispose();
+  }
 
   static const String _selectedModelKey = 'selected_model';
   static const String _isOfflineModeKey = 'is_offline_mode';
@@ -126,6 +210,9 @@ class OfflineModelService extends ChangeNotifier {
 
   Future<void> setIsLocalModelActive(bool value) async {
     if (value && _availableModels.isEmpty) {
+      await _checkAvailableModels();
+    }
+    if (value && _availableModels.isEmpty) {
       throw Exception('No local models available');
     }
     final prefs = await SharedPreferences.getInstance();
@@ -187,8 +274,8 @@ class OfflineModelService extends ChangeNotifier {
     final String? paramsJsonString = prefs.getString(_modelParametersKey);
     if (paramsJsonString != null) {
       final Map<String, dynamic> decodedMap = json.decode(paramsJsonString);
-      _modelParameters = decodedMap.map((key, value) =>
-          MapEntry(key, ModelParameters.fromJson(value as Map<String, dynamic>)));
+      _modelParameters = decodedMap.map((key, value) => MapEntry(
+          key, ModelParameters.fromJson(value as Map<String, dynamic>)));
       debugPrint('Loaded model parameters: $_modelParameters');
     } else {
       _modelParameters = {};
@@ -198,15 +285,40 @@ class OfflineModelService extends ChangeNotifier {
 
   Future<void> _saveModelParameters() async {
     final prefs = await SharedPreferences.getInstance();
-    final String encodedMap = json.encode(_modelParameters.map((key, value) => MapEntry(key, value.toJson())));
+    final String encodedMap = json.encode(
+        _modelParameters.map((key, value) => MapEntry(key, value.toJson())));
     await prefs.setString(_modelParametersKey, encodedMap);
     debugPrint('Saved model parameters: $_modelParameters');
   }
 
-  Future<void> setModelParameters(String modelPath, ModelParameters params) async {
+  Future<void> setModelParameters(
+      String modelPath, ModelParameters params) async {
     _modelParameters[modelPath] = params;
     await _saveModelParameters();
     notifyListeners();
+  }
+
+  Future<File> importModel(String sourcePath) async {
+    final source = File(sourcePath);
+    if (!sourcePath.toLowerCase().endsWith('.gguf')) {
+      throw Exception('Please choose a .gguf model file');
+    }
+    if (!await source.exists()) {
+      throw Exception('The selected model file is unavailable');
+    }
+
+    final directory = await getApplicationDocumentsDirectory();
+    final fileName = source.path.split(RegExp(r'[/\\]')).last;
+    final destination =
+        File('${directory.path}${Platform.pathSeparator}$fileName');
+    if (await destination.exists()) {
+      throw Exception('A model named $fileName is already imported');
+    }
+
+    await source.copy(destination.path);
+    await _checkAvailableModels();
+    await setSelectedModel(destination.path);
+    return destination;
   }
 
   Future<void> downloadModel(
@@ -395,7 +507,8 @@ class OfflineModelService extends ChangeNotifier {
     List<String>? context,
     String? searchResults,
   }) async {
-    final modelParameters = _modelParameters[_selectedModelPath] ?? const ModelParameters();
+    final modelParameters =
+        _modelParameters[_selectedModelPath] ?? const ModelParameters();
 
     if (_selectedModelPath.isEmpty) {
       throw Exception('No model selected');
@@ -407,116 +520,150 @@ class OfflineModelService extends ChangeNotifier {
     }
 
     try {
-      bool firstResponse = true;
-      final messages = <Message>[];
-
       final fullPrompt = StringBuffer();
 
       final bool hasDocuments = context != null && context.isNotEmpty;
       final bool hasWebSearch = searchResults != null;
-      final bool hasImages = context != null && context.any((element) => element.startsWith("From: Image:"));
+      final bool hasImages = context != null &&
+          context.any((element) => element.startsWith("From: Image:"));
 
       // Estimate tokens for system prompt and chat history
       int basePromptTokens = 0;
       // Add system prompt tokens (approximate)
       if (hasWebSearch) {
-        basePromptTokens += _estimateTokens('You are a research assistant helping with questions using web search results.');
+        basePromptTokens += _estimateTokens(
+            'You are a research assistant helping with questions using web search results.');
         basePromptTokens += _estimateTokens('WEB SEARCH RESULTS:');
         basePromptTokens += _estimateTokens(searchResults);
         basePromptTokens += _estimateTokens('QUESTION: $prompt');
         basePromptTokens += _estimateTokens('INSTRUCTIONS:');
-        basePromptTokens += _estimateTokens('1. Use the web search results to provide an up-to-date answer');
-        basePromptTokens += _estimateTokens('2. Synthesize information from multiple sources when possible');
-        basePromptTokens += _estimateTokens('4. If search results don\'t contain the answer, acknowledge the limitations');
+        basePromptTokens += _estimateTokens(
+            '1. Use the web search results to provide an up-to-date answer');
+        basePromptTokens += _estimateTokens(
+            '2. Synthesize information from multiple sources when possible');
+        basePromptTokens += _estimateTokens(
+            '4. If search results don\'t contain the answer, acknowledge the limitations');
         basePromptTokens += _estimateTokens('ANSWER:');
       } else if (hasDocuments) {
-        basePromptTokens += _estimateTokens('You are a document assistant analyzing and answering questions based on specific information.');
+        basePromptTokens += _estimateTokens(
+            'You are a document assistant analyzing and answering questions based on specific information.');
         basePromptTokens += _estimateTokens('DOCUMENT CONTEXT:');
         basePromptTokens += _estimateTokens('QUESTION: $prompt');
         basePromptTokens += _estimateTokens('INSTRUCTIONS:');
-        basePromptTokens += _estimateTokens('1. Answer based ONLY on the provided document context above');
-        basePromptTokens += _estimateTokens('2. Be concise but thorough in your response');
+        basePromptTokens += _estimateTokens(
+            '1. Answer based ONLY on the provided document context above');
+        basePromptTokens +=
+            _estimateTokens('2. Be concise but thorough in your response');
         basePromptTokens += _estimateTokens('ANSWER:');
       } else if (hasImages) {
-        basePromptTokens += _estimateTokens('You are an image analysis assistant. Analyze the provided image content and answer questions based on it.');
+        basePromptTokens += _estimateTokens(
+            'You are an image analysis assistant. Analyze the provided image content and answer questions based on it.');
         basePromptTokens += _estimateTokens('IMAGE CONTEXT:');
         basePromptTokens += _estimateTokens('QUESTION: $prompt');
         basePromptTokens += _estimateTokens('INSTRUCTIONS:');
-        basePromptTokens += _estimateTokens('1. Answer based ONLY on the provided image context above');
-        basePromptTokens += _estimateTokens('2. Be concise but thorough in your response');
+        basePromptTokens += _estimateTokens(
+            '1. Answer based ONLY on the provided image context above');
+        basePromptTokens +=
+            _estimateTokens('2. Be concise but thorough in your response');
         basePromptTokens += _estimateTokens('ANSWER:');
       } else {
-        basePromptTokens += _estimateTokens('You are a helpful AI assistant. Answer the user\'s question below.');
+        basePromptTokens += _estimateTokens(
+            'You are a helpful AI assistant. Answer the user\'s question below.');
         basePromptTokens += _estimateTokens('QUESTION: $prompt');
         basePromptTokens += _estimateTokens('ANSWER:');
       }
 
       // Add history tokens
-      final recentHistory = history.length > 6 ? history.sublist(history.length - 6) : history;
+      final meaningfulHistory = history
+          .where((message) => message.content.trim().isNotEmpty)
+          .toList();
+      final recentHistory = meaningfulHistory.length > 12
+          ? meaningfulHistory.sublist(meaningfulHistory.length - 12)
+          : meaningfulHistory;
       for (final msg in recentHistory) {
         basePromptTokens += _estimateTokens(msg.content);
       }
 
       // Calculate remaining tokens for context
-      final int remainingTokensForContext = modelParameters.contextSize - basePromptTokens;
+      final int remainingTokensForContext =
+          modelParameters.contextSize - basePromptTokens;
       if (remainingTokensForContext <= 0) {
-        setTruncationMessage('Context too large. Please reduce the amount of selected documents or chat history.');
+        setTruncationMessage(
+            'Context too large. Please reduce the amount of selected documents or chat history.');
         return;
       }
 
       if (kDebugMode) {
         debugPrint(
             'Generating prompt for mode: ${hasWebSearch ? "Web" : hasDocuments ? "Document" : hasImages ? "Image" : "Simple"}');
-        debugPrint('Estimated base prompt tokens (excluding RAG context): $basePromptTokens');
-        debugPrint('Remaining tokens for RAG context: $remainingTokensForContext');
+        debugPrint(
+            'Estimated base prompt tokens (excluding RAG context): $basePromptTokens');
+        debugPrint(
+            'Remaining tokens for RAG context: $remainingTokensForContext');
       }
 
       if (hasWebSearch) {
-        _buildWebSearchPrompt(fullPrompt, prompt, searchResults, context ?? [], remainingTokensForContext);
+        _buildWebSearchPrompt(fullPrompt, prompt, searchResults, context ?? [],
+            remainingTokensForContext);
       } else if (hasDocuments) {
-        _buildDocumentPrompt(fullPrompt, prompt, context, remainingTokensForContext);
+        _buildDocumentPrompt(
+            fullPrompt, prompt, context, remainingTokensForContext);
       } else if (hasImages) {
-        _buildImagePrompt(fullPrompt, prompt, context, remainingTokensForContext);
+        _buildImagePrompt(
+            fullPrompt, prompt, context, remainingTokensForContext);
       } else {
         _buildSimplePrompt(fullPrompt, prompt, context ?? []);
       }
 
-      final truncatedPrompt = _truncateFullPrompt(fullPrompt.toString(), modelParameters.contextSize);
-      debugPrint('--- FULL PROMPT (OFFLINE) ---\n$truncatedPrompt\n--------------------------');
-      messages.add(Message(Role.user, truncatedPrompt));
+      final truncatedPrompt = _truncateFullPrompt(
+          fullPrompt.toString(), modelParameters.contextSize);
+      debugPrint(
+          '--- FULL PROMPT (OFFLINE) ---\n$truncatedPrompt\n--------------------------');
 
-      for (final msg in recentHistory) {
-        messages.add(Message(
-          msg.isUser ? Role.user : Role.assistant,
-          msg.content,
-        ));
-      }
+      final controller = await _ensureModelLoaded(
+        _selectedModelPath,
+        modelParameters.contextSize,
+        modelParameters.numGpuLayers,
+      );
 
-      final request = OpenAiRequest(
+      final chatMessages = <llama.ChatMessage>[
+        llama.ChatMessage(
+          role: 'system',
+          content:
+              'You are Write4Me, a concise writing assistant. Answer the latest request directly. Do not repeat yourself or continue after the answer is complete.',
+        ),
+        ...recentHistory.map(
+          (message) => llama.ChatMessage(
+            role: message.isUser ? 'user' : 'assistant',
+            content: message.content,
+          ),
+        ),
+        llama.ChatMessage(role: 'user', content: truncatedPrompt),
+      ];
+
+      // llama_flutter_android streams token *deltas*; the existing onResponse
+      // contract expects *cumulative* text (like fllama). Accumulate here.
+      final buffer = StringBuffer();
+      await for (final delta in controller.generateChat(
+        messages: chatMessages,
         maxTokens: modelParameters.maxTokens,
-        messages: messages,
-        numGpuLayers: modelParameters.numGpuLayers,
-        modelPath: _selectedModelPath,
+        temperature: modelParameters.temperature,
+        topP: modelParameters.topP,
+        topK: modelParameters.topK,
+        minP: modelParameters.minP,
+        repeatPenalty: modelParameters.repeatPenalty,
         frequencyPenalty: modelParameters.frequencyPenalty,
         presencePenalty: modelParameters.presencePenalty,
-        topP: modelParameters.topP,
-        contextSize: modelParameters.contextSize,
-        temperature: modelParameters.temperature,
-        logger: (log) => debugPrint('[llama.cpp] $log'),
-      );
-
-      await fllamaChat(
-        request,
-        (response, openaiResponseJsonString, done) {
-          if (firstResponse && response.trim().isNotEmpty) {
-            firstResponse = false;
-          }
-          onResponse(response, done);
-        },
-      );
+      )) {
+        buffer.write(delta);
+        onResponse(buffer.toString(), false);
+      }
+      onResponse(buffer.toString(), true);
     } catch (e) {
       debugPrint('Error generating response: $e');
       rethrow;
+    } finally {
+      _scheduleAutoUnload(modelParameters.autoUnloadSeconds);
     }
   }
 
@@ -526,6 +673,14 @@ class OfflineModelService extends ChangeNotifier {
 
     try {
       if (await file.exists()) {
+        if (_loadedModelPath == modelPath && _llama != null) {
+          await _llama!.stop();
+          await _llama!.dispose();
+          _llama = null;
+          _loadedModelPath = null;
+          _loadedContextSize = null;
+          _loadedGpuLayers = null;
+        }
         await file.delete();
         debugPrint('Model file deleted');
 
@@ -569,17 +724,20 @@ class OfflineModelService extends ChangeNotifier {
   }
 
   Future<List<File>> getAvailableModels() async {
-    return _getModelFiles();
+    _availableModels = await _getModelFiles();
+    return List<File>.unmodifiable(_availableModels);
   }
 
-  void _buildSimplePrompt(StringBuffer buffer, String prompt, List<String> context) {
-    buffer.writeln('You are a helpful AI assistant. Answer the user\'s question below.');
+  void _buildSimplePrompt(
+      StringBuffer buffer, String prompt, List<String> context) {
+    buffer.writeln(
+        'You are a helpful AI assistant. Answer the user\'s question below.');
     buffer.writeln('\nQUESTION: $prompt');
     buffer.writeln('\nANSWER:');
   }
 
-  void _buildDocumentPrompt(
-      StringBuffer buffer, String prompt, List<String> context, int maxContextTokens) {
+  void _buildDocumentPrompt(StringBuffer buffer, String prompt,
+      List<String> context, int maxContextTokens) {
     buffer.writeln(
         'You are a document assistant analyzing and answering questions based on specific information.');
 
@@ -592,8 +750,8 @@ class OfflineModelService extends ChangeNotifier {
 
     buffer.writeln('\nQUESTION: $prompt');
     buffer.writeln('\nINSTRUCTIONS:');
-    buffer.writeln(
-        '1. Answer based ONLY on the provided document context above');
+    buffer
+        .writeln('1. Answer based ONLY on the provided document context above');
     buffer.writeln('2. Be concise but thorough in your response');
     buffer.writeln('\nANSWER:');
   }
@@ -626,7 +784,8 @@ class OfflineModelService extends ChangeNotifier {
     buffer.writeln('\nANSWER:');
   }
 
-  void _buildImagePrompt(StringBuffer buffer, String prompt, List<String> context, int maxContextTokens) {
+  void _buildImagePrompt(StringBuffer buffer, String prompt,
+      List<String> context, int maxContextTokens) {
     buffer.writeln(
         'You are an image analysis assistant. Analyze the provided image content and answer questions based on it.');
 
@@ -641,8 +800,7 @@ class OfflineModelService extends ChangeNotifier {
 
     buffer.writeln('\nQUESTION: $prompt');
     buffer.writeln('\nINSTRUCTIONS:');
-    buffer.writeln(
-        '1. Answer based ONLY on the provided image context above');
+    buffer.writeln('1. Answer based ONLY on the provided image context above');
     buffer.writeln('2. Be concise but thorough in your response');
     buffer.writeln('\nANSWER:');
   }
@@ -667,11 +825,14 @@ class OfflineModelService extends ChangeNotifier {
   }
 
   String _capitalizeModelName(String name) {
-    return name.splitMapJoin(
-      RegExp(r'[-_\s]'),
-      onMatch: (m) => ' ',
-      onNonMatch: (n) => n.isNotEmpty ? '${n[0].toUpperCase()}${n.substring(1)}' : '',
-    ).trim();
+    return name
+        .splitMapJoin(
+          RegExp(r'[-_\s]'),
+          onMatch: (m) => ' ',
+          onNonMatch: (n) =>
+              n.isNotEmpty ? '${n[0].toUpperCase()}${n.substring(1)}' : '',
+        )
+        .trim();
   }
 
   // Helper to estimate tokens (simple heuristic: 4 chars per token)

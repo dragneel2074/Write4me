@@ -3,10 +3,14 @@ import '../services/ai_service.dart';
 import '../services/text_generation_service.dart';
 import '../services/offline_model_service.dart';
 import 'file_processor_provider.dart';
-import 'service_providers.dart' show onlineModelServiceProvider; // Import the new provider
+import 'service_providers.dart'
+    show onlineModelServiceProvider; // Import the new provider
 
-// Initialize OfflineModelService first
-final offlineModelServiceProvider = Provider<OfflineModelService>((ref) {
+// Initialize OfflineModelService first.
+// ChangeNotifierProvider (not Provider) so Riverpod invokes the service's
+// dispose() at teardown — freeing the loaded llama.cpp native model context.
+final offlineModelServiceProvider =
+    ChangeNotifierProvider<OfflineModelService>((ref) {
   final service = OfflineModelService();
   return service;
 });
@@ -21,11 +25,12 @@ final offlineModelInitProvider = FutureProvider<void>((ref) async {
 final initializedOfflineModelProvider = Provider<OfflineModelService>((ref) {
   // Watch the initialization state
   final initState = ref.watch(offlineModelInitProvider);
-  
+
   return initState.when(
     data: (_) => ref.watch(offlineModelServiceProvider),
     loading: () => throw Exception('OfflineModelService is still initializing'),
-    error: (error, _) => throw Exception('Failed to initialize OfflineModelService: $error'),
+    error: (error, _) =>
+        throw Exception('Failed to initialize OfflineModelService: $error'),
   );
 });
 
@@ -38,8 +43,10 @@ final aiServiceProvider = Provider<AIService>((ref) {
   final textGenService = ref.watch(textGenerationServiceProvider);
   final offlineService = ref.watch(offlineModelServiceProvider);
   final fileProcessor = ref.watch(fileProcessorProvider);
-  final onlineModelService = ref.watch(onlineModelServiceProvider); // Get onlineModelService
-  return AIService(textGenService, offlineService, fileProcessor, onlineModelService); // Pass onlineModelService
+  final onlineModelService =
+      ref.watch(onlineModelServiceProvider); // Get onlineModelService
+  return AIService(textGenService, offlineService, fileProcessor,
+      onlineModelService); // Pass onlineModelService
 });
 
 // final notificationServiceProvider = Provider<NotificationService>((ref) {
@@ -49,4 +56,4 @@ final aiServiceProvider = Provider<AIService>((ref) {
 // final reminderServiceProvider = Provider<ReminderService>((ref) {
 //   final notificationService = ref.watch(notificationServiceProvider);
 //   return ReminderService(notificationService);
-// }); 
+// });

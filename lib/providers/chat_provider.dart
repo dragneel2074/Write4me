@@ -38,36 +38,40 @@ class ChatState {
       isLoading: isLoading ?? this.isLoading,
       isGenerating: isGenerating ?? this.isGenerating,
       error: error == _sentinel ? this.error : error as String?,
-      selectedImage: selectedImage == _sentinel ? this.selectedImage : selectedImage as File?,
+      selectedImage: selectedImage == _sentinel
+          ? this.selectedImage
+          : selectedImage as File?,
       imageMemories: imageMemories ?? this.imageMemories,
     );
   }
-  
+
   /// Returns meaningful chat history, excluding service check messages
   List<ChatMessage> getMeaningfulHistory() {
     // No messages, return empty list
     if (messages.isEmpty) return [];
-    
+
     // Find the first user message - everything before that is likely system initialization
     int startIndex = 0;
-    
+
     for (int i = 0; i < messages.length; i++) {
       if (messages[i].isUser) {
         startIndex = i;
         break;
       }
     }
-    
+
     // Get messages starting from first user message
     final meaningfulMessages = messages.sublist(startIndex);
-    
+
     if (kDebugMode) {
-      print("Getting meaningful history: ${messages.length} → ${meaningfulMessages.length} messages");
+      print(
+          "Getting meaningful history: ${messages.length} → ${meaningfulMessages.length} messages");
       if (meaningfulMessages.isNotEmpty) {
-        print("First meaningful message: '${meaningfulMessages.first.content.substring(0, meaningfulMessages.first.content.length.clamp(0, 30))}...'");
+        print(
+            "First meaningful message: '${meaningfulMessages.first.content.substring(0, meaningfulMessages.first.content.length.clamp(0, 30))}...'");
       }
     }
-    
+
     return meaningfulMessages;
   }
 }
@@ -79,7 +83,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     try {
       final List<ChatMessage> updatedMessages = List.from(state.messages);
       updatedMessages.add(message);
-      
+
       state = state.copyWith(
         messages: updatedMessages,
         error: null,
@@ -103,16 +107,21 @@ class ChatNotifier extends StateNotifier<ChatState> {
   void updateLastMessage(String content) {
     try {
       if (state.messages.isEmpty) return;
-      
+
       final lastMessage = state.messages.last;
       final updatedMessage = ChatMessage(
         content: content,
         isUser: lastMessage.isUser,
+        isError: lastMessage.isError,
         imageData: lastMessage.imageData,
+        attachments: lastMessage.attachments,
       );
-      
+
       state = state.copyWith(
-        messages: [...state.messages.take(state.messages.length - 1), updatedMessage],
+        messages: [
+          ...state.messages.take(state.messages.length - 1),
+          updatedMessage
+        ],
         error: null,
       );
     } catch (e) {
@@ -211,6 +220,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
       );
     }
   }
+
   void removeMessage(ChatMessage message) {
     state = state.copyWith(
       messages: state.messages.where((m) => m != message).toList(),
@@ -226,9 +236,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
   void cleanupErrorMessages() {
     if (state.messages.isNotEmpty) {
       final lastMessage = state.messages.last;
-      if (!lastMessage.isUser && 
+      if (!lastMessage.isUser &&
           (lastMessage.content.contains('Error Generating Response') ||
-           lastMessage.content.contains('Something went wrong'))) {
+              lastMessage.content.contains('Something went wrong'))) {
         state = state.copyWith(
           messages: state.messages.take(state.messages.length - 1).toList(),
           error: null,
@@ -274,4 +284,4 @@ final chatGeneratingProvider = Provider<bool>((ref) {
 
 final chatErrorProvider = Provider<String?>((ref) {
   return ref.watch(chatProvider).error;
-}); 
+});

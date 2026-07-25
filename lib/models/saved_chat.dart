@@ -24,10 +24,10 @@ class SavedChat extends HiveObject {
     required this.messages,
   });
 
-  factory SavedChat.fromMessages(List<ChatMessage> messages) {
+  factory SavedChat.fromMessages(List<ChatMessage> messages, {String? id}) {
     final title = _generateTitle(messages);
     return SavedChat(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       timestamp: DateTime.now(),
       messages: messages.map((msg) => msg.toJson()).toList(),
@@ -40,7 +40,7 @@ class SavedChat extends HiveObject {
       (msg) => msg.isUser,
       orElse: () => ChatMessage(content: 'New Chat', isUser: true),
     );
-    
+
     // Truncate to reasonable length
     String title = firstUserMessage.content;
     if (title.length > 50) {
@@ -52,4 +52,4 @@ class SavedChat extends HiveObject {
   List<ChatMessage> get chatMessages {
     return messages.map((json) => ChatMessage.fromJson(json)).toList();
   }
-} 
+}

@@ -34,12 +34,13 @@ class ImageService {
 
     try {
       _isRequestingPermission = true;
-      
+
       // Check Android version
       final deviceInfo = await DeviceInfoPlugin().androidInfo;
       final sdkInt = deviceInfo.version.sdkInt;
 
-      if (sdkInt >= 33) { // Android 13 and above
+      if (sdkInt >= 33) {
+        // Android 13 and above
         final photos = await Permission.photos.request();
         return photos.isGranted;
       } else {
@@ -79,7 +80,8 @@ class ImageService {
       } catch (e) {
         debugPrint('Error picking image with constraints: $e');
         // If picking with constraints fails, inform the user and return null
-        throw Exception('Failed to pick image with optimal size. Try a smaller image or different source.');
+        throw Exception(
+            'Failed to pick image with optimal size. Try a smaller image or different source.');
       }
 
       if (pickedFile == null) return null;
@@ -98,11 +100,13 @@ class ImageService {
         throw Exception('No text found in image');
       }
 
-      await _fileProcessor.processText(recognizedText.text, 'Image: ${pickedFile.name}');
+      await _fileProcessor.processText(
+          recognizedText.text, 'Image: ${pickedFile.name}');
 
       return ImageMemory(
         'Image: ${pickedFile.name}',
         recognizedText.text,
+        imageFile: file,
         isSelected: true,
       );
     } catch (e) {

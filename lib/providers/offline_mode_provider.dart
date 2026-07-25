@@ -42,7 +42,8 @@ class OfflineModeState {
     return OfflineModeState(
       isOfflineMode: isOfflineMode ?? this.isOfflineMode,
       isLocalModelActive: isLocalModelActive ?? this.isLocalModelActive,
-      isLocalModelSelected: isLocalModelSelected ?? this.isLocalModelSelected, // Copy new field
+      isLocalModelSelected:
+          isLocalModelSelected ?? this.isLocalModelSelected, // Copy new field
       selectedModelPath: selectedModelPath ?? this.selectedModelPath,
       availableModels: availableModels ?? this.availableModels,
       isDownloading: isDownloading ?? this.isDownloading,
@@ -60,24 +61,31 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
   }
 
   Future<void> _loadState() async {
-    final models = await ref.read(offlineModelServiceProvider).getAvailableModels();
+    final models =
+        await ref.read(offlineModelServiceProvider).getAvailableModels();
     final prefs = await SharedPreferences.getInstance();
     final Map<String, ModelParameters> loadedParameters = {};
     for (final modelFile in models) {
       final modelPath = modelFile.path;
       final paramsJson = prefs.getString('model_params_$modelPath');
       if (paramsJson != null) {
-        loadedParameters[modelPath] = ModelParameters.fromJson(jsonDecode(paramsJson));
+        loadedParameters[modelPath] =
+            ModelParameters.fromJson(jsonDecode(paramsJson));
       } else {
-        loadedParameters[modelPath] = const ModelParameters(); // Default parameters
+        loadedParameters[modelPath] =
+            const ModelParameters(); // Default parameters
       }
     }
 
     state = state.copyWith(
       isOfflineMode: ref.read(offlineModelServiceProvider).isOfflineMode,
-      isLocalModelActive: ref.read(offlineModelServiceProvider).isLocalModelActive, // Renamed
-      isLocalModelSelected: ref.read(offlineModelServiceProvider).isLocalModelSelected, // New field
-      selectedModelPath: ref.read(offlineModelServiceProvider).selectedModelPath,
+      isLocalModelActive:
+          ref.read(offlineModelServiceProvider).isLocalModelActive, // Renamed
+      isLocalModelSelected: ref
+          .read(offlineModelServiceProvider)
+          .isLocalModelSelected, // New field
+      selectedModelPath:
+          ref.read(offlineModelServiceProvider).selectedModelPath,
       availableModels: models,
       modelParameters: loadedParameters,
     );
@@ -105,9 +113,7 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('No Internet Connection'),
-            content: const Text(
-              'Would you like to stay in offline mode?'
-            ),
+            content: const Text('Would you like to stay in offline mode?'),
             actions: [
               TextButton(
                 child: const Text('Continue Online'),
@@ -129,51 +135,64 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
 
   Future<void> _safeSetOfflineMode(bool value) async {
     if (value == state.isOfflineMode) return;
-    
+
     if (!value) {
       final shouldStayOffline = await _handleOnlineSwitch();
       if (shouldStayOffline) return;
     }
-    
-    await ref.read(offlineModelServiceProvider).setOfflineMode(value);
-    
+
     // When switching to offline mode
     if (value) {
+      final models =
+          await ref.read(offlineModelServiceProvider).getAvailableModels();
+      if (models.isNotEmpty &&
+          (state.selectedModelPath == null ||
+              state.selectedModelPath!.isEmpty)) {
+        setSelectedModel(models.first.path);
+      }
       // Ensure we have at least one offline model
-      if (state.availableModels.isEmpty) {
+      if (models.isEmpty) {
         // Don't allow switching to offline mode if no models are available
         debugPrint('Cannot switch to offline mode: no models available');
         return;
       }
-      
+
+      await ref.read(offlineModelServiceProvider).setOfflineMode(true);
       // Force local model to be active when in offline mode
       await ref.read(offlineModelServiceProvider).setIsLocalModelActive(true);
       // Also set isLocalModelSelected to true when entering offline mode
       await ref.read(offlineModelServiceProvider).setIsLocalModelSelected(true);
-      
-      debugPrint('Switched to offline mode - enforcing local model usage and selection');
+
+      debugPrint(
+          'Switched to offline mode - enforcing local model usage and selection');
       state = state.copyWith(
         isOfflineMode: value,
         isLocalModelActive: true,
         isLocalModelSelected: true,
+        availableModels: models,
       );
     } else {
+      await ref.read(offlineModelServiceProvider).setOfflineMode(false);
       // When switching back to online mode, disable local model active state ONLY if local model is not selected
       if (!state.isLocalModelSelected) {
-        await ref.read(offlineModelServiceProvider).setIsLocalModelActive(false);
+        await ref
+            .read(offlineModelServiceProvider)
+            .setIsLocalModelActive(false);
         state = state.copyWith(
           isOfflineMode: value,
           isLocalModelActive: false,
         );
-        debugPrint('Switched back to online mode - local model active state disabled');
+        debugPrint(
+            'Switched back to online mode - local model active state disabled');
       } else {
         state = state.copyWith(
           isOfflineMode: value,
         );
-        debugPrint('Switched back to online mode - local model active state retained as selected');
+        debugPrint(
+            'Switched back to online mode - local model active state retained as selected');
       }
     }
-    
+
     ref.read(chatProvider.notifier).clearError();
     if (value) _cleanupErrorMessages();
   }
@@ -186,7 +205,7 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
 
     if (messages.isNotEmpty) {
       final lastMessage = messages.last;
-      if (!lastMessage.isUser && 
+      if (!lastMessage.isUser &&
           lastMessage.content.contains('Error Generating Response')) {
         // Remove the last message
         final updatedMessages = messages.take(messages.length - 1).toList();
@@ -201,11 +220,12 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
       debugPrint('Cannot disable local model in offline mode');
       return;
     }
-    
+
     ref.read(offlineModelServiceProvider).setIsLocalModelActive(value);
     state = state.copyWith(isLocalModelActive: value);
     // Debug output for offline mode changes
-    debugPrint('Local model active state set to: $value (offline mode: ${state.isOfflineMode})');
+    debugPrint(
+        'Local model active state set to: $value (offline mode: ${state.isOfflineMode})');
   }
 
   Future<void> setIsLocalModelSelected(bool value) async {
@@ -220,14 +240,27 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     // _service.notifyListeners();
   }
 
-  Future<void> setModelParameters(String modelPath, ModelParameters params) async {
+  Future<void> setModelParameters(
+      String modelPath, ModelParameters params) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('model_params_$modelPath', jsonEncode(params.toJson()));
+    await prefs.setString(
+        'model_params_$modelPath', jsonEncode(params.toJson()));
+    await ref
+        .read(offlineModelServiceProvider)
+        .setModelParameters(modelPath, params);
 
     state = state.copyWith(
       modelParameters: Map.from(state.modelParameters)..[modelPath] = params,
     );
     debugPrint('Model parameters updated for $modelPath: ${params.toJson()}');
+  }
+
+  Future<void> importModel(String sourcePath) async {
+    final model =
+        await ref.read(offlineModelServiceProvider).importModel(sourcePath);
+    await _refreshModels();
+    setSelectedModel(model.path);
+    await setIsLocalModelSelected(true);
   }
 
   Future<void> downloadModel(
@@ -236,13 +269,15 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     String fileName,
   ) async {
     state = state.copyWith(isDownloading: true, downloadProgress: 0);
-    
+
     try {
-      await ref.read(offlineModelServiceProvider).downloadModel(url, onProgress, fileName);
-      
+      await ref
+          .read(offlineModelServiceProvider)
+          .downloadModel(url, onProgress, fileName);
+
       // Refresh available models and state after download
       await _refreshModels();
-      
+
       debugPrint('Download complete:');
       debugPrint('- Available models: ${state.availableModels.length}');
       debugPrint('- Selected model: ${state.selectedModelPath}');
@@ -254,8 +289,9 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
   }
 
   Future<void> _refreshModels() async {
-    final models = await ref.read(offlineModelServiceProvider).getAvailableModels();
-    
+    final models =
+        await ref.read(offlineModelServiceProvider).getAvailableModels();
+
     // Just update the available models list without auto-selecting or enabling
     state = state.copyWith(
       availableModels: models,
@@ -271,7 +307,7 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     debugPrint('- Available models: ${models.length}');
     debugPrint('- Current selected model: ${state.selectedModelPath}');
     debugPrint('- Current local model usage: ${state.isLocalModelActive}');
-    
+
     // Don't automatically update the service state
     // if (newModelPath != null) {
     //   await ref.read(offlineModelServiceProvider).setSelectedModel(newModelPath);
@@ -283,8 +319,12 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     await ref.read(offlineModelServiceProvider).deleteModel(path);
     state = state.copyWith(
       availableModels: ref.read(offlineModelServiceProvider).availableModels,
-      selectedModelPath: ref.read(offlineModelServiceProvider).selectedModelPath,
-      isLocalModelActive: ref.read(offlineModelServiceProvider).availableModels.isNotEmpty ? state.isLocalModelActive : false,
+      selectedModelPath:
+          ref.read(offlineModelServiceProvider).selectedModelPath,
+      isLocalModelActive:
+          ref.read(offlineModelServiceProvider).availableModels.isNotEmpty
+              ? state.isLocalModelActive
+              : false,
     );
     // _service.notifyListeners();
   }
@@ -293,12 +333,13 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
     try {
       await _loadState();
       await _refreshModels();
-      
+
       debugPrint('Initialized OfflineModeNotifier:');
       debugPrint('- Models available: ${state.availableModels.length}');
       debugPrint('- Is offline mode: ${state.isOfflineMode}');
       debugPrint('- Use local model: ${state.isLocalModelActive}'); // Renamed
-      debugPrint('- Local model selected: ${state.isLocalModelSelected}'); // New field
+      debugPrint(
+          '- Local model selected: ${state.isLocalModelSelected}'); // New field
       debugPrint('- Selected model: ${state.selectedModelPath}');
     } catch (e) {
       debugPrint('Error initializing offline mode: $e');
@@ -314,6 +355,7 @@ class OfflineModeNotifier extends StateNotifier<OfflineModeState> {
   // }
 }
 
-final offlineModeProvider = StateNotifierProvider<OfflineModeNotifier, OfflineModeState>((ref) {
+final offlineModeProvider =
+    StateNotifierProvider<OfflineModeNotifier, OfflineModeState>((ref) {
   return OfflineModeNotifier(ref);
-}); 
+});

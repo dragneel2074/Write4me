@@ -6,17 +6,25 @@ class ModelParameters {
   final double temperature;
   final double frequencyPenalty;
   final double presencePenalty;
+  final double repeatPenalty;
+  final int topK;
+  final double minP;
   final bool vision;
+  final int autoUnloadSeconds;
 
   const ModelParameters({
-    this.maxTokens = 512,
+    this.maxTokens = 256,
     this.numGpuLayers = 99, // Default from OfflineModelService
-    this.topP = 1.0,
-    this.contextSize = 1024,
-    this.temperature = 0.5,
-    this.frequencyPenalty = 0.5,
-    this.presencePenalty = 0.7,
+    this.topP = 0.9,
+    this.contextSize = 2048,
+    this.temperature = 0.7,
+    this.frequencyPenalty = 0.0,
+    this.presencePenalty = 0.0,
+    this.repeatPenalty = 1.1,
+    this.topK = 40,
+    this.minP = 0.05,
     this.vision = false,
+    this.autoUnloadSeconds = 300,
   });
 
   ModelParameters copyWith({
@@ -27,7 +35,11 @@ class ModelParameters {
     double? temperature,
     double? frequencyPenalty,
     double? presencePenalty,
+    double? repeatPenalty,
+    int? topK,
+    double? minP,
     bool? vision,
+    int? autoUnloadSeconds,
   }) {
     return ModelParameters(
       maxTokens: maxTokens ?? this.maxTokens,
@@ -37,7 +49,11 @@ class ModelParameters {
       temperature: temperature ?? this.temperature,
       frequencyPenalty: frequencyPenalty ?? this.frequencyPenalty,
       presencePenalty: presencePenalty ?? this.presencePenalty,
+      repeatPenalty: repeatPenalty ?? this.repeatPenalty,
+      topK: topK ?? this.topK,
+      minP: minP ?? this.minP,
       vision: vision ?? this.vision,
+      autoUnloadSeconds: autoUnloadSeconds ?? this.autoUnloadSeconds,
     );
   }
 
@@ -50,18 +66,27 @@ class ModelParameters {
         'temperature': temperature,
         'frequencyPenalty': frequencyPenalty,
         'presencePenalty': presencePenalty,
+        'repeatPenalty': repeatPenalty,
+        'topK': topK,
+        'minP': minP,
         'vision': vision,
+        'autoUnloadSeconds': autoUnloadSeconds,
       };
 
   // Create from JSON
-  factory ModelParameters.fromJson(Map<String, dynamic> json) => ModelParameters(
-        maxTokens: json['maxTokens'] as int,
-        numGpuLayers: json['numGpuLayers'] as int,
-        topP: json['topP'] as double,
-        contextSize: json['contextSize'] as int,
-        temperature: json['temperature'] as double,
-        frequencyPenalty: json['frequencyPenalty'] as double,
-        presencePenalty: json['presencePenalty'] as double,
+  factory ModelParameters.fromJson(Map<String, dynamic> json) =>
+      ModelParameters(
+        maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 256,
+        numGpuLayers: (json['numGpuLayers'] as num?)?.toInt() ?? 99,
+        topP: (json['topP'] as num?)?.toDouble() ?? 0.9,
+        contextSize: (json['contextSize'] as num?)?.toInt() ?? 2048,
+        temperature: (json['temperature'] as num?)?.toDouble() ?? 0.7,
+        frequencyPenalty: (json['frequencyPenalty'] as num?)?.toDouble() ?? 0.0,
+        presencePenalty: (json['presencePenalty'] as num?)?.toDouble() ?? 0.0,
+        repeatPenalty: (json['repeatPenalty'] as num?)?.toDouble() ?? 1.1,
+        topK: (json['topK'] as num?)?.toInt() ?? 40,
+        minP: (json['minP'] as num?)?.toDouble() ?? 0.05,
         vision: json['vision'] as bool? ?? false,
+        autoUnloadSeconds: (json['autoUnloadSeconds'] as num?)?.toInt() ?? 300,
       );
 }

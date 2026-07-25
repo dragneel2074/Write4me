@@ -66,7 +66,9 @@ class SettingsDialog extends ConsumerWidget {
             const Divider(),
             ListTile(
               leading: Icon(
-                themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
+                themeMode == ThemeMode.dark
+                    ? Icons.dark_mode
+                    : Icons.light_mode,
               ),
               title: const Text('Dark Mode'),
               trailing: Switch(
@@ -89,7 +91,9 @@ class SettingsDialog extends ConsumerWidget {
                   if (value && offlineModeState.availableModels.isEmpty) {
                     _showDownloadModelPrompt(context, ref);
                   } else {
-                    ref.read(offlineModeProvider.notifier).setOfflineMode(value);
+                    ref
+                        .read(offlineModeProvider.notifier)
+                        .setOfflineMode(value);
                   }
                 },
               ),
@@ -98,13 +102,17 @@ class SettingsDialog extends ConsumerWidget {
             if (!offlineModeState.isOfflineMode) ...[
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('Online Text/Image Models', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text('Online Text/Image Models',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               ListTile(
                 title: Text(
-                  onlineModelService.selectedOnlineModel?.name ?? 'No model selected',
+                  onlineModelService.selectedOnlineModel?.name ??
+                      'No model selected',
                   style: TextStyle(
-                    fontWeight: onlineModelService.selectedOnlineModel != null ? FontWeight.bold : null,
+                    fontWeight: onlineModelService.selectedOnlineModel != null
+                        ? FontWeight.bold
+                        : null,
                   ),
                 ),
                 subtitle: onlineModelService.selectedOnlineModel != null
@@ -132,10 +140,11 @@ class SettingsDialog extends ConsumerWidget {
             if (offlineModeState.availableModels.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('Local Models', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text('Local Models',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-              ...offlineModeState.availableModels.map((model) => 
-                ModelManagementService.buildModelTile(
+              ...offlineModeState.availableModels.map(
+                (model) => ModelManagementService.buildModelTile(
                   context,
                   model,
                   ref.read(offlineModeProvider.notifier),
@@ -149,20 +158,19 @@ class SettingsDialog extends ConsumerWidget {
               ),
             ],
             // Chat actions
-            
+
             // Info
             ListTile(
               leading: const Icon(Icons.info),
               title: const Text('About'),
               onTap: () async {
-                final Uri url = Uri.parse('https://github.com/dragneel2074/Write4me');
+                final Uri url =
+                    Uri.parse('https://github.com/dragneel2074/Write4me');
                 if (!await launchUrl(url)) {
                   throw Exception('Could not launch $url');
                 }
               },
             ),
-            
-            
           ],
         ),
       ),
@@ -175,7 +183,8 @@ class SettingsDialog extends ConsumerWidget {
     );
   }
 
-  Future<void> _showDownloadModelPrompt(BuildContext context, WidgetRef ref) async {
+  Future<void> _showDownloadModelPrompt(
+      BuildContext context, WidgetRef ref) async {
     final download = await ModelManagementService.showDownloadDialog(context);
     if (download == true) {
       if (context.mounted) {
@@ -184,24 +193,27 @@ class SettingsDialog extends ConsumerWidget {
     }
   }
 
-  Future<void> _showModelDownloadDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showModelDownloadDialog(
+      BuildContext context, WidgetRef ref) async {
     showDialog(
       context: context,
       builder: (context) => ModelDownloadDialog(
-        noteMessage: 'Note: It is recommended to start with tiny models like Qwen 0.5 before moving to larger ones. '
-          'Please check your free memory usage and download only 20% of the free memory. For instance, '
-          'if 3.6 GB is used out of 6 GB, free memory is 2.4 GB, so roughly 500 MB should be downloaded. '
-          'The app is not liable for any damage to your device.',
+        noteMessage:
+            'Note: It is recommended to start with tiny models like Qwen 0.5 before moving to larger ones. '
+            'Please check your free memory usage and download only 20% of the free memory. For instance, '
+            'if 3.6 GB is used out of 6 GB, free memory is 2.4 GB, so roughly 500 MB should be downloaded. '
+            'The app is not liable for any damage to your device.',
         onDownload: (url, onProgress, fileName) async {
           try {
             await ref.read(offlineModeProvider.notifier).downloadModel(
-              url,
-              onProgress,
-              fileName,
-            );
+                  url,
+                  onProgress,
+                  fileName,
+                );
             if (context.mounted) {
               Navigator.pop(context);
-              MessageUtils.showSuccess(context, 'Model downloaded successfully');
+              MessageUtils.showSuccess(
+                  context, 'Model downloaded successfully');
               // ScaffoldMessenger.of(context).showSnackBar(
               //   const SnackBar(content: Text('Model downloaded successfully')),
               // );
