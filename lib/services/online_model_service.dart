@@ -54,6 +54,12 @@ class OnlineModelService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool _hasLoadedModels = false;
   bool get hasLoadedModels => _hasLoadedModels;
+  final Set<String> _loadedOutputs = {};
+  final Set<String> _loadingOutputs = {};
+  final Map<String, String> _outputErrors = {};
+  bool hasLoadedOutput(String output) => _loadedOutputs.contains(output);
+  bool isLoadingOutput(String output) => _loadingOutputs.contains(output);
+  String? errorForOutput(String output) => _outputErrors[output];
   String? _textErrorMessage;
   String? get textErrorMessage => _textErrorMessage;
   String? get imageErrorMessage => _textErrorMessage;
@@ -100,6 +106,10 @@ class OnlineModelService extends ChangeNotifier {
         OnlineProvider.pollinations => _parsePollinations(decoded),
       };
       _hasLoadedModels = true;
+      _loadedOutputs
+        ..clear()
+        ..addAll(const ['text', 'image', 'video']
+            .where((output) => modelsForOutput(output).isNotEmpty));
       final prefs = await SharedPreferences.getInstance();
       _selectedModels.clear();
       for (final output in const ['text', 'image', 'video']) {
@@ -120,6 +130,66 @@ class OnlineModelService extends ChangeNotifier {
       _hasLoadedModels = false;
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Loads one Pollinations capability catalog without replacing models that
+  /// were already loaded for the other capabilities.
+  Future<void> fetchPollinationsModelsForOutput(String output) async {
+    if (_activeProvider != OnlineProvider.pollinations) {
+      await fetchModels();
+      return;
+    }
+    if (!const ['text', 'image', 'video'].contains(output)) return;
+
+    final key = (await getApiKey(_activeProvider))?.trim() ?? '';
+    if (key.isEmpty) {
+      _outputErrors[output] = 'Enter and save a Pollinations API key first.';
+      notifyListeners();
+      return;
+    }
+
+    _loadingOutputs.add(output);
+    _outputErrors.remove(output);
+    notifyListeners();
+    try {
+      final endpoint = output == 'text' ? '/text/models' : '/image/models';
+      final response = await http.get(
+        Uri.parse('https://gen.pollinations.ai$endpoint'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $key',
+        },
+      ).timeout(const Duration(seconds: 30));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Model API returned ${response.statusCode}');
+      }
+
+      final fetched = _parsePollinations(jsonDecode(response.body))
+          .where((model) => model.supportsOutput(output))
+          .toList();
+      final merged = <String, OnlineModel>{
+        for (final model in _availableModels) model.name: model,
+        for (final model in fetched) model.name: model,
+      };
+      _availableModels = merged.values.toList();
+      _loadedOutputs.add(output);
+      _hasLoadedModels = true;
+
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs
+          .getString('$_selectedModelPrefix${_activeProvider.name}_$output');
+      final savedModels =
+          fetched.where((model) => model.name == saved).toList();
+      if (savedModels.isNotEmpty) {
+        _selectedModels[output] = savedModels.first;
+      }
+    } catch (error) {
+      _outputErrors[output] = 'Could not load $output models: $error';
+      _loadedOutputs.remove(output);
+    } finally {
+      _loadingOutputs.remove(output);
       notifyListeners();
     }
   }
@@ -248,6 +318,9 @@ class OnlineModelService extends ChangeNotifier {
     _availableModels = const [];
     _selectedModels.clear();
     _hasLoadedModels = false;
+    _loadedOutputs.clear();
+    _loadingOutputs.clear();
+    _outputErrors.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_activeProviderKey, provider.name);
     notifyListeners();
@@ -278,6 +351,9 @@ class OnlineModelService extends ChangeNotifier {
     _availableModels = const [];
     _selectedModels.clear();
     _hasLoadedModels = false;
+    _loadedOutputs.clear();
+    _loadingOutputs.clear();
+    _outputErrors.clear();
     _textErrorMessage = null;
     notifyListeners();
   }

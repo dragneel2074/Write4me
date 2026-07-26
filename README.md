@@ -1,131 +1,105 @@
 # Write4Me
 
-![Write4Me Logo](assets/images/playstore.png)
+![Write4Me logo](assets/images/playstore.png)
 
-A powerful Flutter-based writing assistant that leverages advanced language models for text generation, document analysis, and image creation - available both online and offline.
+Write4Me is an Android-first Flutter writing assistant with private on-device
+GGUF inference, bring-your-own-key cloud providers, persistent conversations,
+and document-aware chat.
 
-## Features
+## What it can do
 
-### Text Generation
-- **Free Cloud API**: Powered by OpenAI's 4o mini model through Pollinations API
-- **Web Search Integration**: Optional web search capability using Jina API for up-to-date information
-- **Conversation History**: Maintains and persists chat history for contextual follow-up questions
-- **Document-Enhanced Responses**: Uses Retrieval Augmented Generation (RAG) to provide context-aware answers based on your documents 
+- Run compatible GGUF language models locally with
+  `llama_flutter_android`.
+- Import a GGUF file from device storage or download one from a URL.
+- Tune local generation settings, including context size, output length,
+  temperature, top-p, top-k, min-p, repeat penalty, frequency penalty,
+  presence penalty, and GPU layers.
+- Automatically unload an idle local model to reduce memory pressure.
+- Use Pollinations, Gemini, or OpenRouter with an API key supplied by the user.
+- Fetch each provider's current model catalog after a key is saved; cloud model
+  names are not hardcoded.
+- Generate text with all three cloud providers and generate images or videos
+  with supported Pollinations models.
+- Attach PDFs, images, and supported text files to a conversation.
+- Index documents locally and retrieve relevant excerpts for a response.
+- Save chats locally, reopen older conversations, and display sent attachments
+  with the message that used them.
+- Show approximate context usage while a conversation is in progress.
 
-### Image Generation
-- **AI Image Creation**: Generate images using Flux model (NSFW Filter is Turned On). Generated images can be saved to your device's gallery.
+## Current limitations
 
-### Offline Capabilities
-- **Fully Offline Mode**: Use the app without an internet connection
-- **Downloadable Models**: Support for offline models:
-  - Qwen 2.5b (0.5 quantized)
-  - Deepseek R1 1.5b
-- **Local Document Processing**: Process and search your documents entirely on-device
+- The local GGUF runtime is Android-only and requires Android API 26 or newer.
+- Image attachments are processed with on-device OCR; they are not passed as
+  native multimodal image inputs.
+- Attachments are limited to 2 MB each.
+- Cloud access, model availability, pricing, and media capabilities are
+  controlled by the selected provider.
+- A model that is too large for the device can still exhaust memory. Use a
+  smaller quantization, fewer GPU layers, a smaller context, and auto-unload.
 
-### Document Analysis
-- **PDF Support**: Upload and analyze PDF documents
-- **Image OCR Support**: Upload and extract text from documents
-- **Semantic Search**: Find relevant information across your documents using vector similarity
-- **Document Memory**: Save and manage processed document references and their extracted content for future use, leveraging local storage for persistence.
+## Run the project
 
-## Architecture
+Prerequisites:
 
-The application follows a modular architecture designed for flexibility and extensibility:
+- Flutter stable
+- Android SDK and an Android API 26+ device or emulator
 
-### Core Components:
-
-
-1. **AI Services**
-   - `TextGenerationService`: Handles cloud-based text generation
-   - `OfflineModelService`: Manages local model inference
-   - `AIService`: Coordinates between online and offline modes
-
-## Installation
-
-### Prerequisites
-- Flutter (latest stable version)
-- Dart SDK
-- Android Studio / VS Code with Flutter extensions
-
-### Setup
-1. Clone the repository:
-   ```
-   git clone https://github.com/your-username/Write4me.git
-   ```
-
-2. Navigate to the project directory:
-   ```
-   cd Write4me
-   ```
-
-3. Install dependencies:
-   ```
-   flutter pub get
-   ```
-
-4. Run the app:
-   ```
-   flutter run
-   ```
-5. Build APK for Android
-
- ```
-   flutter build apk --release
+```shell
+flutter pub get
+flutter run
 ```
-### API Keys
-For web search functionality, you'll need:
-- Jina API key (configure in app settings)
 
-## Usage
+Build a debug APK:
 
-### Text Generation
-1. Type your query in the chat interface
-2. Toggle web search if needed
-3. Select relevant documents to provide context
-4. Receive AI-generated responses
+```shell
+flutter build apk --debug
+```
 
-### Document Management
-1. Upload PDFs via the document interface
-2. Select documents to include in your context
-3. Use the search functionality to find specific information
+The APK is written to `build/app/outputs/apk/debug/app-debug.apk`.
 
-### Offline Mode
-1. Download models through the settings page
-2. Toggle offline mode when internet is unavailable
-3. Continue using the app with full functionality
+## First use
 
-## Models
+### On-device mode
 
-### Online Models
-- Text: OpenAI's 4o mini (via Pollinations API)
-- Image: Flux
+1. Open the model selector and choose **On device**.
+2. Import a `.gguf` model from device storage or download one by URL.
+3. Select and load the model.
+4. Open local model settings to tune generation and auto-unload.
+5. Start a chat.
 
-### Offline Models
-- Qwen 2.5b (0.5 quantized)
-- Deepseek R1 1.5b
-- Download Others As You Like
+Only use GGUF models whose architecture is supported by the bundled runtime.
+Model compatibility, memory requirements, and licenses vary by publisher.
 
+### Cloud mode
 
-## Contributing
+1. Open the model selector and choose Pollinations, Gemini, or OpenRouter.
+2. Enter and save an API key for that provider.
+3. Tap **Load models**.
+4. Select a model returned by the provider.
+5. Choose Write, Image, or Video where the selected provider/model supports it.
 
-Contributions are welcome! To contribute:
+API keys are stored in app preferences on the device and sent directly to the
+selected provider. They are not included in the repository.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Attachments
 
-Please ensure your code follows the project's style guidelines and includes appropriate tests.
+Use the attachment button to add a PDF, image, or supported text file. The app
+shows processing progress, extracts/indexes its text, and includes relevant
+content within the prompt budget. After sending, the attachment is cleared from
+the composer and remains visible on the sent message.
+
+## Documentation
+
+- [User guide](documentation/USER_GUIDE.md)
+- [Documentation index](documentation/README.md)
+- [Architecture](ARCHITECTURE.md)
+- [Models and providers](MODELS.md)
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
+
+Research and migration notes are retained for historical context. The files
+listed above describe the current implementation.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgements
-
-- [Pollinations.AI](https://pollinations.ai) for the text generation API
-- [Jina AI](https://jina.ai) for the search API
-- [Langchain.dart](https://github.com/davidmigloz/langchain_dart) for RAG functionality
-- [FONNX](https://github.com/fonnx/flutter) for ONNX runtime integration
-- The Flutter community for their incredible tools and support
+This project is licensed under the MIT License. See [LICENSE](LICENSE).

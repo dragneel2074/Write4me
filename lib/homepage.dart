@@ -19,11 +19,70 @@ import 'providers/selected_documents_provider.dart';
 import 'providers/service_providers.dart';
 import 'providers/theme_provider.dart';
 import 'services/online_provider.dart';
+import 'services/online_model_service.dart';
 import 'services/pollinations_media_service.dart';
 import 'services/chat_storage_service.dart';
 import 'widgets/model_download_dialog.dart';
 import 'widgets/model_settings_dialog.dart';
 import 'models/model_parameters.dart';
+
+void _showAppNotice(BuildContext context, String message) {
+  final colors = Theme.of(context).colorScheme;
+  final lower = message.toLowerCase();
+  final isError = lower.contains('failed') ||
+      lower.contains('could not') ||
+      lower.contains('error') ||
+      lower.contains('first');
+  final accent = isError ? colors.error : colors.primary;
+  final messenger = ScaffoldMessenger.of(context);
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        backgroundColor: colors.surfaceContainerHighest,
+        elevation: 8,
+        duration: const Duration(seconds: 3),
+        showCloseIcon: true,
+        closeIconColor: colors.onSurfaceVariant,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: accent.withValues(alpha: .35)),
+        ),
+        content: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isError ? Icons.error_outline_rounded : Icons.check_rounded,
+                color: accent,
+                size: 19,
+              ),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Text(
+                message,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+}
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -292,9 +351,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    _showAppNotice(context, message);
   }
 
   Future<void> _showHistory() async {
@@ -547,6 +604,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * .88,
+      ),
       builder: (_) => _EngineSheet(mode: _mode),
     );
     if (!mounted) return;
@@ -566,11 +626,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     final chat = ref.watch(chatProvider);
     final offline = ref.watch(offlineModeProvider);
     final online = ref.watch(onlineModelServiceProvider);
+    final activeOutput = switch (_mode) {
+      _CreateMode.image => 'image',
+      _CreateMode.video => 'video',
+      _CreateMode.write => 'text',
+    };
+    final activeCloudModel = online.selectedModelForOutput(activeOutput);
     final engineName = offline.isOfflineMode
         ? (offline.selectedModelPath?.split(RegExp(r'[/\\]')).last ??
             'Local GGUF')
         : '${online.activeProviderConfig.label} · '
-            '${online.selectedOnlineModel?.description ?? 'Choose model'}';
+            '${activeCloudModel?.description ?? 'Choose ${activeOutput == 'text' ? 'model' : '$activeOutput model'}'}';
     final canCreateMedia = !offline.isOfflineMode &&
         online.activeProvider == OnlineProvider.pollinations;
     final documents = ref.watch(selectedDocumentsProvider);
@@ -680,8 +746,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                       label: const Text('Video')),
                 ],
                 selected: {_mode},
-                onSelectionChanged: (value) =>
-                    setState(() => _mode = value.first),
+                onSelectionChanged: (value) async {
+                  final next = value.first;
+                  setState(() => _mode = next);
+                  if (next == _CreateMode.write) return;
+                  final output = next.name;
+                  if (online.selectedModelForOutput(output) == null) {
+                    await _showEngineSheet();
+                  }
+                },
               ),
             ),
             Expanded(
@@ -707,21 +780,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
             ),
             if (_mode == _CreateMode.write)
-              _AttachmentBar(
-                documents: documents,
-                images: chat.imageMemories,
-                pdfIndexProgress: _pdfIndexProgress,
-                onRemoveDocument: (memory) {
-                  setState(() => _pdfIndexProgress.remove(memory.name));
-                  ref.read(selectedDocumentsProvider.notifier).state = ref
-                      .read(selectedDocumentsProvider)
-                      .where((item) => item != memory)
-                      .toList();
-                },
-                onRemoveImage: (memory) =>
-                    ref.read(chatProvider.notifier).removeImageMemory(memory),
-              ),
-            if (_mode == _CreateMode.write)
               _ContextBudgetBar(
                 used: budget.used,
                 limit: budget.limit,
@@ -739,6 +797,21 @@ class _HomePageState extends ConsumerState<HomePage> {
               onSend: _send,
               onStop: _stop,
               onAttach: _showAttachmentMenu,
+              documents:
+                  _mode == _CreateMode.write ? documents : const <PDFMemory>[],
+              images: _mode == _CreateMode.write
+                  ? chat.imageMemories
+                  : const <ImageMemory>[],
+              pdfIndexProgress: _pdfIndexProgress,
+              onRemoveDocument: (memory) {
+                setState(() => _pdfIndexProgress.remove(memory.name));
+                ref.read(selectedDocumentsProvider.notifier).state = ref
+                    .read(selectedDocumentsProvider)
+                    .where((item) => item != memory)
+                    .toList();
+              },
+              onRemoveImage: (memory) =>
+                  ref.read(chatProvider.notifier).removeImageMemory(memory),
             ),
           ],
         ),
@@ -948,14 +1021,17 @@ class _MessageCard extends StatelessWidget {
           color: message.isError
               ? colors.errorContainer
               : message.isUser
-                  ? colors.primaryContainer
+                  ? colors.surfaceContainerHighest
                   : colors.surfaceContainer,
           borderRadius: BorderRadius.circular(20).copyWith(
             bottomRight: message.isUser ? const Radius.circular(5) : null,
             bottomLeft: !message.isUser ? const Radius.circular(5) : null,
           ),
-          border:
-              Border.all(color: colors.outlineVariant.withValues(alpha: .6)),
+          border: Border.all(
+            color: message.isUser
+                ? colors.primary.withValues(alpha: .38)
+                : colors.outlineVariant.withValues(alpha: .6),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -973,27 +1049,10 @@ class _MessageCard extends StatelessWidget {
             ),
             if (message.attachments.isNotEmpty) ...[
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
+              Column(
                 children: message.attachments
-                    .map(
-                      (attachment) => Chip(
-                        visualDensity: VisualDensity.compact,
-                        avatar: Icon(
-                          switch (attachment.type) {
-                            'image' => Icons.image_outlined,
-                            'pdf' => Icons.picture_as_pdf_outlined,
-                            _ => Icons.description_outlined,
-                          },
-                          size: 16,
-                        ),
-                        label: Text(
-                          attachment.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
+                    .map((attachment) =>
+                        _SentAttachmentCard(attachment: attachment))
                     .toList(),
               ),
             ],
@@ -1006,9 +1065,7 @@ class _MessageCard extends StatelessWidget {
                   tooltip: 'Copy',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: message.content));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Copied to clipboard')),
-                    );
+                    _showAppNotice(context, 'Copied to clipboard');
                   },
                   icon: const Icon(Icons.copy_rounded, size: 17),
                 ),
@@ -1021,14 +1078,76 @@ class _MessageCard extends StatelessWidget {
   }
 }
 
-class _AttachmentBar extends StatelessWidget {
+class _SentAttachmentCard extends StatelessWidget {
+  final ChatAttachment attachment;
+
+  const _SentAttachmentCard({required this.attachment});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final (icon, label) = switch (attachment.type) {
+      'image' => (Icons.image_outlined, 'Image'),
+      'pdf' => (Icons.picture_as_pdf_outlined, 'PDF document'),
+      _ => (Icons.description_outlined, 'File'),
+    };
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: .72),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, size: 20, color: colors.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  attachment.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.check_circle_rounded, size: 17, color: colors.primary),
+        ],
+      ),
+    );
+  }
+}
+
+class _ComposerAttachmentTray extends StatelessWidget {
   final List<PDFMemory> documents;
   final List<ImageMemory> images;
   final ValueChanged<PDFMemory> onRemoveDocument;
   final ValueChanged<ImageMemory> onRemoveImage;
   final Map<String, double> pdfIndexProgress;
 
-  const _AttachmentBar({
+  const _ComposerAttachmentTray({
     required this.documents,
     required this.images,
     required this.onRemoveDocument,
@@ -1040,15 +1159,17 @@ class _AttachmentBar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (documents.isEmpty && images.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 48,
+      height: 38,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.only(bottom: 6),
         children: [
           ...documents.map(
             (memory) => Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: 6),
               child: InputChip(
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 avatar: pdfIndexProgress[memory.name] != null &&
                         pdfIndexProgress[memory.name]! < 1
                     ? const SizedBox(
@@ -1062,22 +1183,32 @@ class _AttachmentBar extends StatelessWidget {
                           pdfIndexProgress[memory.name]! < 1
                       ? '${memory.name} · Indexing ${(pdfIndexProgress[memory.name]! * 100).round()}%'
                       : memory.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                labelPadding: const EdgeInsets.only(left: 2),
                 onDeleted: () => onRemoveDocument(memory),
               ),
             ),
           ),
           ...images.map(
             (memory) => Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: 6),
               child: InputChip(
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 avatar: Icon(
                   memory.imageFile == null
                       ? Icons.description_outlined
                       : Icons.image_outlined,
                   size: 17,
                 ),
-                label: Text(memory.name),
+                label: Text(
+                  memory.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                labelPadding: const EdgeInsets.only(left: 2),
                 onDeleted: () => onRemoveImage(memory),
               ),
             ),
@@ -1161,6 +1292,11 @@ class _Composer extends StatelessWidget {
   final VoidCallback onStop;
   final VoidCallback onAttach;
   final String hintText;
+  final List<PDFMemory> documents;
+  final List<ImageMemory> images;
+  final ValueChanged<PDFMemory> onRemoveDocument;
+  final ValueChanged<ImageMemory> onRemoveImage;
+  final Map<String, double> pdfIndexProgress;
 
   const _Composer({
     required this.controller,
@@ -1170,6 +1306,11 @@ class _Composer extends StatelessWidget {
     required this.onStop,
     required this.onAttach,
     required this.hintText,
+    required this.documents,
+    required this.images,
+    required this.onRemoveDocument,
+    required this.onRemoveImage,
+    required this.pdfIndexProgress,
   });
 
   @override
@@ -1184,48 +1325,60 @@ class _Composer extends StatelessWidget {
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 760),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4, right: 8),
-              child: IconButton.outlined(
-                tooltip: 'Add image or file',
-                onPressed: isGenerating ? null : onAttach,
-                icon: const Icon(Icons.add_rounded),
-              ),
+            _ComposerAttachmentTray(
+              documents: documents,
+              images: images,
+              onRemoveDocument: onRemoveDocument,
+              onRemoveImage: onRemoveImage,
+              pdfIndexProgress: pdfIndexProgress,
             ),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                minLines: 1,
-                maxLines: 7,
-                textCapitalization: TextCapitalization.sentences,
-                onSubmitted: (_) => isGenerating ? onStop() : onSend(),
-                decoration: InputDecoration(
-                  hintText: hintText,
-                  filled: true,
-                  fillColor:
-                      colors.surfaceContainerHighest.withValues(alpha: .7),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(22),
-                    borderSide: BorderSide.none,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4, right: 8),
+                  child: IconButton.outlined(
+                    tooltip: 'Add image or file',
+                    onPressed: isGenerating ? null : onAttach,
+                    icon: const Icon(Icons.add_rounded),
                   ),
-                  suffixIcon: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: IconButton.filled(
-                      tooltip: isGenerating ? 'Stop' : 'Write',
-                      onPressed: isGenerating ? onStop : onSend,
-                      icon: Icon(isGenerating
-                          ? Icons.stop_rounded
-                          : Icons.arrow_upward_rounded),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    minLines: 1,
+                    maxLines: 7,
+                    textCapitalization: TextCapitalization.sentences,
+                    onSubmitted: (_) => isGenerating ? onStop() : onSend(),
+                    decoration: InputDecoration(
+                      hintText: hintText,
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest.withValues(alpha: .7),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(22),
+                        borderSide: BorderSide.none,
+                      ),
+                      suffixIcon: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: IconButton.filled(
+                          tooltip: isGenerating ? 'Stop' : 'Write',
+                          onPressed: isGenerating ? onStop : onSend,
+                          icon: Icon(isGenerating
+                              ? Icons.stop_rounded
+                              : Icons.arrow_upward_rounded),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -1273,55 +1426,72 @@ class _EngineSheetState extends ConsumerState<_EngineSheet> {
       child: Padding(
         padding: EdgeInsets.fromLTRB(
             20, 0, 20, 16 + MediaQuery.viewInsetsOf(context).bottom),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Writing engine',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text('Choose private on-device writing or a cloud provider.',
-                  style: TextStyle(color: colors.onSurfaceVariant)),
-              const SizedBox(height: 18),
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(
-                      value: false,
-                      icon: Icon(Icons.cloud_outlined),
-                      label: Text('Cloud')),
-                  ButtonSegment(
-                      value: true,
-                      icon: Icon(Icons.memory_rounded),
-                      label: Text('On device')),
-                ],
-                selected: {offline.isOfflineMode},
-                onSelectionChanged: (value) async {
-                  final local = value.first;
-                  if (local && offline.availableModels.isEmpty) {
-                    await _showDownloadDialog();
-                    return;
-                  }
-                  await ref
-                      .read(offlineModeProvider.notifier)
-                      .setOfflineMode(local);
-                },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Writing engine',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800)),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            Text('Choose private on-device writing or a cloud provider.',
+                style: TextStyle(color: colors.onSurfaceVariant)),
+            const SizedBox(height: 12),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(
+                            value: false,
+                            icon: Icon(Icons.cloud_outlined),
+                            label: Text('Cloud')),
+                        ButtonSegment(
+                            value: true,
+                            icon: Icon(Icons.memory_rounded),
+                            label: Text('On device')),
+                      ],
+                      selected: {offline.isOfflineMode},
+                      onSelectionChanged: (value) async {
+                        final local = value.first;
+                        if (local && offline.availableModels.isEmpty) {
+                          await _showDownloadDialog();
+                          return;
+                        }
+                        await ref
+                            .read(offlineModeProvider.notifier)
+                            .setOfflineMode(local);
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    if (offline.isOfflineMode)
+                      _buildLocalModels(offline)
+                    else
+                      _buildCloud(online),
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
-              if (offline.isOfflineMode)
-                _buildLocalModels(offline)
-              else
-                _buildCloud(online),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildCloud(dynamic online) {
+  Widget _buildCloud(OnlineModelService online) {
     final service = ref.read(onlineModelServiceProvider);
     final config = service.activeProviderConfig;
     return Column(
@@ -1375,9 +1545,7 @@ class _EngineSheetState extends ConsumerState<_EngineSheet> {
                 await service.setApiKey(
                     service.activeProvider, _keyController.text);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${config.label} key saved')),
-                  );
+                  _showAppNotice(context, '${config.label} key saved');
                 }
               },
               child: const Text('Save key'),
@@ -1385,83 +1553,136 @@ class _EngineSheetState extends ConsumerState<_EngineSheet> {
           ],
         ),
         const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: service.isLoading
-                ? null
-                : () async {
-                    await service.fetchModels();
-                    if (mounted) setState(() {});
-                  },
-            icon: const Icon(Icons.cloud_download_outlined),
-            label: Text(service.isLoading ? 'Loading…' : 'Load models'),
-          ),
-        ),
-        const SizedBox(height: 14),
-        if (service.isLoading)
-          const LinearProgressIndicator()
-        else if (service.textErrorMessage != null)
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.cloud_off_outlined),
-              title: const Text('Models could not be loaded'),
-              subtitle: Text(service.textErrorMessage!),
-              trailing: IconButton(
-                tooltip: 'Retry',
-                onPressed: service.fetchModels,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
-            ),
-          )
-        else if (!service.hasLoadedModels)
-          const Text(
-            'Save your API key, then load the provider’s current model catalog.',
-          )
-        else if (service
-            .modelsForOutput(
-                widget.mode == _CreateMode.write ? 'text' : widget.mode.name)
-            .isEmpty)
-          Text(
-            'This provider returned no ${widget.mode == _CreateMode.write ? 'text' : widget.mode.name} models.',
+        if (service.activeProvider == OnlineProvider.pollinations)
+          ...const ['text', 'image', 'video'].map(
+            (output) => _buildPollinationsModelSection(service, output),
           )
         else
-          DropdownButtonFormField<String>(
-            key: ValueKey(
-                '${service.activeProvider.name}-${widget.mode.name}-${service.availableModels.length}'),
-            initialValue: service
-                .selectedModelForOutput(widget.mode == _CreateMode.write
-                    ? 'text'
-                    : widget.mode.name)
-                ?.name,
-            isExpanded: true,
-            decoration: const InputDecoration(
-                labelText: 'Model',
-                prefixIcon: Icon(Icons.auto_awesome_outlined)),
-            items: service
-                .modelsForOutput(widget.mode == _CreateMode.write
-                    ? 'text'
-                    : widget.mode.name)
-                .map((model) => DropdownMenuItem(
-                      value: model.name,
-                      child: Text(model.description,
-                          overflow: TextOverflow.ellipsis),
-                    ))
-                .toList(),
-            onChanged: (id) {
-              if (id == null) return;
-              service.setSelectedModelForOutput(
-                service.availableModels.firstWhere((m) => m.name == id),
-                widget.mode == _CreateMode.write ? 'text' : widget.mode.name,
-              );
-            },
-          ),
+          _buildTextModelSection(service),
         const SizedBox(height: 6),
         const Text(
           'Your key is stored only on this device. Requests go directly to the selected provider.',
           style: TextStyle(fontSize: 12),
         ),
       ],
+    );
+  }
+
+  Widget _buildPollinationsModelSection(
+      OnlineModelService service, String output) {
+    final colors = Theme.of(context).colorScheme;
+    final models = service.modelsForOutput(output);
+    final loading = service.isLoadingOutput(output);
+    final loaded = service.hasLoadedOutput(output);
+    final error = service.errorForOutput(output);
+    final (icon, title) = switch (output) {
+      'image' => (Icons.image_outlined, 'Image models'),
+      'video' => (Icons.movie_outlined, 'Video models'),
+      _ => (Icons.edit_note_rounded, 'Text models'),
+    };
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: colors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(title,
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: loading
+                      ? null
+                      : () => service.fetchPollinationsModelsForOutput(output),
+                  icon: loading
+                      ? const SizedBox.square(
+                          dimension: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.cloud_download_outlined, size: 18),
+                  label: Text(loaded ? 'Reload' : 'Load'),
+                ),
+              ],
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 8),
+              Text(error, style: TextStyle(color: colors.error, fontSize: 12)),
+            ] else if (!loaded) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Load the current Pollinations $output catalog.',
+                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
+              ),
+            ] else if (models.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text('No $output models are available for this key.'),
+            ] else ...[
+              const SizedBox(height: 10),
+              _modelDropdown(service, output, models),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextModelSection(OnlineModelService service) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: service.isLoading ? null : service.fetchModels,
+            icon: const Icon(Icons.cloud_download_outlined),
+            label: Text(service.isLoading ? 'Loading…' : 'Load text models'),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (service.isLoading)
+          const LinearProgressIndicator()
+        else if (service.textErrorMessage != null)
+          Text(service.textErrorMessage!)
+        else if (!service.hasLoadedModels)
+          const Text('Save your API key, then load available text models.')
+        else if (service.modelsForOutput('text').isEmpty)
+          const Text('This provider returned no text models.')
+        else
+          _modelDropdown(service, 'text', service.modelsForOutput('text')),
+      ],
+    );
+  }
+
+  Widget _modelDropdown(
+      OnlineModelService service, String output, List<OnlineModel> models) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey(
+          '${service.activeProvider.name}-$output-${models.length}-${service.selectedModelForOutput(output)?.name}'),
+      initialValue: service.selectedModelForOutput(output)?.name,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Select $output model',
+        prefixIcon: const Icon(Icons.auto_awesome_outlined),
+      ),
+      items: models
+          .map((model) => DropdownMenuItem(
+                value: model.name,
+                child: Text(model.description, overflow: TextOverflow.ellipsis),
+              ))
+          .toList(),
+      onChanged: (id) {
+        if (id == null) return;
+        service.setSelectedModelForOutput(
+          models.firstWhere((model) => model.name == id),
+          output,
+        );
+      },
     );
   }
 
@@ -1532,24 +1753,16 @@ class _EngineSheetState extends ConsumerState<_EngineSheet> {
         throw Exception('Please select a .gguf model file');
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Importing GGUF model…')),
-        );
+        _showAppNotice(context, 'Importing GGUF model…');
       }
       await ref.read(offlineModeProvider.notifier).importModel(path);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('Model imported and selected')),
-          );
+        _showAppNotice(context, 'Model imported and selected');
         setState(() {});
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('Import failed: $error')));
+        _showAppNotice(context, 'Import failed: $error');
       }
     }
   }
@@ -1568,9 +1781,7 @@ class _EngineSheetState extends ConsumerState<_EngineSheet> {
         .read(offlineModeProvider.notifier)
         .setModelParameters(modelPath, updated);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Model parameters saved')),
-      );
+      _showAppNotice(context, 'Model parameters saved');
     }
   }
 

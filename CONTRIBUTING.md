@@ -29,7 +29,8 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to keep our com
 
 - **Flutter**: Use the latest stable version
 - **IDE**: VS Code or Android Studio with Flutter plugins recommended
-- **Emulators/Devices**: Test on both Android and iOS if possible
+- **Emulators/Devices**: Test on an Android API 26+ device. Physical-device
+  testing is strongly recommended for GGUF memory and lifecycle behavior.
 
 ### Running the App
 
@@ -56,10 +57,7 @@ For Android APK:
 flutter build apk
 ```
 
-For iOS: (The app is not currently availabe for IOS)
-```
-flutter build ios
-```
+The current local GGUF integration is Android-only.
 
 ## Making Changes
 
@@ -126,7 +124,7 @@ When adding new features:
 
 1. **Discuss first**: Open an issue to discuss the feature before implementing
 2. **Consider architecture**: Read the [ARCHITECTURE.md](ARCHITECTURE.md) document
-3. **Maintain compatibility**: Ensure the feature works in both online and offline modes
+3. **Maintain compatibility**: Preserve both cloud and on-device workflows
 4. **Add tests**: Include unit and/or integration tests
 5. **Document**: Update relevant documentation
 
@@ -136,10 +134,10 @@ When adding new features:
 
 When adding support for a new model:
 
-1. Ensure it works with the existing architecture
-2. Document model details (size, performance, license)
-3. Implement proper error handling
-4. Consider platform compatibility (iOS/Android)
+1. Do not hardcode cloud model IDs; load them from the provider API
+2. Document model capabilities, memory expectations, and license
+3. Implement credential, loading, cancellation, and error states
+4. Test local GGUF changes on Android API 26+ hardware
 
 ### Document Processing
 
@@ -168,4 +166,4 @@ If you need help with the contribution process or have questions:
 
 ## Thank You
 
-Your contributions to Write4Me help make it a better tool for everyone! 
+Your contributions to Write4Me help make it a better tool for everyone!
