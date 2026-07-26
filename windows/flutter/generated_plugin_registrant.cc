@@ -8,6 +8,7 @@
 
 #include <disk_space_2/disk_space_2_plugin.h>
 #include <file_selector_windows/file_selector_windows.h>
+#include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
 #include <fonnx/fonnx_plugin_c_api.h>
 #include <gal/gal_plugin_c_api.h>
 #include <permission_handler_windows/permission_handler_windows_plugin.h>
@@ -19,6 +20,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("DiskSpace_2Plugin"));
   FileSelectorWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FileSelectorWindows"));
+  FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
   FonnxPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FonnxPluginCApi"));
   GalPluginCApiRegisterWithRegistrar(

@@ -36,8 +36,7 @@ class FileProcessor {
     if (kDebugMode) {
       print(
           "FileProcessor: Processing text content from: $fileName with ${cleanedContent.length} characters");
-      print(
-          "FileProcessor: First 100 chars: ${cleanedContent.substring(0, cleanedContent.length < 100 ? cleanedContent.length : 100)}");
+      print("FileProcessor: Content ready for local indexing");
       if (cleanedContent.length != content.length) {
         print(
             "FileProcessor: Content was cleaned (original length: ${content.length})");

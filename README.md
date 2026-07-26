@@ -78,8 +78,8 @@ Model compatibility, memory requirements, and licenses vary by publisher.
 4. Select a model returned by the provider.
 5. Choose Write, Image, or Video where the selected provider/model supports it.
 
-API keys are stored in app preferences on the device and sent directly to the
-selected provider. They are not included in the repository.
+API keys are encrypted with Android Keystore-backed secure storage and sent
+directly to the selected provider. They are not included in the repository.
 
 ### Attachments
 
@@ -90,15 +90,11 @@ the composer and remains visible on the sent message.
 
 ## Documentation
 
-- [User guide](documentation/USER_GUIDE.md)
-- [Documentation index](documentation/README.md)
-- [Architecture](ARCHITECTURE.md)
-- [Models and providers](MODELS.md)
 - [Contributing](CONTRIBUTING.md)
-- [Changelog](CHANGELOG.md)
+- [Privacy policy](PRIVACY.md)
 
-Research and migration notes are retained for historical context. The files
-listed above describe the current implementation.
+Internal research and migration notes are intentionally excluded from the
+public repository.
 
 ## License
 

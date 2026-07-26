@@ -48,11 +48,13 @@ class AIService extends ChangeNotifier {
     String prompt,
     void Function(String, bool) onResponse,
   ) async {
-    debugPrint('_performWebSearch called with prompt: $prompt');
+    if (kDebugMode) debugPrint('Starting web search');
     try {
       onResponse('Searching the web...', false);
       final results = await _textGenService.searchWithJina(prompt);
-      debugPrint('Raw search results received: $results');
+      if (kDebugMode) {
+        debugPrint('Web search returned ${results.length} characters');
+      }
 
       if (results.isNotEmpty) {
         onResponse('Search results found. Generating response...', false);
@@ -126,11 +128,10 @@ class AIService extends ChangeNotifier {
     void Function(String, bool) onResponse,
     List<ChatMessage> history,
   ) async {
-    debugPrint('_generateLocalResponse called with:');
-    debugPrint('- prompt: $prompt');
-    debugPrint(
-        '- searchResults: ${searchResults?.substring(0, searchResults.length.clamp(0, 100))}...');
-    debugPrint('- context length: ${context.length}');
+    if (kDebugMode) {
+      debugPrint(
+          'Starting local response with ${context.length} context chunks and ${history.length} history messages');
+    }
 
     // Limit context size for faster inference
     final limitedContext = _limitContextSize(context);
@@ -188,12 +189,10 @@ class AIService extends ChangeNotifier {
     required bool useLocalModel,
     Map<String, dynamic>? visionMessage,
   }) async {
-    debugPrint('\ngetStreamingResponse called with:');
-    debugPrint('- prompt: $prompt');
-    debugPrint('- useWebSearch: $useWebSearch');
-    debugPrint('- useLocalModel: $useLocalModel');
-    debugPrint('- isOfflineMode: ${_offlineService.isOfflineMode}');
-    debugPrint('- history length: ${history.length}');
+    if (kDebugMode) {
+      debugPrint(
+          'Starting generation: local=$useLocalModel, web=$useWebSearch, history=${history.length}');
+    }
 
     if (_isGenerating) {
       debugPrint('Already generating, returning early');
@@ -257,7 +256,7 @@ class AIService extends ChangeNotifier {
             if (kDebugMode) {
               print(
                   '\n==================== VECTOR SEARCH RESULTS ====================');
-              print('Query: "$prompt"');
+              print('Query length: ${prompt.length} characters');
               print('Number of chunks found: ${relevantDocs.length}');
 
               for (int i = 0; i < relevantDocs.length; i++) {
@@ -269,8 +268,7 @@ class AIService extends ChangeNotifier {
 
                 print(
                     '\n--- CHUNK ${i + 1}/${relevantDocs.length} (Source: $source, Score: $score) ---');
-                print(
-                    'First 200 chars: ${doc.pageContent.length > 200 ? "${doc.pageContent.substring(0, 200)}..." : doc.pageContent}');
+                print('Chunk length: ${doc.pageContent.length} characters');
 
                 // Log full content length to verify complete chunks are being used
                 print(
@@ -324,8 +322,7 @@ class AIService extends ChangeNotifier {
               if (kDebugMode) {
                 print(
                     '\n----------- CLEANING CONTEXT CHUNK ${i + 1}/${context.length} -----------');
-                print(
-                    'Before cleaning (first 100 chars): ${context[i].length > 100 ? "${context[i].substring(0, 100)}..." : context[i]}');
+                print('Before cleaning: ${context[i].length} characters');
 
                 // Look for problematic patterns before cleaning
                 final dollarDigitCount =
@@ -345,8 +342,7 @@ class AIService extends ChangeNotifier {
               if (kDebugMode) {
                 final newLength = context[i].length;
                 final lengthDiff = originalLength - newLength;
-                print(
-                    'After cleaning (first 100 chars): ${context[i].length > 100 ? "${context[i].substring(0, 100)}..." : context[i]}');
+                print('After cleaning: ${context[i].length} characters');
                 print(
                     'Length change: $originalLength → $newLength (${lengthDiff > 0 ? "-$lengthDiff" : "+${-lengthDiff}"} chars)');
                 print(

@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io'; // For SocketException
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/chat_message.dart';
+import 'credential_storage_service.dart';
 
 import 'package:write4me/services/online_model_service.dart';
 
@@ -226,13 +226,18 @@ Context (${context.length} relevant passages):
         onResponse('Searching the web...', false);
 
         try {
-          debugPrint('prompt in generateText: $prompt');
+          if (kDebugMode) {
+            debugPrint('Starting web search (${prompt.length} characters)');
+          }
           final searchResults = await searchWithJina(prompt);
 
           // Show search complete status
           onResponse('Search results found. Generating response...', false);
 
-          debugPrint('Jina search results: $searchResults');
+          if (kDebugMode) {
+            debugPrint(
+                'Web search returned ${searchResults.length} characters');
+          }
 
           // Generate response with search results
           // Use provided model or default
@@ -266,7 +271,7 @@ $prompt
       }
     } catch (e) {
       onResponse(_getUserFriendlyError(e), true);
-      throw Exception('Failed to get response: $e');
+      return;
     }
   }
 
@@ -279,10 +284,11 @@ $prompt
       return 'Temporary service issue. Please try again in a moment.';
     } else if (error is MissingApiKeyException) {
       return 'No API key for ${error.providerLabel}. Add it in Settings.';
-    } else if (error is DioException &&
-        (error.response?.statusCode == 401 ||
-            error.response?.statusCode == 403)) {
-      return 'Invalid or unauthorized API key. Check your key in Settings.';
+    } else if (error is DioException) {
+      return providerErrorMessage(
+        error,
+        _onlineModelService.activeProviderConfig.label,
+      );
     } else if (error.toString().contains('Jina API key')) {
       return 'API key missing. Please add your Jina API key in settings.';
     }
@@ -300,9 +306,14 @@ $prompt
       String searchResults = '';
       if (useWebSearch) {
         try {
-          debugPrint('prompt in generateText: $prompt');
+          if (kDebugMode) {
+            debugPrint('Starting web search (${prompt.length} characters)');
+          }
           searchResults = await searchWithJina(prompt);
-          debugPrint('Jina search results: $searchResults');
+          if (kDebugMode) {
+            debugPrint(
+                'Web search returned ${searchResults.length} characters');
+          }
         } catch (e) {
           debugPrint('Error during Jina search: $e');
           // return 'Error: $e'; // Return error to user
@@ -343,9 +354,8 @@ $prompt
           : _formatPrompt(prompt, context, useWebSearch, const []);
 
       if (kDebugMode) {
-        print("Original prompt length: \${formattedPrompt.length} characters");
         debugPrint(
-            '--- FULL PROMPT (ONLINE ---\n$formattedPrompt\n--------------------------');
+            'Online prompt prepared (${formattedPrompt.length} characters)');
       }
 
       return await _chatCompletion(
@@ -420,18 +430,60 @@ $prompt
   }
 
   Future<String> getJinaApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('jina_api_key') ?? '';
+    return await CredentialStorageService.read('jina_api_key') ?? '';
   }
 
   Future<String> getPollinationApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('pollination_api_key') ?? '';
+    return await CredentialStorageService.read('pollination_api_key') ?? '';
   }
 
   void dispose() {
     _dio.close();
   }
+}
+
+String providerErrorMessage(DioException error, String providerLabel) {
+  final status = error.response?.statusCode;
+  final retryAfter = error.response?.headers.value('retry-after');
+  final detail = _providerErrorDetail(error.response?.data);
+
+  return switch (status) {
+    400 => detail ?? 'The selected model rejected this request.',
+    401 ||
+    403 =>
+      'The $providerLabel API key is invalid or lacks permission for this model.',
+    402 =>
+      '$providerLabel credits or the API-key spending limit have been exhausted.',
+    404 =>
+      'The selected $providerLabel model is no longer available. Reload models.',
+    408 => 'The $providerLabel request timed out. Please try again.',
+    429 =>
+      '$providerLabel is rate-limiting this model. ${retryAfter == null ? 'Try again later or choose another model.' : 'Try again after $retryAfter seconds.'}',
+    500 ||
+    502 ||
+    503 ||
+    504 =>
+      '$providerLabel is temporarily unavailable. Please retry or choose another model.',
+    _
+        when error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.sendTimeout ||
+            error.type == DioExceptionType.receiveTimeout =>
+      'The $providerLabel request timed out. Please try again.',
+    _ when error.type == DioExceptionType.connectionError =>
+      'Could not connect to $providerLabel. Check your internet connection.',
+    _ => detail ?? 'The $providerLabel request failed. Please try again.',
+  };
+}
+
+String? _providerErrorDetail(dynamic data) {
+  if (data is String && data.trim().isNotEmpty) return data.trim();
+  if (data is! Map) return null;
+  final error = data['error'];
+  if (error is Map && error['message'] != null) {
+    return error['message'].toString();
+  }
+  final message = data['message'];
+  return message?.toString();
 }
 
 /// Thrown when the active online provider has no API key configured.

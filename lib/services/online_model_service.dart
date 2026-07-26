@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'online_provider.dart';
+import 'credential_storage_service.dart';
 
 class OnlineModel {
   final String name;
@@ -327,12 +328,12 @@ class OnlineModelService extends ChangeNotifier {
   }
 
   Future<String?> getApiKey(OnlineProvider provider) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (provider == OnlineProvider.gemini) {
-      return prefs.getString(kOnlineProviders[provider]!.prefsKey) ??
-          prefs.getString('google_api_key');
-    }
-    return prefs.getString(kOnlineProviders[provider]!.prefsKey);
+    return CredentialStorageService.read(
+      kOnlineProviders[provider]!.prefsKey,
+      legacyAliases: provider == OnlineProvider.gemini
+          ? const ['google_api_key']
+          : const [],
+    );
   }
 
   Future<bool> hasApiKey(OnlineProvider provider) async =>
@@ -341,13 +342,9 @@ class OnlineModelService extends ChangeNotifier {
   Future<bool> hasPollinationApiKey() => hasApiKey(OnlineProvider.pollinations);
 
   Future<void> setApiKey(OnlineProvider provider, String key) async {
-    final prefs = await SharedPreferences.getInstance();
     final value = key.trim();
-    if (value.isEmpty) {
-      await prefs.remove(kOnlineProviders[provider]!.prefsKey);
-    } else {
-      await prefs.setString(kOnlineProviders[provider]!.prefsKey, value);
-    }
+    await CredentialStorageService.write(
+        kOnlineProviders[provider]!.prefsKey, value);
     _availableModels = const [];
     _selectedModels.clear();
     _hasLoadedModels = false;

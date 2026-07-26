@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'credential_storage_service.dart';
 
 class FileUploadService {
   final Dio _dio = Dio();
@@ -37,12 +37,10 @@ class FileUploadService {
   }
 
   Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    await CredentialStorageService.write(_tokenKey, token);
   }
 
   Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    return CredentialStorageService.read(_tokenKey);
   }
 }

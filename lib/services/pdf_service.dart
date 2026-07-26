@@ -46,8 +46,7 @@ class PDFService {
       if (kDebugMode) {
         print(
             "PDFService: Extracted ${pdfContent.length} characters from $pdfName");
-        print(
-            "PDFService: First 100 chars: ${pdfContent.substring(0, pdfContent.length < 100 ? pdfContent.length : 100)}");
+        print("PDFService: Extraction completed");
       }
 
       // Make the document available to the UI immediately. Indexing a large

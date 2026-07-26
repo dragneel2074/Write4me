@@ -22,6 +22,20 @@ logs.txt
 ARCHITECTURE.md
 MODELS.md
 
+# Local release notes, internal research, and QA artifacts
+CHANGELOG.md
+ANDROID_ONLY_IMPLEMENTATION_PLAN.md
+BUILDING_YOUR_OWN_LLAMA_WRAPPER.md
+FLUTTER_GEMMA_VS_FLLAMA_STUDY.md
+LLAMA_FLUTTER_ANDROID_PACKAGE_PLAN.md
+RESEARCH_COMPARISON_SUMMARY.md
+RESEARCH_PROMPT_FOR_CHATGPT.md
+tasks/
+device_*.png
+import_*.png
+pollinations_*.png
+ui_feedback_*.png
+
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.

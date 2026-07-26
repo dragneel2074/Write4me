@@ -15,7 +15,8 @@ class EmbeddingGenerator {
   /// Returns a [Future] that resolves to a list of doubles representing the embedding.
   static Future<List<double>> generateEmbedding(String text) async {
     if (kDebugMode) {
-      print("EmbeddingGenerator: Generating embedding for text: $text");
+      print(
+          "EmbeddingGenerator: Generating embedding for ${text.length} characters");
     }
     
     // Get the model file path, ensuring it's copied locally from assets if necessary.
@@ -114,4 +115,4 @@ class EmbeddingGenerator {
     }
     return modelPath;
   }
-} 
+}

@@ -10,7 +10,6 @@ class FonnxEmbeddings implements Embeddings {
     final cleanedText = _cleanText(text);
     
     if (kDebugMode) {
-      print("FonnxEmbeddings: Embedding query text: '${cleanedText.length > 50 ? '${cleanedText.substring(0, 50)}...' : cleanedText}'");
       print("FonnxEmbeddings: Query text length: ${cleanedText.length} characters");
       if (cleanedText != text) {
         print("FonnxEmbeddings: Text was cleaned (original length: ${text.length})");
@@ -89,4 +88,4 @@ class FonnxEmbeddings implements Embeddings {
     
     return cleaned;
   }
-} 
+}

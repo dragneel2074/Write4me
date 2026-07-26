@@ -617,8 +617,10 @@ class OfflineModelService extends ChangeNotifier {
 
       final truncatedPrompt = _truncateFullPrompt(
           fullPrompt.toString(), modelParameters.contextSize);
-      debugPrint(
-          '--- FULL PROMPT (OFFLINE) ---\n$truncatedPrompt\n--------------------------');
+      if (kDebugMode) {
+        debugPrint(
+            'Offline prompt prepared (${truncatedPrompt.length} characters)');
+      }
 
       final controller = await _ensureModelLoaded(
         _selectedModelPath,

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'credential_storage_service.dart';
 
 class ImageGenerationService {
   static const String baseUrl = 'https://image.pollinations.ai/prompt/';
@@ -44,8 +44,7 @@ class ImageGenerationService {
   }
 
   Future<String?> _getPollinationToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('pollination_api_key');
+    return CredentialStorageService.read('pollination_api_key');
   }
 
   Future<Uint8List?> generateImage({
@@ -60,7 +59,7 @@ class ImageGenerationService {
       String noLogo = 'true';
       String enhance = 'true';
       String safe = 'true';
-      
+
       // Filter the prompt to remove any inappropriate words
       final filteredPrompt = _filterPrompt(prompt);
 
@@ -75,7 +74,8 @@ class ImageGenerationService {
         if (token == null || token.isEmpty) {
           throw Exception('Pollination API key not set.');
         }
-        url = '$baseUrl$encodedPrompt?model=kontext&token=$token&nologo=$noLogo';
+        url =
+            '$baseUrl$encodedPrompt?model=kontext&token=$token&nologo=$noLogo';
         if (image != null) {
           url += '&image=$image';
         }
@@ -84,12 +84,13 @@ class ImageGenerationService {
           url += '&image=$image';
         }
       }
-      
+
       if (kDebugMode) {
         print(url);
       }
-      
-      final response = await _dio.get(url, options: Options(responseType: ResponseType.bytes));
+
+      final response = await _dio.get(url,
+          options: Options(responseType: ResponseType.bytes));
 
       if (response.statusCode == 200) {
         return response.data;
@@ -114,7 +115,8 @@ class ImageGenerationService {
     if (error is SocketException) {
       return 'No internet connection. Please check your network and try again.';
     } else if (error is DioException) {
-      if (error.type == DioExceptionType.receiveTimeout || error.type == DioExceptionType.sendTimeout) {
+      if (error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
         return 'Request took too long. Please try again.';
       } else if (error.response?.statusCode == 401) {
         return 'Pollination API key missing or invalid. Please add your key in settings.';
